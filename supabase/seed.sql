@@ -1,0 +1,21 @@
+-- Optional local-dev seed data. Not applied to production automatically —
+-- run manually per user if you want starter categories/accounts.
+-- Replace :'user_id' with a real auth.users.id before running.
+
+-- insert into public.categories (user_id, name, type) values
+--   (:'user_id', 'Salary', 'Income'),
+--   (:'user_id', 'Investment Returns', 'Income'),
+--   (:'user_id', 'Dividend', 'Income'),
+--   (:'user_id', 'Food & Dining', 'Expense'),
+--   (:'user_id', 'Rent', 'Expense'),
+--   (:'user_id', 'Utilities', 'Expense'),
+--   (:'user_id', 'Transport', 'Expense'),
+--   (:'user_id', 'Shopping', 'Expense'),
+--   (:'user_id', 'Healthcare', 'Expense'),
+--   (:'user_id', 'Entertainment', 'Expense'),
+--   (:'user_id', 'Self Transfer', 'Transfer');
+
+-- insert into public.accounts (user_id, name, type, opening_balance, currency) values
+--   (:'user_id', 'Zerodha', 'Trading / Demat', 0, 'INR'),
+--   (:'user_id', 'Cash', 'Cash', 0, 'INR'),
+--   (:'user_id', 'Savings Account', 'Savings', 0, 'INR');

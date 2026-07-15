@@ -1,0 +1,49 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+
+# expo
+.expo/
+dist/
+web-build/
+
+# turbo
+.turbo/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# build
+build/
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# supabase
+supabase/.branches
+supabase/.temp
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+#extra
+.history
+RULES.md
+DATA_MODEL.md
+CLAUDE_CODE_PROMPT.md
+.claude
