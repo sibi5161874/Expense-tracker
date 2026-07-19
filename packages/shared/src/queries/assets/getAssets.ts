@@ -31,3 +31,45 @@ export async function getLoansLiabilities(supabase: SupabaseClient<Database>, us
   if (error) throw error;
   return data;
 }
+
+export async function getEpfAccounts(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase.from('assets_epf').select('*').eq('user_id', userId);
+  if (error) throw error;
+  return data;
+}
+
+export async function getNpsAccounts(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase.from('assets_nps').select('*').eq('user_id', userId);
+  if (error) throw error;
+  return data;
+}
+
+export async function getSsyAccounts(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_ssy')
+    .select('*')
+    .eq('user_id', userId)
+    .order('opening_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getSgbHoldings(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_sgb')
+    .select('*')
+    .eq('user_id', userId)
+    .order('issue_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getUlipPolicies(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_ulip')
+    .select('*')
+    .eq('user_id', userId)
+    .order('maturity_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}

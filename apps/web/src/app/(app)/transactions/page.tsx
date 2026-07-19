@@ -1,14 +1,20 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Plus, Receipt, Download, UploadCloud, Pencil, Trash2 } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { TransactionForm } from '@/components/TransactionForm';
-import { TransactionRow } from '@/components/transactions/TransactionRow';
+import { ImportDialog } from '@/components/shared/ImportDialog';
+import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
+import { AmountText } from '@/components/shared/AmountText';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { transactionTypeTone } from '@/lib/badgeTones';
+import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
+import { TRANSACTIONS_TEMPLATE_COLUMNS, TRANSACTIONS_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
 import type { getTransactions } from '@repo/shared/queries/transactions';
 
 type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[number];
@@ -16,8 +22,16 @@ type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[numb
 export default function TransactionsPage() {
   const [page, setPage] = useState(0);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const { data: transactions, isLoading, error, deleteTransaction, isDeleting } = useTransactions({ page });
+
+  // Stagger-fade rows in only on the very first successful load — never on pagination or refetch.
+  const hasAnimatedRef = useRef(false);
+  const shouldAnimateRows = !isLoading && !hasAnimatedRef.current;
+  useEffect(() => {
+    if (!isLoading) hasAnimatedRef.current = true;
+  }, [isLoading]);
 
   const handleEdit = useCallback((transaction: Transaction) => setEditingTransaction(transaction), []);
   const handleDelete = useCallback((id: string) => deleteTransaction(id), [deleteTransaction]);
@@ -26,73 +40,150 @@ export default function TransactionsPage() {
     setEditingTransaction(null);
   }, []);
 
+  const columns: DataTableColumn<Transaction>[] = [
+    {
+      id: 'date',
+      header: 'Date',
+      cell: (t) => <span className="text-muted-foreground font-mono tabular-nums">{t.date}</span>,
+      sortValue: (t) => t.date,
+    },
+    {
+      id: 'type',
+      header: 'Type',
+      cell: (t) => <StatusBadge tone={transactionTypeTone(t.type)}>{t.type}</StatusBadge>,
+    },
+    { id: 'category', header: 'Category', cell: (t) => t.category?.name ?? '-' },
+    {
+      id: 'amount',
+      header: 'Amount',
+      className: 'text-right',
+      cell: (t) => (
+        <AmountText value={t.amount} sign={t.type === 'Income' ? 'positive' : t.type === 'Expense' ? 'negative' : 'neutral'} />
+      ),
+      sortValue: (t) => t.amount,
+    },
+    { id: 'account', header: 'Account', cell: (t) => t.from_account?.name ?? '-' },
+    {
+      id: 'notes',
+      header: 'Notes',
+      cell: (t) => <span className="text-muted-foreground max-w-48 truncate">{t.notes || '-'}</span>,
+    },
+  ];
+
+  const filters: DataTableFilter<Transaction>[] = [
+    {
+      id: 'type',
+      label: 'Type',
+      options: [
+        { label: 'Income', value: 'Income' },
+        { label: 'Expense', value: 'Expense' },
+        { label: 'Transfer', value: 'Transfer' },
+      ],
+      getValue: (t) => t.type,
+    },
+  ];
+
   return (
     <div>
       <PageHeader
         title="Transactions"
         description="Track your income, expenses, and transfers."
         action={
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="size-4" />
-            Add Transaction
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                downloadCsvTemplate(
+                  'transactions-template.csv',
+                  TRANSACTIONS_TEMPLATE_COLUMNS,
+                  TRANSACTIONS_TEMPLATE_EXAMPLE_ROW
+                )
+              }
+            >
+              <Download className="size-4" />
+              Download Template
+            </Button>
+            <Button variant="outline" onClick={() => setShowImport(true)}>
+              <UploadCloud className="size-4" />
+              Import CSV
+            </Button>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Add Transaction
+            </Button>
+          </div>
         }
       />
 
-      {isLoading ? (
-        <LoadingState label="Loading transactions..." />
-      ) : error ? (
+      {error ? (
         <ErrorState error={error} />
+      ) : !isLoading && transactions?.length === 0 && page === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="No transactions yet"
+          description="Log your first income, expense, or transfer to start tracking your cash flow."
+          action={
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Add Transaction
+            </Button>
+          }
+        />
       ) : (
-        <>
-          <div className="bg-card border-border/60 overflow-hidden rounded-2xl border shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions?.map((transaction) => (
-                  <TransactionRow
-                    key={transaction.id}
-                    transaction={transaction}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    isDeleting={isDeleting}
-                  />
-                ))}
-                {transactions?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-muted-foreground h-32 text-center">
-                      No transactions found. Add your first transaction to get started.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
-              Previous
-            </Button>
-            <span className="text-muted-foreground text-sm">Page {page + 1}</span>
+        <DataTable
+          data={transactions}
+          isLoading={isLoading}
+          columns={columns}
+          getRowId={(t) => t.id}
+          searchPlaceholder="Search category, account, notes…"
+          searchableText={(t) => `${t.category?.name ?? ''} ${t.from_account?.name ?? ''} ${t.notes ?? ''}`}
+          filters={filters}
+          selectable
+          bulkActions={(ids, clear) => (
             <Button
-              variant="outline"
-              onClick={() => setPage(page + 1)}
-              disabled={!transactions || transactions.length < 50}
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => {
+                if (confirm(`Delete ${ids.length} transaction${ids.length === 1 ? '' : 's'}?`)) {
+                  ids.forEach((id) => handleDelete(id));
+                  clear();
+                }
+              }}
             >
-              Next
+              <Trash2 className="size-3.5" />
+              Delete selected
             </Button>
-          </div>
-        </>
+          )}
+          rowActions={(t) => (
+            <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground size-8"
+                onClick={() => handleEdit(t)}
+              >
+                <Pencil className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive size-8"
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this transaction?')) handleDelete(t.id);
+                }}
+                disabled={isDeleting}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          )}
+          emptyMessage="No transactions on this page."
+          page={page}
+          onPageChange={setPage}
+          hasNextPage={!!transactions && transactions.length >= 50}
+          animateRows={shouldAnimateRows}
+        />
       )}
 
       {(showForm || editingTransaction) && (
@@ -114,6 +205,15 @@ export default function TransactionsPage() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {showImport && (
+        <ImportDialog
+          apiPath="/api/import/transactions"
+          entityLabel="transaction"
+          invalidateQueryKeys={[['transactions'], ['monthlyOverview']]}
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>

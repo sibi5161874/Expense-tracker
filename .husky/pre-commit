@@ -1,0 +1,4 @@
+# `lint` is intentionally excluded — the codebase currently has ~20 pre-existing
+# ESLint errors unrelated to any given commit, so gating every commit on a clean
+# lint run would block unrelated work. Re-add it here once that backlog is cleared.
+pnpm typecheck && pnpm test

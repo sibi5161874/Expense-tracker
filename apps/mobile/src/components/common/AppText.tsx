@@ -1,5 +1,7 @@
 import { Text, type TextProps } from "react-native";
+import { cn } from "@/lib/cn";
 
-export function AppText(props: TextProps) {
-  return <Text {...props} />;
+/** Base text primitive — every screen composes on top of this rather than raw RN <Text>. */
+export function AppText({ className, ...props }: TextProps & { className?: string }) {
+  return <Text className={cn("text-foreground", className)} {...props} />;
 }

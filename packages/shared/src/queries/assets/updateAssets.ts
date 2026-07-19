@@ -3,6 +3,11 @@ import type { Database } from '../../types';
 import type { AssetFixedDepositInput } from '../../schemas';
 import type { AssetGoldInput } from '../../schemas';
 import type { AssetLoanLiabilityInput } from '../../schemas';
+import type { AssetEpfInput } from '../../schemas';
+import type { AssetNpsInput } from '../../schemas';
+import type { AssetSsyInput } from '../../schemas';
+import type { AssetSgbInput } from '../../schemas';
+import type { AssetUlipInput } from '../../schemas';
 
 export async function updateFixedDeposit(
   supabase: SupabaseClient<Database>,
@@ -54,6 +59,91 @@ export async function updateLoanLiability(
     .select()
     .single();
 
+  if (error) throw error;
+  return result;
+}
+
+export async function updateEpfAccount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetEpfInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_epf')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+
+export async function updateNpsAccount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetNpsInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_nps')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+
+export async function updateSsyAccount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetSsyInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_ssy')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+
+export async function updateSgbHolding(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetSgbInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_sgb')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+
+export async function updateUlipPolicy(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetUlipInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_ulip')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
   return result;
 }

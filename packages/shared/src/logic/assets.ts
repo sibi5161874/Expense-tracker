@@ -57,9 +57,23 @@ export function calculateGoldMetrics(
 ): GoldMetrics {
   const currentValue = grams * ratePerGram;
   const pnl = currentValue - purchaseValue;
-  
+
   return {
     currentValue,
     pnl,
   };
+}
+
+/** SSY matures 21 years from account opening (DATA_MODEL.md §6b). */
+export function calculateSsyMaturityDate(openingDate: string): string {
+  const date = new Date(openingDate);
+  date.setFullYear(date.getFullYear() + 21);
+  return date.toISOString().slice(0, 10);
+}
+
+/** SGB tenor is 8 years from issue (DATA_MODEL.md §6b). */
+export function calculateSgbMaturityDate(issueDate: string): string {
+  const date = new Date(issueDate);
+  date.setFullYear(date.getFullYear() + 8);
+  return date.toISOString().slice(0, 10);
 }

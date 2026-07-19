@@ -2,6 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  core-js: true
   esbuild: true
   sharp: true
   unrs-resolver: true
+overrides:
+  # Moderate XSS advisory (GHSA-qx2v-qp2m-jg93), patched same-major — safe transitive bump.
+  postcss@<8.5.10: ">=8.5.10"

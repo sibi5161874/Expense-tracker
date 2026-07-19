@@ -10,9 +10,12 @@ interface ExpenseBreakdownChartProps {
 }
 
 export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
-  const top = data.slice(0, 5);
+  const sorted = [...data].sort((a, b) => b.value - a.value);
+  const top = sorted.slice(0, 4);
+  const otherTotal = sorted.slice(4).reduce((sum, d) => sum + d.value, 0);
+  const slices = otherTotal > 0 ? [...top, { name: "Other", value: otherTotal }] : top;
 
-  if (top.length === 0) {
+  if (slices.length === 0) {
     return (
       <div className="text-muted-foreground flex h-[220px] items-center justify-center text-sm">
         No expenses this month yet.
@@ -24,8 +27,8 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <ResponsiveContainer width="100%" height={200} className="sm:max-w-[200px]">
         <PieChart>
-          <Pie data={top} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={2}>
-            {top.map((entry, i) => (
+          <Pie data={slices} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={2}>
+            {slices.map((entry, i) => (
               <Cell key={entry.name} fill={COLORS[i % COLORS.length]} stroke="none" />
             ))}
           </Pie>
@@ -42,7 +45,7 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
         </PieChart>
       </ResponsiveContainer>
       <ul className="w-full space-y-2">
-        {top.map((entry, i) => (
+        {slices.map((entry, i) => (
           <li key={entry.name} className="flex items-center justify-between gap-3 text-sm">
             <span className="flex min-w-0 items-center gap-2">
               <span

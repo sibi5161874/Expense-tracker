@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -13,82 +14,270 @@ import {
   LogOut,
   Wallet,
   Settings,
+  FileBarChart,
+  PiggyBank,
+  Coins,
+  HandCoins,
+  ShieldCheck,
+  ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
+  SlidersHorizontal,
+  Tags,
+  Building2,
+  Umbrella,
+  Baby,
+  Banknote,
+  FileStack,
+  User,
+  SquareStack,
+  Cog,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { REPORTS } from "@/lib/reportsRegistry";
 
-const NAV_LINKS = [
+interface NavLeaf {
+  href: string;
+  label: string;
+  icon?: typeof LayoutDashboard;
+}
+
+interface NavGroup {
+  label: string;
+  icon: typeof LayoutDashboard;
+  children: NavLeaf[];
+}
+
+type NavEntry = NavLeaf | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return "children" in entry;
+}
+
+const ASSET_CHILDREN: NavLeaf[] = [
+  { href: "/assets?tab=fd", label: "Fixed Deposits", icon: PiggyBank },
+  { href: "/assets?tab=gold", label: "Gold", icon: Coins },
+  { href: "/assets?tab=loans", label: "Loans & Liabilities", icon: HandCoins },
+  { href: "/assets?tab=epf", label: "EPF", icon: Building2 },
+  { href: "/assets?tab=nps", label: "NPS", icon: FileStack },
+  { href: "/assets?tab=ssy", label: "SSY", icon: Baby },
+  { href: "/assets?tab=sgb", label: "SGB", icon: Banknote },
+  { href: "/assets?tab=ulip", label: "ULIP", icon: Umbrella },
+];
+
+const CONFIG_CHILDREN: NavLeaf[] = [
+  { href: "/config?tab=accounts", label: "Accounts", icon: Wallet },
+  { href: "/config?tab=categories", label: "Categories & Sub-Categories", icon: Tags },
+  { href: "/config?tab=budgets", label: "Budgets", icon: SquareStack },
+];
+
+const SETTINGS_CHILDREN: NavLeaf[] = [
+  { href: "/settings?tab=profile", label: "Profile", icon: User },
+  { href: "/settings?tab=preferences", label: "Preferences", icon: SlidersHorizontal },
+];
+
+const REPORT_CHILDREN: NavLeaf[] = REPORTS.map((r) => ({ href: `/reports/${r.slug}`, label: r.title }));
+
+const NAV_ENTRIES: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cashbook", label: "Cashbook", icon: Users },
-  { href: "/assets", label: "Assets", icon: Landmark },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/insurance", label: "Insurance", icon: ShieldCheck },
+  { label: "Assets", icon: Landmark, children: ASSET_CHILDREN },
+  { label: "Reports", icon: FileBarChart, children: REPORT_CHILDREN },
+  { label: "Config", icon: Cog, children: CONFIG_CHILDREN },
+  { label: "Settings", icon: Settings, children: SETTINGS_CHILDREN },
 ];
 
-export function Sidebar() {
+/** Matches href+query (e.g. `/assets?tab=gold`) against the current route, not just pathname. */
+function useIsActive() {
   const pathname = usePathname();
-  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  return (href: string) => {
+    const [path, query] = href.split("?");
+    if (!query) return pathname.startsWith(path);
+    const targetTab = new URLSearchParams(query).get("tab");
+    return pathname === path && searchParams.get("tab") === targetTab;
+  };
+}
+
+export function Sidebar() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
+  const isActive = useIsActive();
+  const pathname = usePathname();
 
   async function handleSignOut() {
     await signOut();
     router.push("/login");
   }
 
+  const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Persist the collapse preference; auto-open whichever group contains the active route.
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebar-collapsed");
+    if (stored) setCollapsed(stored === "true");
+  }, []);
+
+  useEffect(() => {
+    for (const entry of NAV_ENTRIES) {
+      if (isGroup(entry) && entry.children.some((c) => isActive(c.href))) {
+        setOpenGroups((prev) => ({ ...prev, [entry.label]: true }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-check when the route changes
+  }, [pathname]);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      localStorage.setItem("sidebar-collapsed", String(!prev));
+      return !prev;
+    });
+  }
+
+  function toggleGroup(label: string) {
+    if (collapsed) {
+      setCollapsed(false);
+      localStorage.setItem("sidebar-collapsed", "false");
+      setOpenGroups((prev) => ({ ...prev, [label]: true }));
+      return;
+    }
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  }
+
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
 
   return (
-    <aside className="bg-sidebar text-sidebar-foreground hidden w-64 shrink-0 flex-col border-r border-sidebar-border md:flex">
-      <div className="flex items-center gap-2 px-6 py-5">
-        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-lg">
+    <aside
+      className={cn(
+        "bg-sidebar text-sidebar-foreground relative hidden shrink-0 flex-col border-r border-sidebar-border transition-all duration-200 md:flex",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
+      <div className={cn("flex items-center gap-2 py-5", collapsed ? "justify-center px-3" : "px-6")}>
+        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
           <Wallet className="size-4.5" />
         </div>
-        <span className="text-lg font-semibold">Money Manager</span>
+        {!collapsed && <span className="flex-1 truncate text-lg font-semibold">Money Manager</span>}
+        <button
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/60 shrink-0 rounded-md p-1.5",
+            collapsed && "absolute -right-3 top-6 bg-sidebar border border-sidebar-border"
+          )}
+        >
+          {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
-        {NAV_LINKS.map((link) => {
-          const isActive = pathname.startsWith(link.href);
-          const Icon = link.icon;
+      <nav className="scrollbar-hide flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+        {NAV_ENTRIES.map((entry) => {
+          if (!isGroup(entry)) {
+            const active = isActive(entry.href);
+            const Icon = entry.icon!;
+            return (
+              <Link
+                key={entry.href}
+                href={entry.href}
+                title={collapsed ? entry.label : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  collapsed && "justify-center px-0",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <Icon className="size-4.5 shrink-0" />
+                {!collapsed && entry.label}
+              </Link>
+            );
+          }
+
+          const GroupIcon = entry.icon;
+          const isOpen = !collapsed && !!openGroups[entry.label];
+          const groupHasActive = entry.children.some((c) => isActive(c.href));
+
           return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            <div key={entry.label}>
+              <button
+                onClick={() => toggleGroup(entry.label)}
+                title={collapsed ? entry.label : undefined}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  collapsed && "justify-center px-0",
+                  groupHasActive
+                    ? "text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <GroupIcon className="size-4.5 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">{entry.label}</span>
+                    <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", isOpen && "rotate-180")} />
+                  </>
+                )}
+              </button>
+
+              {isOpen && (
+                <div className="mt-1 ml-4 space-y-0.5 border-l border-sidebar-border pl-3">
+                  {entry.children.map((child) => {
+                    const active = isActive(child.href);
+                    const ChildIcon = child.icon;
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+                          active
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
+                        <span className="truncate">{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            >
-              <Icon className="size-4.5" />
-              {link.label}
-            </Link>
+            </div>
           );
         })}
       </nav>
 
-      <div className="border-sidebar-border border-t px-3 py-4">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+      <div className={cn("border-sidebar-border border-t py-4", collapsed ? "px-2" : "px-3")}>
+        <div className={cn("flex items-center gap-3 rounded-lg px-3 py-2", collapsed && "justify-center px-0")}>
           <Avatar>
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{user?.email}</p>
-          </div>
-          <button
-            onClick={handleSignOut}
-            aria-label="Sign out"
-            className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground rounded-md p-1.5 hover:bg-sidebar-accent/60"
-          >
-            <LogOut className="size-4" />
-          </button>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{user?.email}</p>
+            </div>
+          )}
+          {!collapsed && (
+            <button
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground rounded-md p-1.5 hover:bg-sidebar-accent/60"
+            >
+              <LogOut className="size-4" />
+            </button>
+          )}
         </div>
       </div>
     </aside>

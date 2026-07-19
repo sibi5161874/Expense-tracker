@@ -22,6 +22,20 @@ export function daysUntil(date: string): number {
   return Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
 }
 
+/** "5 min ago" / "2 hr ago" / "3 days ago" style relative timestamp, for "Last updated X ago" labels. */
+export function formatRelativeTime(date: string | Date): string {
+  const then = typeof date === "string" ? new Date(date) : date;
+  const diffSeconds = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
+
+  if (diffSeconds < 60) return "just now";
+  const diffMinutes = Math.round(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
+
 export function isPastDate(date: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

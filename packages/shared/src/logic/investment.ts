@@ -116,9 +116,9 @@ export function calculatePortfolioHolding(
  * Groups investment_log entries by symbol into per-symbol holdings, per the
  * DATA_MODEL.md §3 formulas (units_held, avg_buy_price, current_value, unrealised_pnl).
  *
- * Until Phase 3 wires up the `holdings.live_price` manual field, the most recent
- * trade price for each symbol stands in for the live price — this is an interim
- * approximation, not the final Portfolio view.
+ * `livePriceOverrides` is the `holdings.live_price` manual/refreshed field (Stage 4,
+ * refresh-prices Edge Function) — when a symbol has one, it wins. Otherwise the most
+ * recent trade price stands in, same interim approximation as before Stage 4.
  */
 export interface SymbolHolding {
   symbol: string;
@@ -142,7 +142,8 @@ export function groupInvestmentsBySymbol(
     action: 'BUY' | 'SELL' | 'SIP' | 'DIVIDEND' | 'BONUS' | 'SPLIT';
     quantity: number;
     price: number;
-  }>
+  }>,
+  livePriceOverrides: Record<string, number> = {}
 ): SymbolHolding[] {
   const bySymbol = new Map<string, typeof investments>();
   for (const inv of investments) {
@@ -158,7 +159,7 @@ export function groupInvestmentsBySymbol(
 
     const avgBuyPrice = calculateAvgBuyPrice(entries);
     const mostRecent = [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
-    const currentPrice = mostRecent?.price ?? avgBuyPrice;
+    const currentPrice = livePriceOverrides[symbol] ?? mostRecent?.price ?? avgBuyPrice;
     const currentValue = unitsHeld * currentPrice;
     const invested = unitsHeld * avgBuyPrice;
     const unrealisedPnl = currentValue - invested;
