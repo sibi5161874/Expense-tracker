@@ -11,6 +11,9 @@ import {
   Users,
   Landmark,
   Settings,
+  FileBarChart,
+  ShieldCheck,
+  Cog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +24,10 @@ const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cashbook", label: "Cashbook", icon: Users },
+  { href: "/insurance", label: "Insurance", icon: ShieldCheck },
   { href: "/assets", label: "Assets", icon: Landmark },
+  { href: "/reports", label: "Reports", icon: FileBarChart },
+  { href: "/config", label: "Config", icon: Cog },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

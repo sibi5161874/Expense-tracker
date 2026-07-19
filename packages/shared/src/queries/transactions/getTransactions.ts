@@ -89,3 +89,29 @@ export async function getAllTransactionsForMonth(
   if (error) throw error;
   return data;
 }
+
+/**
+ * Unpaginated fetch for report/aggregate calculations (net worth, year in review,
+ * spending trend, account-wise flow) — never for list rendering. Omit `from`/`to`
+ * to fetch all-time (capped at 20,000 rows as a safety limit).
+ */
+export async function getAllTransactionsForReports(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  opts: { from?: string; to?: string } = {}
+) {
+  let query = supabase
+    .from('transactions')
+    .select(
+      'id, date, type, amount, category_id, from_account_id, to_account_id, category:categories(name), from_account:accounts!transactions_from_account_id_fkey(name), to_account:accounts!transactions_to_account_id_fkey(name)'
+    )
+    .eq('user_id', userId);
+
+  if (opts.from) query = query.gte('date', opts.from);
+  if (opts.to) query = query.lt('date', opts.to);
+
+  const { data, error } = await query.order('date', { ascending: true }).limit(20000);
+
+  if (error) throw error;
+  return data;
+}

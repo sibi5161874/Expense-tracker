@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Values are sRGB conversions of the exact oklch() tokens in apps/web/src/app/globals.css.
+   Keep both files in sync by re-deriving these whenever a web token changes — see the
+   conversion note in the Phase 4 handoff. */
+:root {
+  --background: 251 248 243;
+  --foreground: 25 21 16;
+  --card: 255 253 250;
+  --card-foreground: 25 21 16;
+  --primary: 167 98 0;
+  --primary-foreground: 255 251 245;
+  --secondary: 241 238 233;
+  --secondary-foreground: 25 21 16;
+  --muted: 241 238 233;
+  --muted-foreground: 103 99 93;
+  --accent: 245 229 213;
+  --accent-foreground: 74 43 0;
+  --destructive: 218 42 50;
+  --destructive-subtle: 255 233 230;
+  --success: 35 152 72;
+  --success-foreground: 247 254 248;
+  --success-subtle: 219 248 222;
+  --warning: 227 159 8;
+  --warning-foreground: 47 30 1;
+  --warning-subtle: 255 240 204;
+  --info: 0 137 208;
+  --info-foreground: 246 253 255;
+  --info-subtle: 221 242 255;
+  --border: 224 222 217;
+  --chart1: 167 98 0;
+  --chart2: 0 133 133;
+  --chart3: 167 74 140;
+  --chart4: 53 102 184;
+  --chart5: 119 112 104;
+}
+
+.dark {
+    --background: 16 13 8;
+    --foreground: 241 238 233;
+    --card: 25 21 16;
+    --card-foreground: 241 238 233;
+    --primary: 213 141 37;
+    --primary-foreground: 16 7 1;
+    --secondary: 40 35 29;
+    --secondary-foreground: 241 238 233;
+    --muted: 40 35 29;
+    --muted-foreground: 149 146 139;
+    --accent: 55 36 14;
+    --accent-foreground: 245 217 187;
+    --destructive: 255 99 103;
+    --destructive-subtle: 66 28 25;
+    --success: 75 184 102;
+    --success-foreground: 3 12 4;
+    --success-subtle: 12 49 22;
+    --warning: 236 179 60;
+    --warning-foreground: 31 20 1;
+    --warning-subtle: 58 43 7;
+    --info: 54 162 227;
+    --info-foreground: 2 10 18;
+    --info-subtle: 9 44 65;
+    --border: 40 37 33;
+    --chart1: 213 141 37;
+    --chart2: 9 174 174;
+    --chart3: 210 114 180;
+    --chart4: 88 142 231;
+    --chart5: 163 158 148;
+}

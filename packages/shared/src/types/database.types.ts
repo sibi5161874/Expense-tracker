@@ -10,6 +10,9 @@ export type InvestmentAction = "BUY" | "SELL" | "SIP" | "DIVIDEND" | "BONUS" | "
 export type AssetType = "Stock" | "ETF" | "Mutual Fund" | "Crypto" | "Bond" | "Other";
 export type CashFlow = "Gave" | "Received";
 export type GoalPriority = "High" | "Medium" | "Low";
+export type NpsTier = "Tier I" | "Tier II";
+export type UlipPremiumFrequency = "Monthly" | "Quarterly" | "Half-Yearly" | "Yearly";
+export type InsurancePolicyType = "Term" | "Health" | "Motor" | "Other";
 
 export interface Database {
   public: {
@@ -335,6 +338,170 @@ export interface Database {
           notes?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["assets_loans_liabilities"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_epf: {
+        Row: {
+          id: string;
+          user_id: string;
+          employer_name: string;
+          current_balance: number;
+          monthly_contribution: number;
+          uan_number: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          employer_name: string;
+          current_balance: number;
+          monthly_contribution: number;
+          uan_number?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_epf"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_nps: {
+        Row: {
+          id: string;
+          user_id: string;
+          pran_number: string;
+          current_value: number;
+          tier: NpsTier;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          pran_number: string;
+          current_value: number;
+          tier?: NpsTier;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_nps"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_ssy: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_holder_name: string;
+          account_number: string;
+          current_balance: number;
+          opening_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          account_holder_name: string;
+          account_number: string;
+          current_balance: number;
+          opening_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_ssy"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_sgb: {
+        Row: {
+          id: string;
+          user_id: string;
+          units_held: number;
+          issue_price: number;
+          issue_date: string;
+          rate_per_gram: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          units_held: number;
+          issue_price: number;
+          issue_date: string;
+          rate_per_gram: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_sgb"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_ulip: {
+        Row: {
+          id: string;
+          user_id: string;
+          insurer: string;
+          policy_number: string;
+          sum_assured: number;
+          current_fund_value: number;
+          premium_amount: number;
+          premium_frequency: UlipPremiumFrequency;
+          maturity_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          insurer: string;
+          policy_number: string;
+          sum_assured: number;
+          current_fund_value: number;
+          premium_amount: number;
+          premium_frequency?: UlipPremiumFrequency;
+          maturity_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_ulip"]["Insert"]>;
+        Relationships: [];
+      };
+      user_profiles: {
+        Row: {
+          user_id: string;
+          date_of_birth: string | null;
+          monthly_income: number | null;
+          monthly_expense: number | null;
+          number_of_dependents: number;
+          onboarding_completed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          date_of_birth?: string | null;
+          monthly_income?: number | null;
+          monthly_expense?: number | null;
+          number_of_dependents?: number;
+          onboarding_completed?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      insurance_policies: {
+        Row: {
+          id: string;
+          user_id: string;
+          policy_type: InsurancePolicyType;
+          insurer: string;
+          policy_number: string;
+          coverage_amount: number;
+          premium_amount: number;
+          premium_due_date: string;
+          nominee: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          policy_type: InsurancePolicyType;
+          insurer: string;
+          policy_number: string;
+          coverage_amount: number;
+          premium_amount: number;
+          premium_due_date: string;
+          nominee?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["insurance_policies"]["Insert"]>;
         Relationships: [];
       };
     };

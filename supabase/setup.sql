@@ -546,7 +546,208 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ============================================================================
--- Done. 12 tables created, all with RLS enabled and 4 policies each, plus the
+-- Extended asset classes (DATA_MODEL.md §6b): EPF, NPS, SSY, SGB, ULIP.
+-- ============================================================================
+
+create table public.assets_epf (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  employer_name text not null,
+  current_balance numeric(12,2) not null check (current_balance >= 0),
+  monthly_contribution numeric(12,2) not null check (monthly_contribution >= 0),
+  uan_number text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.assets_epf
+  for each row execute function public.set_updated_at();
+
+alter table public.assets_epf enable row level security;
+
+create policy "assets_epf_select_own" on public.assets_epf
+  for select using (auth.uid() = user_id);
+create policy "assets_epf_insert_own" on public.assets_epf
+  for insert with check (auth.uid() = user_id);
+create policy "assets_epf_update_own" on public.assets_epf
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "assets_epf_delete_own" on public.assets_epf
+  for delete using (auth.uid() = user_id);
+
+create type public.nps_tier as enum ('Tier I', 'Tier II');
+
+create table public.assets_nps (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  pran_number text not null,
+  current_value numeric(12,2) not null check (current_value >= 0),
+  tier public.nps_tier not null default 'Tier I',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.assets_nps
+  for each row execute function public.set_updated_at();
+
+alter table public.assets_nps enable row level security;
+
+create policy "assets_nps_select_own" on public.assets_nps
+  for select using (auth.uid() = user_id);
+create policy "assets_nps_insert_own" on public.assets_nps
+  for insert with check (auth.uid() = user_id);
+create policy "assets_nps_update_own" on public.assets_nps
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "assets_nps_delete_own" on public.assets_nps
+  for delete using (auth.uid() = user_id);
+
+create table public.assets_ssy (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  account_holder_name text not null,
+  account_number text not null,
+  current_balance numeric(12,2) not null check (current_balance >= 0),
+  opening_date date not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.assets_ssy
+  for each row execute function public.set_updated_at();
+
+alter table public.assets_ssy enable row level security;
+
+create policy "assets_ssy_select_own" on public.assets_ssy
+  for select using (auth.uid() = user_id);
+create policy "assets_ssy_insert_own" on public.assets_ssy
+  for insert with check (auth.uid() = user_id);
+create policy "assets_ssy_update_own" on public.assets_ssy
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "assets_ssy_delete_own" on public.assets_ssy
+  for delete using (auth.uid() = user_id);
+
+create table public.assets_sgb (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  units_held numeric(10,3) not null check (units_held > 0),
+  issue_price numeric(12,4) not null check (issue_price > 0),
+  issue_date date not null,
+  rate_per_gram numeric(12,4) not null check (rate_per_gram > 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.assets_sgb
+  for each row execute function public.set_updated_at();
+
+alter table public.assets_sgb enable row level security;
+
+create policy "assets_sgb_select_own" on public.assets_sgb
+  for select using (auth.uid() = user_id);
+create policy "assets_sgb_insert_own" on public.assets_sgb
+  for insert with check (auth.uid() = user_id);
+create policy "assets_sgb_update_own" on public.assets_sgb
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "assets_sgb_delete_own" on public.assets_sgb
+  for delete using (auth.uid() = user_id);
+
+create type public.ulip_premium_frequency as enum ('Monthly', 'Quarterly', 'Half-Yearly', 'Yearly');
+
+create table public.assets_ulip (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  insurer text not null,
+  policy_number text not null,
+  sum_assured numeric(12,2) not null check (sum_assured >= 0),
+  current_fund_value numeric(12,2) not null check (current_fund_value >= 0),
+  premium_amount numeric(12,2) not null check (premium_amount >= 0),
+  premium_frequency public.ulip_premium_frequency not null default 'Yearly',
+  maturity_date date not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.assets_ulip
+  for each row execute function public.set_updated_at();
+
+alter table public.assets_ulip enable row level security;
+
+create policy "assets_ulip_select_own" on public.assets_ulip
+  for select using (auth.uid() = user_id);
+create policy "assets_ulip_insert_own" on public.assets_ulip
+  for insert with check (auth.uid() = user_id);
+create policy "assets_ulip_update_own" on public.assets_ulip
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "assets_ulip_delete_own" on public.assets_ulip
+  for delete using (auth.uid() = user_id);
+
+-- ============================================================================
+-- user_profiles + insurance_policies (DATA_MODEL.md §9, §10).
+-- ============================================================================
+
+create table public.user_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  date_of_birth date,
+  monthly_income numeric(12,2),
+  monthly_expense numeric(12,2),
+  number_of_dependents integer not null default 0 check (number_of_dependents >= 0),
+  onboarding_completed boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.user_profiles
+  for each row execute function public.set_updated_at();
+
+alter table public.user_profiles enable row level security;
+
+create policy "user_profiles_select_own" on public.user_profiles
+  for select using (auth.uid() = user_id);
+create policy "user_profiles_insert_own" on public.user_profiles
+  for insert with check (auth.uid() = user_id);
+create policy "user_profiles_update_own" on public.user_profiles
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "user_profiles_delete_own" on public.user_profiles
+  for delete using (auth.uid() = user_id);
+
+create type public.insurance_policy_type as enum ('Term', 'Health', 'Motor', 'Other');
+
+create table public.insurance_policies (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  policy_type public.insurance_policy_type not null,
+  insurer text not null,
+  policy_number text not null,
+  coverage_amount numeric(12,2) not null check (coverage_amount >= 0),
+  premium_amount numeric(12,2) not null check (premium_amount >= 0),
+  premium_due_date date not null,
+  nominee text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_updated_at
+  before update on public.insurance_policies
+  for each row execute function public.set_updated_at();
+
+alter table public.insurance_policies enable row level security;
+
+create policy "insurance_policies_select_own" on public.insurance_policies
+  for select using (auth.uid() = user_id);
+create policy "insurance_policies_insert_own" on public.insurance_policies
+  for insert with check (auth.uid() = user_id);
+create policy "insurance_policies_update_own" on public.insurance_policies
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "insurance_policies_delete_own" on public.insurance_policies
+  for delete using (auth.uid() = user_id);
+
+-- ============================================================================
+-- Done. 19 tables created, all with RLS enabled and 4 policies each, plus the
 -- base grants anon/authenticated need to reach them, plus default categories
 -- and a Cash account seeded automatically for every new signup.
 -- Next: Authentication > Providers, enable Email + Google in your Supabase

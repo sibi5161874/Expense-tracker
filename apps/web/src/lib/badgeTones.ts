@@ -29,3 +29,15 @@ export function fixedDepositStatusTone(status: string): BadgeTone {
 export function cashbookFlowTone(flow: string): BadgeTone {
   return flow === "Gave" ? "info" : "success";
 }
+
+export function budgetStatusTone(status: string): BadgeTone {
+  if (status === "over") return "destructive";
+  if (status === "warning") return "warning";
+  return "success";
+}
+
+export function premiumStatusTone(status: string): BadgeTone {
+  if (status === "Overdue") return "destructive";
+  if (status === "Due Soon") return "warning";
+  return "neutral";
+}
