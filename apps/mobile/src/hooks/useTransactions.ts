@@ -28,7 +28,11 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     staleTime: 30_000,
   });
 
+  // mutationKey lets a paused (offline) mutation survive a full app restart, not just
+  // backgrounding — see src/lib/mutationDefaults.ts, which registers the matching
+  // "detached" mutationFn TanStack Query falls back to when resuming after a cold start.
   const createMutation = useMutation({
+    mutationKey: ['createTransaction'],
     mutationFn: (data: TransactionInput) => {
       if (!userId) throw new Error('User not authenticated');
       return createTransaction(supabase, userId, data);
@@ -37,6 +41,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
   });
 
   const updateMutation = useMutation({
+    mutationKey: ['updateTransaction'],
     mutationFn: ({ id, data }: { id: string; data: Partial<TransactionInput> }) => {
       if (!userId) throw new Error('User not authenticated');
       return updateTransaction(supabase, userId, id, data);
@@ -45,6 +50,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
   });
 
   const deleteMutation = useMutation({
+    mutationKey: ['deleteTransaction'],
     mutationFn: (id: string) => {
       if (!userId) throw new Error('User not authenticated');
       return deleteTransaction(supabase, userId, id);

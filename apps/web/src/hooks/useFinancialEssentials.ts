@@ -7,6 +7,7 @@ import { useMonthlyTrend } from '@/hooks/useMonthlyTrend';
 import {
   calculateAge,
   calculateFinancialEssentialsCheck,
+  calculateEssentialsScore,
   resolveAverageMonthlyExpense,
   type FinancialEssentialItem,
 } from '@repo/shared/logic';
@@ -54,6 +55,7 @@ export function useFinancialEssentials() {
   }, [profile, policies, netWorth, goals, trend]);
 
   const hasProfileData = !!profile?.date_of_birth && !!profile?.monthly_income;
+  const score = useMemo(() => calculateEssentialsScore(items), [items]);
 
-  return { items, isLoading, hasProfileData, profile };
+  return { items, isLoading, hasProfileData, profile, score };
 }

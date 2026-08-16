@@ -1,17 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { budgetLimitSchema, type BudgetLimitInput } from '@repo/shared/schemas';
-import { parseSupabaseError } from '@repo/shared/utils';
+import { parseSupabaseError, formatINR } from '@repo/shared/utils';
+import { suggestBudgetAmount } from '@repo/shared/logic';
 import { useCategories } from '@/hooks/useCategories';
 import { useBudgetLimits } from '@/hooks/useBudgetLimits';
+import { useTransactionsInRange, monthsAgo } from '@/hooks/useReportsData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CategorySelectField } from '@/components/shared/form-fields/CategorySelectField';
+
+const SUGGESTION_MONTHS_BACK = 3;
 
 interface BudgetLimitFormProps {
   onSuccess: () => void;
@@ -28,6 +32,16 @@ export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFor
     resolver: zodResolver(budgetLimitSchema),
     defaultValues: editing,
   });
+
+  const { data: recentTransactions } = useTransactionsInRange(
+    monthsAgo(SUGGESTION_MONTHS_BACK),
+    monthsAgo(0)
+  );
+  const selectedCategoryId = form.watch('category_id');
+  const suggestedAmount = useMemo(() => {
+    if (!selectedCategoryId || !recentTransactions) return null;
+    return suggestBudgetAmount(recentTransactions, selectedCategoryId, SUGGESTION_MONTHS_BACK);
+  }, [recentTransactions, selectedCategoryId]);
 
   async function onSubmit(data: BudgetLimitInput) {
     setFormError(null);
@@ -69,6 +83,19 @@ export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFor
                       value={field.value ?? ''}
                     />
                   </FormControl>
+                  {suggestedAmount !== null && (
+                    <p className="text-muted-foreground text-sm">
+                      Suggested: {formatINR(suggestedAmount)} (avg. last {SUGGESTION_MONTHS_BACK} months)
+                      {' — '}
+                      <button
+                        type="button"
+                        className="text-primary hover:underline"
+                        onClick={() => form.setValue('monthly_limit', suggestedAmount, { shouldValidate: true })}
+                      >
+                        Use this
+                      </button>
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

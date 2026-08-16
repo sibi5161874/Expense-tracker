@@ -35,7 +35,7 @@ export function TransactionListItem({ transaction, onPress, onDelete }: Transact
   return (
     <Pressable
       onPress={() => onPress(transaction.id)}
-      className="flex-row items-center gap-3 border-b border-border px-4 py-3 active:bg-accent/40"
+      className="flex-row items-center gap-3 px-4 py-4 active:bg-accent/40"
     >
       <View className="flex-1 gap-1">
         <View className="flex-row items-center gap-2">

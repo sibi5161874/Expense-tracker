@@ -158,3 +158,15 @@ export function calculateFinancialEssentialsCheck(params: {
 
   return items;
 }
+
+/**
+ * Overall health score out of 10 — the fraction of applicable essentials items
+ * that are adequate, scaled to 10 and rounded to 1 decimal. Null when there are
+ * no applicable items (nothing to score), so the UI can show a "complete your
+ * profile" prompt instead of a misleading 0/10.
+ */
+export function calculateEssentialsScore(items: FinancialEssentialItem[]): number | null {
+  if (items.length === 0) return null;
+  const adequateCount = items.filter((item) => item.adequate).length;
+  return Math.round((adequateCount / items.length) * 100) / 10;
+}

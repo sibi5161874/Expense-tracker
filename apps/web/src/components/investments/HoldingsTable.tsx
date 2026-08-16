@@ -14,7 +14,7 @@ interface HoldingsTableProps {
 
 export function HoldingsTable({ holdings, animateRows = false }: HoldingsTableProps) {
   return (
-    <div className="border-border/60 overflow-hidden rounded-2xl border">
+    <div className="bg-card overflow-hidden rounded-2xl">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -38,7 +38,7 @@ export function HoldingsTable({ holdings, animateRows = false }: HoldingsTablePr
             <TableRow
               key={`${holding.symbol}-${holding.exchange}`}
               className={cn(
-                'hover:bg-accent/40 border-border/60 transition-colors duration-150',
+                'hover:bg-accent/40 transition-colors duration-150',
                 animateRows && 'animate-in fade-in-0 slide-in-from-bottom-1 duration-300'
               )}
               style={animateRows ? { animationDelay: `${index * 20}ms`, animationFillMode: 'both' } : undefined}

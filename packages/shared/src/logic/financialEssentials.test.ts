@@ -9,6 +9,8 @@ import {
   resolveAverageMonthlyExpense,
   calculatePremiumStatus,
   calculateFinancialEssentialsCheck,
+  calculateEssentialsScore,
+  type FinancialEssentialItem,
 } from './financialEssentials';
 
 describe('calculateAge', () => {
@@ -146,5 +148,27 @@ describe('calculateFinancialEssentialsCheck', () => {
     expect(items.find((i) => i.key === 'term')?.adequate).toBe(true);
     expect(items.find((i) => i.key === 'health')?.adequate).toBe(true);
     expect(items.find((i) => i.key === 'emergencyFund')?.adequate).toBe(true);
+  });
+});
+
+describe('calculateEssentialsScore', () => {
+  function item(adequate: boolean): FinancialEssentialItem {
+    return { key: 'emergencyFund', label: 'Emergency Fund', adequate, current: 0, recommended: 0 };
+  }
+
+  it('is 10 when every applicable item is adequate', () => {
+    expect(calculateEssentialsScore([item(true), item(true), item(true)])).toBe(10);
+  });
+
+  it('is 0 when no applicable item is adequate', () => {
+    expect(calculateEssentialsScore([item(false), item(false)])).toBe(0);
+  });
+
+  it('scales proportionally and rounds to 1 decimal for a partial mix', () => {
+    expect(calculateEssentialsScore([item(true), item(false), item(false)])).toBe(3.3);
+  });
+
+  it('returns null when there are no applicable items to score', () => {
+    expect(calculateEssentialsScore([])).toBeNull();
   });
 });

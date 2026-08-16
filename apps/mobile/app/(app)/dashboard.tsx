@@ -44,7 +44,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-10">
+      <ScrollView contentContainerClassName="gap-6 p-4 pb-32">
         <PageHeader title="Dashboard" description="Here's what's happening with your finances this month." />
 
         {isLoading ? (

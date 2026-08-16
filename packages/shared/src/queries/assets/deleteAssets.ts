@@ -67,3 +67,28 @@ export async function deleteUlipPolicy(supabase: SupabaseClient<Database>, userI
   const { error } = await supabase.from('assets_ulip').delete().eq('user_id', userId).eq('id', id);
   if (error) throw error;
 }
+
+export async function deleteRealEstate(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_real_estate').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deletePpfAccount(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_ppf').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteRecurringDeposit(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_recurring_deposits').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteNscCertificate(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_nsc').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteVehicle(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_vehicles').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}

@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 /** Matches the shape of a banded data table while it loads — same row count/rhythm as the loaded result. */
 export function TableSkeleton({ columns, rows = 8 }: { columns: number; rows?: number }) {
   return (
-    <div className="border-border/60 overflow-hidden rounded-2xl border">
+    <div className="bg-card overflow-hidden rounded-2xl">
       <Table>
         <TableBody>
           {Array.from({ length: rows }, (_, r) => (

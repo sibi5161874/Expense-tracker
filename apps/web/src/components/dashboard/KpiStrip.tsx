@@ -20,20 +20,15 @@ export interface KpiStatItem {
 }
 
 /**
- * A single shared soft container for a row of related stats, divided internally rather than
- * each stat getting its own bordered card — deliberately not a repeated grid of identical boxes.
- * Meaning is signaled by the value's color and a small inline icon, never an icon-in-a-circle.
+ * Each stat gets its own flat rounded-2xl card — no divider lines between them (design
+ * spec §4: hierarchy comes from weight/size/color, never lines/borders). Meaning is
+ * signaled by the value's color and a small inline icon, never an icon-in-a-circle.
  */
 export function KpiStrip({ items, className }: { items: KpiStatItem[]; className?: string }) {
   return (
-    <div
-      className={cn(
-        'bg-muted/40 divide-border/70 grid grid-cols-2 divide-x divide-y rounded-2xl sm:grid-cols-4 sm:divide-y-0',
-        className
-      )}
-    >
+    <div className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>
       {items.map(({ label, icon: Icon, tone = 'neutral', value }) => (
-        <div key={label} className="flex flex-col gap-1.5 px-5 py-4">
+        <div key={label} className="bg-muted/40 flex flex-col gap-1.5 rounded-2xl px-5 py-4">
           <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <Icon className="size-3.5" />
             {label}

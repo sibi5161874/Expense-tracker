@@ -1,10 +1,15 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Plus, Download, UploadCloud, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Plus, Download, UploadCloud, Landmark, Pencil, Trash2 } from 'lucide-react';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { InvestmentForm } from '@/components/InvestmentForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
+import { BrokerImportDialog } from '@/components/shared/BrokerImportDialog';
+import { ProLockedButton } from '@/components/shared/ProGate';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { AmountText } from '@/components/shared/AmountText';
@@ -21,11 +26,19 @@ type InvestmentLogEntry = NonNullable<Awaited<ReturnType<typeof getInvestmentLog
 const ACTIONS = ['BUY', 'SELL', 'SIP', 'DIVIDEND', 'BONUS', 'SPLIT'];
 
 export default function InvestmentsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showBrokerImport, setShowBrokerImport] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<InvestmentLogEntry | null>(null);
   const { data: investments, isLoading, error, deleteInvestmentLog, isDeleting } = useInvestmentLog({ page });
+  const { hasFeature } = useEntitlements();
+
+  function goToUpgrade() {
+    toast.info('Native broker import is a Pro feature — start your free trial to unlock it.');
+    router.push('/settings?tab=billing');
+  }
 
   const handleEdit = useCallback((investment: InvestmentLogEntry) => setEditingInvestment(investment), []);
   const handleDelete = useCallback((id: string) => deleteInvestmentLog(id), [deleteInvestmentLog]);
@@ -90,6 +103,18 @@ export default function InvestmentsPage() {
               <UploadCloud className="size-4" />
               Import CSV
             </Button>
+            {hasFeature('brokerImport') ? (
+              <Button variant="outline" onClick={() => setShowBrokerImport(true)}>
+                <Landmark className="size-4" />
+                Import from Broker
+              </Button>
+            ) : (
+              <ProLockedButton
+                label="Import from Broker"
+                icon={<Landmark className="size-4" />}
+                onUpgradeClick={goToUpgrade}
+              />
+            )}
             <Button onClick={() => setShowForm(true)}>
               <Plus className="size-4" />
               Add Investment
@@ -189,6 +214,8 @@ export default function InvestmentsPage() {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {showBrokerImport && <BrokerImportDialog onClose={() => setShowBrokerImport(false)} />}
     </div>
   );
 }

@@ -4,6 +4,8 @@
  * balances + fixed deposit principal (unwithdrawn) + gold current value.
  */
 
+import { convertToBaseCurrency, type FxRates } from './fx';
+
 export interface AccountBalance {
   accountId: string;
   balance: number;
@@ -51,6 +53,11 @@ export interface NetWorthBreakdown {
   ssyTotal: number;
   sgbTotal: number;
   ulipTotal: number;
+  realEstateTotal: number;
+  ppfTotal: number;
+  recurringDepositsTotal: number;
+  nscTotal: number;
+  vehiclesTotal: number;
   portfolioValue: number;
   liabilitiesTotal: number;
   netWorth: number;
@@ -65,6 +72,11 @@ export function calculateNetWorth(params: {
   ssyAccounts?: Array<{ current_balance: number }>;
   sgbHoldings?: Array<{ units_held: number; rate_per_gram: number }>;
   ulipPolicies?: Array<{ current_fund_value: number }>;
+  realEstate?: Array<{ current_value: number }>;
+  ppfAccounts?: Array<{ current_balance: number }>;
+  recurringDeposits?: Array<{ maturity_value: number }>;
+  nscCertificates?: Array<{ purchase_value: number }>;
+  vehicles?: Array<{ current_value: number }>;
   portfolioCurrentValue: number;
   liabilities: Array<{ outstanding: number }>;
 }): NetWorthBreakdown {
@@ -78,6 +90,14 @@ export function calculateNetWorth(params: {
   // ULIP's sum_assured (insurance cover) is deliberately excluded — only the
   // investment component (current_fund_value) counts toward net worth.
   const ulipTotal = (params.ulipPolicies ?? []).reduce((sum, u) => sum + u.current_fund_value, 0);
+  const realEstateTotal = (params.realEstate ?? []).reduce((sum, r) => sum + r.current_value, 0);
+  const ppfTotal = (params.ppfAccounts ?? []).reduce((sum, p) => sum + p.current_balance, 0);
+  // RD is valued at maturity_value (its contracted payout) to match how FDs are
+  // treated here; NSC uses purchase_value since its accrued interest isn't tracked
+  // per-year. Both are deliberately conservative rather than estimating accruals.
+  const recurringDepositsTotal = (params.recurringDeposits ?? []).reduce((sum, r) => sum + r.maturity_value, 0);
+  const nscTotal = (params.nscCertificates ?? []).reduce((sum, n) => sum + n.purchase_value, 0);
+  const vehiclesTotal = (params.vehicles ?? []).reduce((sum, v) => sum + v.current_value, 0);
   const liabilitiesTotal = params.liabilities.reduce((sum, l) => sum + l.outstanding, 0);
   const netWorth =
     cashAndBankTotal +
@@ -88,6 +108,11 @@ export function calculateNetWorth(params: {
     ssyTotal +
     sgbTotal +
     ulipTotal +
+    realEstateTotal +
+    ppfTotal +
+    recurringDepositsTotal +
+    nscTotal +
+    vehiclesTotal +
     params.portfolioCurrentValue -
     liabilitiesTotal;
 
@@ -100,8 +125,102 @@ export function calculateNetWorth(params: {
     ssyTotal,
     sgbTotal,
     ulipTotal,
+    realEstateTotal,
+    ppfTotal,
+    recurringDepositsTotal,
+    nscTotal,
+    vehiclesTotal,
     portfolioValue: params.portfolioCurrentValue,
     liabilitiesTotal,
     netWorth,
   };
+}
+
+export interface NetWorthSnapshotFields {
+  snapshot_date: string;
+  cash_and_bank_total: number;
+  fixed_deposits_total: number;
+  gold_total: number;
+  epf_total: number;
+  nps_total: number;
+  ssy_total: number;
+  sgb_total: number;
+  ulip_total: number;
+  real_estate_total: number;
+  ppf_total: number;
+  recurring_deposits_total: number;
+  nsc_total: number;
+  vehicles_total: number;
+  portfolio_value: number;
+  liabilities_total: number;
+  net_worth: number;
+}
+
+/** Maps a live NetWorthBreakdown into a snapshot row ready to save — "Take Snapshot" freezes today's numbers as-is. */
+export function buildSnapshotFromBreakdown(breakdown: NetWorthBreakdown, snapshotDate: string): NetWorthSnapshotFields {
+  return {
+    snapshot_date: snapshotDate,
+    cash_and_bank_total: breakdown.cashAndBankTotal,
+    fixed_deposits_total: breakdown.fixedDepositsTotal,
+    gold_total: breakdown.goldTotal,
+    epf_total: breakdown.epfTotal,
+    nps_total: breakdown.npsTotal,
+    ssy_total: breakdown.ssyTotal,
+    sgb_total: breakdown.sgbTotal,
+    ulip_total: breakdown.ulipTotal,
+    real_estate_total: breakdown.realEstateTotal,
+    ppf_total: breakdown.ppfTotal,
+    recurring_deposits_total: breakdown.recurringDepositsTotal,
+    nsc_total: breakdown.nscTotal,
+    vehicles_total: breakdown.vehiclesTotal,
+    portfolio_value: breakdown.portfolioValue,
+    liabilities_total: breakdown.liabilitiesTotal,
+    net_worth: breakdown.netWorth,
+  };
+}
+
+/** % change between two snapshots' net worth — null when there's nothing to compare against (first-ever snapshot, or a zero baseline). */
+export function calculateSnapshotGrowthPct(currentNetWorth: number, previousNetWorth: number | null): number | null {
+  if (previousNetWorth === null || previousNetWorth === 0) return null;
+  return Math.round(((currentNetWorth - previousNetWorth) / Math.abs(previousNetWorth)) * 1000) / 10;
+}
+
+export interface AccountBalanceConversion {
+  /** Ready to sum straight into calculateNetWorth's accountBalances param. */
+  convertedBalances: number[];
+  /** Currencies that had a balance but no usable FX rate — excluded above, not zeroed. */
+  unconvertedCurrencies: string[];
+}
+
+/**
+ * Converts each account's own-currency balance to INR before it's summed into
+ * net worth. `accounts.currency` already existed in the schema (default 'INR')
+ * but was never read for conversion — every balance was implicitly treated as
+ * INR regardless of what was recorded. This is the one place that changes.
+ *
+ * An account whose currency has no matching rate is excluded from the total
+ * rather than contributing 0 — the caller (useNetWorth) surfaces
+ * `unconvertedCurrencies` so the UI can say "1 AED account not counted" instead
+ * of silently understating net worth.
+ */
+export function convertAccountBalancesToBase(
+  balances: AccountBalance[],
+  accounts: Array<{ id: string; currency: string }>,
+  rates: FxRates
+): AccountBalanceConversion {
+  const currencyByAccount = new Map(accounts.map((a) => [a.id, a.currency]));
+  const convertedBalances: number[] = [];
+  const unconverted = new Set<string>();
+
+  for (const b of balances) {
+    const currency = currencyByAccount.get(b.accountId) ?? 'INR';
+    const converted = convertToBaseCurrency(b.balance, currency, rates);
+    if (converted === null) {
+      unconverted.add(currency);
+      continue;
+    }
+    convertedBalances.push(converted);
+  }
+
+  return { convertedBalances, unconvertedCurrencies: [...unconverted] };
 }

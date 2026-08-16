@@ -34,7 +34,7 @@ export function PickerField({ label, value, options, onChange, placeholder = "Se
       <AppText className="text-sm font-medium">{label}</AppText>
       <Pressable
         onPress={() => setOpen(true)}
-        className="h-10 flex-row items-center justify-between rounded-lg border border-border bg-background px-3"
+        className="h-12 flex-row items-center justify-between rounded-2xl border border-border bg-background px-4"
       >
         <AppText className={selected ? "text-foreground" : "text-muted-foreground"}>
           {selected?.label ?? placeholder}

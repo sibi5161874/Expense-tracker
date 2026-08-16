@@ -33,8 +33,57 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Test
         run: pnpm test
 
       - name: Build
         run: pnpm build
+
+  verify-rls:
+    # Runs the RLS cross-user isolation smoke test (apps/web/scripts/verify-rls.mjs)
+    # against a dedicated TEST Supabase project — never point these secrets at prod,
+    # since the script creates and deletes real auth users and inserts/deletes real
+    # rows. Skipped entirely when the secrets aren't configured (e.g. fork PRs, or
+    # before a test project is wired up) rather than failing CI on missing secrets.
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' }}
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.RLS_TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.RLS_TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RLS_TEST_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check RLS test project secrets are configured
+        id: secrets-check
+        run: |
+          if [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping RLS verification — RLS_TEST_SUPABASE_* secrets are not set. See RULES.md §7."
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.secrets-check.outputs.configured == 'true'
+        with:
+          version: 11.11.0
+
+      - uses: actions/setup-node@v4
+        if: steps.secrets-check.outputs.configured == 'true'
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.secrets-check.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify RLS isolation
+        if: steps.secrets-check.outputs.configured == 'true'
+        working-directory: apps/web
+        run: node scripts/verify-rls.mjs

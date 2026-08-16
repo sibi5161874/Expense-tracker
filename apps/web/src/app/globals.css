@@ -7,12 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Was `var(--font-sans)` — a no-op self-reference that left `font-sans` resolving to
-     Tailwind's own built-in system-ui stack. Geist was loaded via next/font but never
-     actually wired to the font-sans utility that `html { @apply font-sans }` uses below. */
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display);
+  --font-display: var(--font-inter);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -53,138 +50,152 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-info-subtle: var(--info-subtle);
+  /* Material-3-style secondary accent (purple) — segmented controls, active tab highlights. */
+  --color-accent2: var(--accent2);
+  --color-accent2-foreground: var(--accent2-foreground);
+  --color-accent2-subtle: var(--accent2-subtle);
 
-  /* Radius — one step softer than default shadcn for a premium, less "boxy" feel */
-  --radius-sm: calc(var(--radius) * 0.55);
-  --radius-md: calc(var(--radius) * 0.75);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.35);
-  --radius-2xl: calc(var(--radius) * 1.75);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Radius — spec requires cards/buttons/inputs at a fixed 16px (rounded-2xl), not a
+     proportional scale, so 2xl is a fixed value rather than derived from --radius. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
+  --radius-4xl: 1.5rem;
 
-  /* Hero display size — Fraunces, reserved for one headline number per screen (e.g. Net Worth).
+  /* Hero display size — reserved for one headline number per screen (e.g. Net Worth).
      Scales from 3rem on mobile up to 5.5rem on desktop; deliberately larger than any other
      type on the page so it reads before any label does. */
   --text-hero: clamp(3rem, 2rem + 5vw, 5.5rem);
   --text-hero--line-height: 1;
   --text-hero--letter-spacing: -0.02em;
-  --text-hero--font-weight: 500;
+  --text-hero--font-weight: 600;
 
-  /* Soft, warm-tinted, two-layer shadows instead of default flat black shadows. */
-  --shadow-xs: 0 1px 2px oklch(0.2 0.015 75 / 0.05);
-  --shadow-sm: 0 1px 2px oklch(0.2 0.015 75 / 0.04), 0 2px 6px oklch(0.2 0.015 75 / 0.05);
-  --shadow-md: 0 2px 4px oklch(0.2 0.015 75 / 0.04), 0 8px 20px oklch(0.2 0.015 75 / 0.07);
-  --shadow-lg: 0 4px 10px oklch(0.2 0.015 75 / 0.05), 0 16px 36px oklch(0.2 0.015 75 / 0.09);
+  /* Flat design language: no drop shadows on cards/surfaces. `shadow-fab-inset` is the one
+     exception — a subtle inset highlight on the FAB instead of a drop shadow, per spec. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-fab-inset: inset 0 1px 0 0 oklch(1 0 0 / 0.25), inset 0 -1px 2px 0 oklch(0 0 0 / 0.15);
 }
 
 :root {
-  /* Warm ivory paper, not clinical white — editorial base */
-  --background: oklch(0.98 0.007 85);
-  --foreground: oklch(0.2 0.012 75);
-  --card: oklch(0.995 0.004 85);
-  --card-foreground: oklch(0.2 0.012 75);
-  --popover: oklch(0.995 0.004 85);
-  --popover-foreground: oklch(0.2 0.012 75);
+  /* ☀️ Light Mode — "Warm Paper White" */
+  --background: #F8F9FA;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
 
-  /* Brand accent: warm brass/amber — deliberately not blue or green, kept distinct from the
-     income/expense semantic colors below so brand identity never collides with money sign-coding. */
-  --primary: oklch(0.56 0.135 68);
-  --primary-foreground: oklch(0.99 0.01 68);
+  /* Primary Accent (blue) */
+  --primary: #1976D2;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.95 0.008 85);
-  --secondary-foreground: oklch(0.25 0.012 75);
-  --muted: oklch(0.95 0.008 85);
-  --muted-foreground: oklch(0.5 0.01 75);
-  --accent: oklch(0.93 0.028 68);
-  --accent-foreground: oklch(0.32 0.07 68);
+  --secondary: #F1F3F4;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F1F3F4;
+  --muted-foreground: #6B7280;
+  --accent: #E3F2FD;
+  --accent-foreground: #1976D2;
 
-  /* Semantic — fixed regardless of brand accent or theme, per finance-app scanability requirement */
-  --destructive: oklch(0.577 0.21 25);
-  --destructive-subtle: oklch(0.96 0.035 25);
+  /* Secondary Accent (purple) — segmented controls, active tab highlights */
+  --accent2: #8E24AA;
+  --accent2-foreground: #FFFFFF;
+  --accent2-subtle: #F3E5F5;
+
+  /* Semantic — fixed regardless of theme, per finance-app scanability requirement */
+  --destructive: #D32F2F;
+  --destructive-subtle: #FDECEA;
   --success: oklch(0.6 0.155 149);
   --success-foreground: oklch(0.99 0.01 149);
   --success-subtle: oklch(0.95 0.045 149);
   --warning: oklch(0.75 0.155 78);
   --warning-foreground: oklch(0.25 0.05 78);
   --warning-subtle: oklch(0.96 0.05 85);
-  --info: oklch(0.6 0.15 240);
-  --info-foreground: oklch(0.99 0.01 240);
-  --info-subtle: oklch(0.95 0.03 240);
+  --info: #1976D2;
+  --info-foreground: #FFFFFF;
+  --info-subtle: #E3F2FD;
 
-  --border: oklch(0.9 0.007 85);
-  --input: oklch(0.9 0.007 85);
-  --ring: oklch(0.56 0.135 68);
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #1976D2;
 
   /* Data-viz palette: distinct from brand/semantic so charts read as their own system */
-  --chart-1: oklch(0.56 0.135 68);
-  --chart-2: oklch(0.55 0.11 195);
+  --chart-1: #1976D2;
+  --chart-2: #8E24AA;
   --chart-3: oklch(0.55 0.145 340);
   --chart-4: oklch(0.52 0.14 260);
   --chart-5: oklch(0.55 0.015 75);
 
-  --radius: 0.85rem;
+  --radius: 0.75rem;
 
-  /* Sidebar is always warm-charcoal, in both light and dark mode — a deliberate signature panel
-     rather than a surface that flips with the theme. */
-  --sidebar: oklch(0.18 0.013 75);
-  --sidebar-foreground: oklch(0.92 0.008 85);
-  --sidebar-primary: oklch(0.66 0.135 68);
-  --sidebar-primary-foreground: oklch(0.14 0.02 68);
-  --sidebar-accent: oklch(0.25 0.015 75);
-  --sidebar-accent-foreground: oklch(0.97 0.008 85);
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #2196F3;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.66 0.135 68);
+  --sidebar-ring: #2196F3;
 }
 
 .dark {
-  --background: oklch(0.16 0.011 75);
-  --foreground: oklch(0.95 0.007 85);
-  --card: oklch(0.2 0.012 75);
-  --card-foreground: oklch(0.95 0.007 85);
-  --popover: oklch(0.2 0.012 75);
-  --popover-foreground: oklch(0.95 0.007 85);
+  /* 🌙 Dark Mode — "AMOLED True-Black" */
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #1A1A1A;
+  --card-foreground: #FFFFFF;
+  --popover: #1A1A1A;
+  --popover-foreground: #FFFFFF;
 
-  --primary: oklch(0.7 0.14 70);
-  --primary-foreground: oklch(0.14 0.025 70);
+  --primary: #2196F3;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.26 0.013 75);
-  --secondary-foreground: oklch(0.95 0.007 85);
-  --muted: oklch(0.26 0.013 75);
-  --muted-foreground: oklch(0.66 0.01 80);
-  --accent: oklch(0.28 0.045 68);
-  --accent-foreground: oklch(0.9 0.05 68);
+  --secondary: #1A1A1A;
+  --secondary-foreground: #FFFFFF;
+  --muted: #1A1A1A;
+  --muted-foreground: #B0B0B0;
+  --accent: #0D2A44;
+  --accent-foreground: #64B5F6;
 
-  --destructive: oklch(0.7 0.19 22);
-  --destructive-subtle: oklch(0.28 0.06 25);
+  --accent2: #9C27B0;
+  --accent2-foreground: #FFFFFF;
+  --accent2-subtle: #2A0F30;
+
+  --destructive: #E53935;
+  --destructive-subtle: #3A1414;
   --success: oklch(0.7 0.155 149);
   --success-foreground: oklch(0.14 0.025 149);
   --success-subtle: oklch(0.28 0.065 149);
   --warning: oklch(0.8 0.145 82);
   --warning-foreground: oklch(0.2 0.04 82);
   --warning-subtle: oklch(0.3 0.055 85);
-  --info: oklch(0.68 0.135 240);
-  --info-foreground: oklch(0.14 0.025 240);
-  --info-subtle: oklch(0.28 0.055 240);
+  --info: #2196F3;
+  --info-foreground: #FFFFFF;
+  --info-subtle: #0D2A44;
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.14 70);
+  --ring: #2196F3;
 
-  --chart-1: oklch(0.7 0.14 70);
-  --chart-2: oklch(0.68 0.115 195);
+  --chart-1: #2196F3;
+  --chart-2: #9C27B0;
   --chart-3: oklch(0.68 0.145 340);
   --chart-4: oklch(0.65 0.145 260);
   --chart-5: oklch(0.7 0.015 80);
 
-  --sidebar: oklch(0.12 0.012 75);
-  --sidebar-foreground: oklch(0.92 0.008 85);
-  --sidebar-primary: oklch(0.7 0.14 70);
-  --sidebar-primary-foreground: oklch(0.14 0.025 70);
-  --sidebar-accent: oklch(0.22 0.016 75);
-  --sidebar-accent-foreground: oklch(0.96 0.007 85);
+  --sidebar: #000000;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #2196F3;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A1A1A;
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.7 0.14 70);
+  --sidebar-ring: #2196F3;
 }
 
 @layer base {

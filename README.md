@@ -16,7 +16,7 @@ A comprehensive personal finance and investment tracking application built with 
 ## Tech Stack
 
 - **Web**: Next.js 16 (App Router), React, TypeScript
-- **Mobile**: Expo (React Native) + Expo Router — scaffolded, screens land in Phase 4
+- **Mobile**: Expo (React Native) + Expo Router — feature screens are being ported over from the web app module by module
 - **UI**: TailwindCSS, shadcn/ui components
 - **Backend**: Supabase (PostgreSQL, Auth via `@supabase/ssr`, RLS)
 - **State Management**: TanStack Query
@@ -113,6 +113,59 @@ expense_tracker/
 
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Running the Apps
+
+This is a Turborepo monorepo with two frontends (`apps/web` and `apps/mobile`) sharing
+business logic/types from `packages/shared`. Install once at the repo root (`pnpm install`)
+before running either app.
+
+### Web app (Next.js)
+
+Requires `apps/web/.env.local` — see [Environment Variables](#environment-variables) above.
+
+```bash
+# from the repo root — runs every app/package's dev script via Turborepo
+pnpm dev
+
+# or just the web app on its own
+pnpm --filter web dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Other useful commands (repo root or
+`--filter web`): `pnpm build`, `pnpm lint`, `pnpm typecheck`.
+
+### Mobile app (Expo / React Native)
+
+The mobile app is a separate Expo project at `apps/mobile` — screens are being ported
+over module by module, matching the web app's design system and feature set.
+
+1. **Set up environment variables** — create `apps/mobile/.env.local` (see
+   `apps/mobile/.env.example`) with your Supabase project's client-safe values:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+   (Same Supabase project as the web app — these are the public URL/anon key, safe to
+   share between both frontends.)
+
+2. **Start the Expo dev server**
+   ```bash
+   pnpm --filter mobile start
+   ```
+   This opens the Expo Dev Tools in your terminal with a QR code.
+
+3. **Open the app** — pick whichever matches your setup:
+   ```bash
+   pnpm --filter mobile android   # Android emulator or connected device
+   pnpm --filter mobile ios       # iOS simulator (macOS only)
+   pnpm --filter mobile web       # runs the Expo app in a browser tab
+   ```
+   Or scan the QR code from `pnpm --filter mobile start` with the **Expo Go** app on
+   your phone (fastest way to try it on a real device, no emulator/simulator needed).
+
+   Running an emulator/simulator requires Android Studio (Android) or Xcode (iOS,
+   macOS-only) installed separately — Expo Go on a physical phone avoids that entirely.
+
 ## Database Schema
 
 The application uses the following main tables (every table has RLS enabled with
@@ -153,11 +206,14 @@ SUPABASE_DB_PASSWORD=your-database-password
 
 Run from the repo root (Turborepo fans these out to every app/package):
 
-- `pnpm dev` - Start development server
+- `pnpm dev` - Start development server (web + mobile, wherever a `dev`/`start` script exists)
 - `pnpm build` - Build for production
 - `pnpm lint` - Run ESLint
 - `pnpm typecheck` - Run TypeScript type checking
 - `pnpm test` - Run unit tests (packages/shared)
+
+Scope any script to a single app with `--filter`, e.g. `pnpm --filter web dev` or
+`pnpm --filter mobile start` — see [Running the Apps](#running-the-apps) above.
 
 ## Authentication
 

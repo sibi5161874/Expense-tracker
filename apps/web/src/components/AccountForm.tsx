@@ -5,11 +5,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { accountSchema, type AccountInput } from '@repo/shared/schemas';
 import { parseSupabaseError } from '@repo/shared/utils';
+import { SUPPORTED_CURRENCIES, BASE_CURRENCY } from '@repo/shared/logic';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 interface AccountFormProps {
@@ -20,6 +23,8 @@ interface AccountFormProps {
 
 export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) {
   const { createAccount, updateAccount } = useAccounts();
+  const { hasFeature } = useEntitlements();
+  const canUseMultiCurrency = hasFeature('multiCurrency');
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<AccountInput>({
@@ -108,9 +113,30 @@ export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SUPPORTED_CURRENCIES.map((c) => (
+                        <SelectItem
+                          key={c.code}
+                          value={c.code}
+                          disabled={!canUseMultiCurrency && c.code !== BASE_CURRENCY}
+                        >
+                          {c.code} — {c.label}
+                          {!canUseMultiCurrency && c.code !== BASE_CURRENCY ? ' (Pro)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted-foreground text-xs">
+                    {canUseMultiCurrency
+                      ? 'Non-INR accounts convert to INR at the live exchange rate for net worth and reports.'
+                      : 'Free tier accounts are INR only. Start your Pro trial to track accounts in other currencies.'}
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

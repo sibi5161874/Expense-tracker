@@ -13,6 +13,12 @@ export type GoalPriority = "High" | "Medium" | "Low";
 export type NpsTier = "Tier I" | "Tier II";
 export type UlipPremiumFrequency = "Monthly" | "Quarterly" | "Half-Yearly" | "Yearly";
 export type InsurancePolicyType = "Term" | "Health" | "Motor" | "Other";
+export type RecurringFrequency = "Weekly" | "Monthly" | "Quarterly" | "Yearly";
+export type RealEstatePropertyType = "Residential" | "Commercial" | "Land" | "Other";
+export type VehicleType = "Car" | "Two Wheeler" | "Commercial" | "Other";
+export type SubscriptionTier = "free" | "trial" | "pro";
+export type PaymentPurpose = "trial_verification" | "lifetime_purchase";
+export type PaymentStatus = "created" | "captured" | "refunded" | "failed";
 
 export interface Database {
   public: {
@@ -454,6 +460,208 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["assets_ulip"]["Insert"]>;
         Relationships: [];
       };
+      assets_real_estate: {
+        Row: {
+          id: string;
+          user_id: string;
+          description: string;
+          property_type: RealEstatePropertyType;
+          location: string | null;
+          purchase_value: number;
+          current_value: number;
+          purchase_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          description: string;
+          property_type: RealEstatePropertyType;
+          location?: string | null;
+          purchase_value: number;
+          current_value: number;
+          purchase_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_real_estate"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_ppf: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_number: string;
+          current_balance: number;
+          annual_contribution: number;
+          opening_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          account_number: string;
+          current_balance: number;
+          annual_contribution: number;
+          opening_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_ppf"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_recurring_deposits: {
+        Row: {
+          id: string;
+          user_id: string;
+          bank: string;
+          monthly_installment: number;
+          rate_pct: number;
+          start_date: string;
+          maturity_date: string;
+          maturity_value: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          bank: string;
+          monthly_installment: number;
+          rate_pct: number;
+          start_date: string;
+          maturity_date: string;
+          maturity_value: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_recurring_deposits"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_nsc: {
+        Row: {
+          id: string;
+          user_id: string;
+          certificate_number: string;
+          purchase_value: number;
+          maturity_value: number;
+          rate_pct: number;
+          purchase_date: string;
+          maturity_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          certificate_number: string;
+          purchase_value: number;
+          maturity_value: number;
+          rate_pct: number;
+          purchase_date: string;
+          maturity_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_nsc"]["Insert"]>;
+        Relationships: [];
+      };
+      assets_vehicles: {
+        Row: {
+          id: string;
+          user_id: string;
+          description: string;
+          vehicle_type: VehicleType;
+          registration_number: string | null;
+          purchase_value: number;
+          current_value: number;
+          purchase_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          description: string;
+          vehicle_type: VehicleType;
+          registration_number?: string | null;
+          purchase_value: number;
+          current_value: number;
+          purchase_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_vehicles"]["Insert"]>;
+        Relationships: [];
+      };
+      net_worth_snapshots: {
+        Row: {
+          id: string;
+          user_id: string;
+          snapshot_date: string;
+          cash_and_bank_total: number;
+          fixed_deposits_total: number;
+          gold_total: number;
+          epf_total: number;
+          nps_total: number;
+          ssy_total: number;
+          sgb_total: number;
+          ulip_total: number;
+          real_estate_total: number;
+          ppf_total: number;
+          recurring_deposits_total: number;
+          nsc_total: number;
+          vehicles_total: number;
+          portfolio_value: number;
+          liabilities_total: number;
+          net_worth: number;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          snapshot_date: string;
+          cash_and_bank_total?: number;
+          fixed_deposits_total?: number;
+          gold_total?: number;
+          epf_total?: number;
+          nps_total?: number;
+          ssy_total?: number;
+          sgb_total?: number;
+          ulip_total?: number;
+          real_estate_total?: number;
+          ppf_total?: number;
+          recurring_deposits_total?: number;
+          nsc_total?: number;
+          vehicles_total?: number;
+          portfolio_value?: number;
+          liabilities_total?: number;
+          net_worth: number;
+          notes?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["net_worth_snapshots"]["Insert"]>;
+        Relationships: [];
+      };
+      payment_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          purpose: PaymentPurpose;
+          amount_paise: number;
+          razorpay_order_id: string;
+          razorpay_payment_id: string | null;
+          razorpay_refund_id: string | null;
+          status: PaymentStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          purpose: PaymentPurpose;
+          amount_paise: number;
+          razorpay_order_id: string;
+          razorpay_payment_id?: string | null;
+          razorpay_refund_id?: string | null;
+          status?: PaymentStatus;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_events"]["Insert"]>;
+        Relationships: [];
+      };
       user_profiles: {
         Row: {
           user_id: string;
@@ -462,6 +670,10 @@ export interface Database {
           monthly_expense: number | null;
           number_of_dependents: number;
           onboarding_completed: boolean;
+          tier: SubscriptionTier;
+          trial_started_at: string | null;
+          trial_ends_at: string | null;
+          lifetime_purchased_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -472,6 +684,10 @@ export interface Database {
           monthly_expense?: number | null;
           number_of_dependents?: number;
           onboarding_completed?: boolean;
+          tier?: SubscriptionTier;
+          trial_started_at?: string | null;
+          trial_ends_at?: string | null;
+          lifetime_purchased_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_profiles"]["Insert"]>;
         Relationships: [];
@@ -503,6 +719,62 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["insurance_policies"]["Insert"]>;
         Relationships: [];
+      };
+      recurring_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: TransactionType;
+          category_id: string | null;
+          sub_category: string | null;
+          amount: number;
+          from_account_id: string;
+          to_account_id: string | null;
+          notes: string | null;
+          frequency: RecurringFrequency;
+          next_run_date: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: TransactionType;
+          category_id?: string | null;
+          sub_category?: string | null;
+          amount: number;
+          from_account_id: string;
+          to_account_id?: string | null;
+          notes?: string | null;
+          frequency: RecurringFrequency;
+          next_run_date: string;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["recurring_transactions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_transactions_from_account_id_fkey";
+            columns: ["from_account_id"];
+            isOneToOne: false;
+            referencedRelation: "accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_transactions_to_account_id_fkey";
+            columns: ["to_account_id"];
+            isOneToOne: false;
+            referencedRelation: "accounts";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;

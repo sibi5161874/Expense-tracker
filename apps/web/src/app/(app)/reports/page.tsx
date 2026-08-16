@@ -3,8 +3,12 @@ import { FileStack, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ReportCard } from '@/components/reports/ReportCard';
 import { REPORTS } from '@/lib/reportsRegistry';
+import { isReportEnabled } from '@repo/shared/logic';
 
 const CATEGORIES = ['Expense', 'Investment', 'Combined'] as const;
+
+/** Trim which reports ship via ENABLED_REPORT_SLUGS in packages/shared/config/tierConfig.ts — this list, not a Pro gate. */
+const ENABLED_REPORTS = REPORTS.filter((r) => isReportEnabled(r.slug));
 
 export default function ReportsPage() {
   return (
@@ -25,7 +29,7 @@ export default function ReportsPage() {
           <div>
             <h3 className="font-semibold">Overall Report</h3>
             <p className="text-muted-foreground mt-0.5 text-sm">
-              All {REPORTS.length} reports combined into a single document. PDF download only.
+              All {ENABLED_REPORTS.length} reports combined into a single document. PDF download only.
             </p>
           </div>
         </div>
@@ -37,7 +41,7 @@ export default function ReportsPage() {
           <section key={category}>
             <h2 className="mb-4 text-lg font-semibold">{category} Reports</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {REPORTS.filter((r) => r.category === category).map((report) => (
+              {ENABLED_REPORTS.filter((r) => r.category === category).map((report) => (
                 <ReportCard key={report.slug} report={report} />
               ))}
             </div>

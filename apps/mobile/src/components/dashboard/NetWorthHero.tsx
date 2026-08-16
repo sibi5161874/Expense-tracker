@@ -35,12 +35,12 @@ export function NetWorthHero({ breakdown }: NetWorthHeroProps) {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row">
-          {CHIPS.map(({ key, label, negate }, i) => {
+        <View className="flex-row gap-6">
+          {CHIPS.map(({ key, label, negate }) => {
             const raw = breakdown[key as "cashAndBankTotal" | "portfolioValue" | "liabilitiesTotal"];
             const value = negate ? -raw : raw;
             return (
-              <View key={key} className={`gap-1 pr-6 ${i > 0 ? "border-l border-border pl-6" : ""}`}>
+              <View key={key} className="gap-1">
                 <AppText className="text-xs text-muted-foreground">{label}</AppText>
                 <AppText
                   className={negate ? "text-destructive" : "text-foreground"}

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { goalSchema, type GoalInput } from '@repo/shared/schemas';
 import { parseSupabaseError } from '@repo/shared/utils';
 import { useGoals } from '@/hooks/useGoals';
+import { GoalInflationHelper } from '@/components/GoalInflationHelper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -36,6 +37,8 @@ export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
       saved_amount: 0,
     },
   });
+
+  const targetDate = form.watch('target_date');
 
   async function onSubmit(data: GoalInput) {
     setFormError(null);
@@ -106,6 +109,11 @@ export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <GoalInflationHelper
+              targetDate={targetDate}
+              onApply={(amount) => form.setValue('target_amount', amount, { shouldValidate: true })}
             />
 
             <FormField

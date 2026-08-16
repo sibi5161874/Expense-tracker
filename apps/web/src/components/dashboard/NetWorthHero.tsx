@@ -31,12 +31,12 @@ export function NetWorthHero({ breakdown, className }: NetWorthHeroProps) {
         />
       </div>
 
-      <div className="divide-border/70 flex flex-wrap divide-x">
+      <div className="flex flex-wrap gap-6">
         {CHIPS.map(({ key, label, negate }) => {
           const raw = breakdown[key as 'cashAndBankTotal' | 'portfolioValue' | 'liabilitiesTotal'];
           const value = negate ? -raw : raw;
           return (
-            <div key={key} className="flex flex-col gap-1 px-4 first:pl-0">
+            <div key={key} className="flex flex-col gap-1">
               <span className="text-muted-foreground text-xs">{label}</span>
               <span
                 className={cn(

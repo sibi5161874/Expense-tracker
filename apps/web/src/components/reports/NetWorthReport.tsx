@@ -13,13 +13,26 @@ import {
   useSsyAccounts,
   useSgbHoldings,
   useUlipPolicies,
+  useRealEstateAssets,
+  usePpfAccounts,
+  useRecurringDeposits,
+  useNscCertificates,
+  useVehicles,
 } from '@/hooks/useAssets';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
-import { calculateAccountBalances, calculateNetWorth, groupInvestmentsBySymbol, summarizeHoldings } from '@repo/shared/logic';
+import { useFxRates } from '@/hooks/useFxRates';
+import {
+  calculateAccountBalances,
+  calculateNetWorth,
+  convertAccountBalancesToBase,
+  groupInvestmentsBySymbol,
+  summarizeHoldings,
+} from '@repo/shared/logic';
 import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { NetWorthSnapshotHistory } from '@/components/reports/NetWorthSnapshotHistory';
 
 interface NetWorthRow {
   label: string;
@@ -30,6 +43,7 @@ interface NetWorthRow {
 export function NetWorthReport() {
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: transactions, isLoading: txnsLoading, error: txnsError } = useAllTimeTransactions();
+  const { rates: fxRates } = useFxRates();
   const { data: fds, isLoading: fdsLoading } = useFixedDeposits();
   const { data: gold, isLoading: goldLoading } = useGoldAssets();
   const { data: liabilities, isLoading: liabilitiesLoading } = useLoanLiabilities();
@@ -39,6 +53,11 @@ export function NetWorthReport() {
   const { data: ssyAccounts, isLoading: ssyLoading } = useSsyAccounts();
   const { data: sgbHoldings, isLoading: sgbLoading } = useSgbHoldings();
   const { data: ulipPolicies, isLoading: ulipLoading } = useUlipPolicies();
+  const { data: realEstateAssets, isLoading: realEstateLoading } = useRealEstateAssets();
+  const { data: ppfAccounts, isLoading: ppfLoading } = usePpfAccounts();
+  const { data: recurringDeposits, isLoading: rdLoading } = useRecurringDeposits();
+  const { data: nscCertificates, isLoading: nscLoading } = useNscCertificates();
+  const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
 
   const isLoading =
     accountsLoading ||
@@ -51,15 +70,25 @@ export function NetWorthReport() {
     npsLoading ||
     ssyLoading ||
     sgbLoading ||
-    ulipLoading;
+    ulipLoading ||
+    realEstateLoading ||
+    ppfLoading ||
+    rdLoading ||
+    nscLoading ||
+    vehiclesLoading;
   const error = accountsError || txnsError;
 
-  const breakdown = useMemo(() => {
+  const conversion = useMemo(() => {
     if (!accounts || !transactions) return null;
     const accountBalances = calculateAccountBalances(accounts, transactions);
+    return convertAccountBalancesToBase(accountBalances, accounts, fxRates);
+  }, [accounts, transactions, fxRates]);
+
+  const breakdown = useMemo(() => {
+    if (!accounts || !transactions || !conversion) return null;
     const holdings = investments ? groupInvestmentsBySymbol(investments) : [];
     return calculateNetWorth({
-      accountBalances: accountBalances.map((b) => b.balance),
+      accountBalances: conversion.convertedBalances,
       activeFixedDeposits: (fds ?? []).filter((fd) => !fd.withdrawn),
       goldHoldings: gold ?? [],
       epfAccounts: epfAccounts ?? [],
@@ -67,10 +96,33 @@ export function NetWorthReport() {
       ssyAccounts: ssyAccounts ?? [],
       sgbHoldings: sgbHoldings ?? [],
       ulipPolicies: ulipPolicies ?? [],
+      realEstate: realEstateAssets ?? [],
+      ppfAccounts: ppfAccounts ?? [],
+      recurringDeposits: recurringDeposits ?? [],
+      nscCertificates: nscCertificates ?? [],
+      vehicles: vehicles ?? [],
       portfolioCurrentValue: summarizeHoldings(holdings).currentValue,
       liabilities: liabilities ?? [],
     });
-  }, [accounts, transactions, fds, gold, liabilities, investments, epfAccounts, npsAccounts, ssyAccounts, sgbHoldings, ulipPolicies]);
+  }, [
+    accounts,
+    transactions,
+    conversion,
+    fds,
+    gold,
+    liabilities,
+    investments,
+    epfAccounts,
+    npsAccounts,
+    ssyAccounts,
+    sgbHoldings,
+    ulipPolicies,
+    realEstateAssets,
+    ppfAccounts,
+    recurringDeposits,
+    nscCertificates,
+    vehicles,
+  ]);
 
   if (isLoading) return <LoadingState label="Loading report..." />;
   if (error) return <ErrorState error={error} />;
@@ -85,6 +137,11 @@ export function NetWorthReport() {
     { label: 'SSY', value: breakdown.ssyTotal },
     { label: 'SGB', value: breakdown.sgbTotal },
     { label: 'ULIP', value: breakdown.ulipTotal },
+    { label: 'Real Estate', value: breakdown.realEstateTotal },
+    { label: 'PPF', value: breakdown.ppfTotal },
+    { label: 'Recurring Deposits', value: breakdown.recurringDepositsTotal },
+    { label: 'NSC', value: breakdown.nscTotal },
+    { label: 'Vehicles', value: breakdown.vehiclesTotal },
     { label: 'Portfolio', value: breakdown.portfolioValue },
     { label: 'Liabilities', value: -breakdown.liabilitiesTotal },
   ];
@@ -105,7 +162,7 @@ export function NetWorthReport() {
   return (
     <ReportContainer
       title="Net Worth Statement"
-      description="Current snapshot — assets, portfolio, and liabilities. Trend over time needs monthly snapshots, which aren't tracked yet."
+      description="Current breakdown of assets, portfolio, and liabilities, plus net worth growth over time from saved snapshots."
       excelSheets={[
         {
           name: 'Net Worth',
@@ -116,6 +173,14 @@ export function NetWorthReport() {
         },
       ]}
     >
+      {conversion && conversion.unconvertedCurrencies.length > 0 && (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
+          ⚠ Couldn&apos;t fetch a live rate for {conversion.unconvertedCurrencies.join(', ')} — accounts in{' '}
+          {conversion.unconvertedCurrencies.length === 1 ? 'that currency are' : 'those currencies are'} excluded
+          from the totals below until rates are available.
+        </div>
+      )}
+
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <p className="text-muted-foreground text-sm">Net Worth</p>
         <p className={`text-3xl font-semibold tabular-nums ${breakdown.netWorth >= 0 ? 'text-success' : 'text-destructive'}`}>
@@ -150,6 +215,8 @@ export function NetWorthReport() {
       </div>
 
       <DataTable data={tableRows} columns={columns} getRowId={(r) => r.label} />
+
+      <NetWorthSnapshotHistory currentBreakdown={breakdown} />
     </ReportContainer>
   );
 }

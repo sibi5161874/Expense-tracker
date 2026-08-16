@@ -96,7 +96,7 @@ export function DataTable<T>({
     }
 
     return rows;
-  }, [data, search, activeFilters, filters, sort, columns]);
+  }, [data, search, activeFilters, filters, sort, columns, searchableText]);
 
   function toggleSort(columnId: string) {
     setSort((prev) => {
@@ -188,10 +188,10 @@ export function DataTable<T>({
         )}
       </div>
 
-      <div className="border-border/60 overflow-hidden rounded-2xl border">
+      <div className="bg-card overflow-hidden rounded-2xl">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
               {selectable && (
                 <TableHead className="w-10">
                   <Checkbox

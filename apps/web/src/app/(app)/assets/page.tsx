@@ -1,8 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { canAddAsset } from '@repo/shared/logic';
 import {
   useFixedDeposits,
   useGoldAssets,
@@ -12,15 +15,12 @@ import {
   useSsyAccounts,
   useSgbHoldings,
   useUlipPolicies,
+  useRealEstateAssets,
+  usePpfAccounts,
+  useRecurringDeposits,
+  useNscCertificates,
+  useVehicles,
 } from '@/hooks/useAssets';
-import { FixedDepositForm } from '@/components/FixedDepositForm';
-import { GoldForm } from '@/components/GoldForm';
-import { LoanForm } from '@/components/LoanForm';
-import { EpfForm } from '@/components/EpfForm';
-import { NpsForm } from '@/components/NpsForm';
-import { SsyForm } from '@/components/SsyForm';
-import { SgbForm } from '@/components/SgbForm';
-import { UlipForm } from '@/components/UlipForm';
 import { FixedDepositCard } from '@/components/assets/FixedDepositCard';
 import { GoldCard } from '@/components/assets/GoldCard';
 import { LoanCard } from '@/components/assets/LoanCard';
@@ -29,8 +29,16 @@ import { NpsCard } from '@/components/assets/NpsCard';
 import { SsyCard } from '@/components/assets/SsyCard';
 import { SgbCard } from '@/components/assets/SgbCard';
 import { UlipCard } from '@/components/assets/UlipCard';
+import { RealEstateCard } from '@/components/assets/RealEstateCard';
+import { PpfCard } from '@/components/assets/PpfCard';
+import { RecurringDepositCard } from '@/components/assets/RecurringDepositCard';
+import { NscCard } from '@/components/assets/NscCard';
+import { VehicleCard } from '@/components/assets/VehicleCard';
+import { AssetTabPanel } from '@/components/assets/AssetTabPanel';
+import { AssetFormHost, type AssetTab, type AssetEditingState } from '@/components/assets/AssetFormHost';
+import { ProLockedButton } from '@/components/shared/ProGate';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import type {
@@ -42,9 +50,12 @@ import type {
   SsyAsset,
   SgbAsset,
   UlipAsset,
+  RealEstateAsset,
+  PpfAsset,
+  RecurringDepositAsset,
+  NscAsset,
+  VehicleAsset,
 } from '@repo/shared/types';
-
-type AssetTab = 'fd' | 'gold' | 'loans' | 'epf' | 'nps' | 'ssy' | 'sgb' | 'ulip';
 
 const TAB_LABELS: Record<AssetTab, string> = {
   fd: 'Fixed Deposit',
@@ -55,6 +66,11 @@ const TAB_LABELS: Record<AssetTab, string> = {
   ssy: 'SSY Account',
   sgb: 'SGB Holding',
   ulip: 'ULIP Policy',
+  realestate: 'Real Estate',
+  ppf: 'PPF Account',
+  rd: 'Recurring Deposit',
+  nsc: 'NSC Certificate',
+  vehicles: 'Vehicle',
 };
 
 function isAssetTab(value: string | null): value is AssetTab {
@@ -63,17 +79,19 @@ function isAssetTab(value: string | null): value is AssetTab {
 
 export default function AssetsPage() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<AssetTab>(() => {
-    const tab = searchParams.get('tab');
-    return isAssetTab(tab) ? tab : 'fd';
-  });
+  const router = useRouter();
+  const { tier } = useEntitlements();
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<AssetTab>(() => (isAssetTab(urlTab) ? urlTab : 'fd'));
 
-  // Sidebar sub-nav links to /assets?tab=gold etc.; since that's a same-route navigation,
-  // sync the tab on query changes rather than relying on the initial state alone.
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (isAssetTab(tab)) setActiveTab(tab);
-  }, [searchParams]);
+  // Sidebar sub-nav links to /assets?tab=gold etc., a same-route navigation local state alone
+  // won't pick up. React's documented "adjusting state when a prop changes" pattern —
+  // comparing during render and calling setState conditionally — instead of an effect, so
+  // switching tabs doesn't cost an extra render + paint round trip. Only fires when the URL
+  // names a tab that differs from what's showing, so it can't fight a same-render click.
+  if (isAssetTab(urlTab) && urlTab !== activeTab) {
+    setActiveTab(urlTab);
+  }
 
   const [showForm, setShowForm] = useState(false);
   const [editingFd, setEditingFd] = useState<FixedDeposit | null>(null);
@@ -84,29 +102,69 @@ export default function AssetsPage() {
   const [editingSsy, setEditingSsy] = useState<SsyAsset | null>(null);
   const [editingSgb, setEditingSgb] = useState<SgbAsset | null>(null);
   const [editingUlip, setEditingUlip] = useState<UlipAsset | null>(null);
+  const [editingRealEstate, setEditingRealEstate] = useState<RealEstateAsset | null>(null);
+  const [editingPpf, setEditingPpf] = useState<PpfAsset | null>(null);
+  const [editingRd, setEditingRd] = useState<RecurringDepositAsset | null>(null);
+  const [editingNsc, setEditingNsc] = useState<NscAsset | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<VehicleAsset | null>(null);
 
-  const { data: fixedDeposits, isLoading: fdLoading, error: fdError, deleteFixedDeposit } = useFixedDeposits();
-  const { data: goldHoldings, isLoading: goldLoading, error: goldError, deleteGold } = useGoldAssets();
-  const { data: loans, isLoading: loansLoading, error: loansError, deleteLoanLiability } = useLoanLiabilities();
-  const { data: epfAccounts, isLoading: epfLoading, error: epfError, deleteEpfAccount } = useEpfAccounts();
-  const { data: npsAccounts, isLoading: npsLoading, error: npsError, deleteNpsAccount } = useNpsAccounts();
-  const { data: ssyAccounts, isLoading: ssyLoading, error: ssyError, deleteSsyAccount } = useSsyAccounts();
-  const { data: sgbHoldings, isLoading: sgbLoading, error: sgbError, deleteSgbHolding } = useSgbHoldings();
-  const { data: ulipPolicies, isLoading: ulipLoading, error: ulipError, deleteUlipPolicy } = useUlipPolicies();
+  const fd = useFixedDeposits();
+  const gold = useGoldAssets();
+  const loans = useLoanLiabilities();
+  const epf = useEpfAccounts();
+  const nps = useNpsAccounts();
+  const ssy = useSsyAccounts();
+  const sgb = useSgbHoldings();
+  const ulip = useUlipPolicies();
+  const realEstate = useRealEstateAssets();
+  const ppf = usePpfAccounts();
+  const rd = useRecurringDeposits();
+  const nsc = useNscCertificates();
+  const vehicles = useVehicles();
 
-  const isLoading =
-    fdLoading || goldLoading || loansLoading || epfLoading || npsLoading || ssyLoading || sgbLoading || ulipLoading;
-  const error = fdError || goldError || loansError || epfError || npsError || ssyError || sgbError || ulipError;
+  const sources = [fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, rd, nsc, vehicles];
+  const isLoading = sources.some((s) => s.isLoading);
+  const error = sources.find((s) => s.error)?.error ?? null;
   const addLabel = TAB_LABELS[activeTab];
+  // Total across every asset class, per FREE_TIER_LIMITS.maxAssets — not per class,
+  // otherwise a free user could hit the wall on a single asset type in a week.
+  const totalAssetCount = sources.reduce((sum, s) => sum + (s.data?.length ?? 0), 0);
+  const canAdd = canAddAsset(totalAssetCount, tier);
 
-  const handleDeleteFd = useCallback((id: string) => deleteFixedDeposit(id), [deleteFixedDeposit]);
-  const handleDeleteGold = useCallback((id: string) => deleteGold(id), [deleteGold]);
-  const handleDeleteLoan = useCallback((id: string) => deleteLoanLiability(id), [deleteLoanLiability]);
-  const handleDeleteEpf = useCallback((id: string) => deleteEpfAccount(id), [deleteEpfAccount]);
-  const handleDeleteNps = useCallback((id: string) => deleteNpsAccount(id), [deleteNpsAccount]);
-  const handleDeleteSsy = useCallback((id: string) => deleteSsyAccount(id), [deleteSsyAccount]);
-  const handleDeleteSgb = useCallback((id: string) => deleteSgbHolding(id), [deleteSgbHolding]);
-  const handleDeleteUlip = useCallback((id: string) => deleteUlipPolicy(id), [deleteUlipPolicy]);
+  function goToUpgrade() {
+    toast.info(`You've reached the Free plan's asset limit. Start your Pro trial to add more.`);
+    router.push('/settings?tab=billing');
+  }
+
+  const handleDeleteFd = useCallback((id: string) => fd.remove(id), [fd]);
+  const handleDeleteGold = useCallback((id: string) => gold.remove(id), [gold]);
+  const handleDeleteLoan = useCallback((id: string) => loans.remove(id), [loans]);
+  const handleDeleteEpf = useCallback((id: string) => epf.remove(id), [epf]);
+  const handleDeleteNps = useCallback((id: string) => nps.remove(id), [nps]);
+  const handleDeleteSsy = useCallback((id: string) => ssy.remove(id), [ssy]);
+  const handleDeleteSgb = useCallback((id: string) => sgb.remove(id), [sgb]);
+  const handleDeleteUlip = useCallback((id: string) => ulip.remove(id), [ulip]);
+  const handleDeleteRealEstate = useCallback((id: string) => realEstate.remove(id), [realEstate]);
+  const handleDeletePpf = useCallback((id: string) => ppf.remove(id), [ppf]);
+  const handleDeleteRd = useCallback((id: string) => rd.remove(id), [rd]);
+  const handleDeleteNsc = useCallback((id: string) => nsc.remove(id), [nsc]);
+  const handleDeleteVehicle = useCallback((id: string) => vehicles.remove(id), [vehicles]);
+
+  const editing: AssetEditingState = {
+    fd: editingFd,
+    gold: editingGold,
+    loans: editingLoan,
+    epf: editingEpf,
+    nps: editingNps,
+    ssy: editingSsy,
+    sgb: editingSgb,
+    ulip: editingUlip,
+    realestate: editingRealEstate,
+    ppf: editingPpf,
+    rd: editingRd,
+    nsc: editingNsc,
+    vehicles: editingVehicle,
+  };
 
   function closeForm() {
     setShowForm(false);
@@ -118,6 +176,11 @@ export default function AssetsPage() {
     setEditingSsy(null);
     setEditingSgb(null);
     setEditingUlip(null);
+    setEditingRealEstate(null);
+    setEditingPpf(null);
+    setEditingRd(null);
+    setEditingNsc(null);
+    setEditingVehicle(null);
   }
 
   return (
@@ -126,10 +189,14 @@ export default function AssetsPage() {
         title="Assets"
         description="Fixed deposits, gold, retirement accounts, and other holdings."
         action={
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="size-4" />
-            Add {addLabel}
-          </Button>
+          canAdd ? (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Add {addLabel}
+            </Button>
+          ) : (
+            <ProLockedButton label="Asset limit reached" onUpgradeClick={goToUpgrade} />
+          )
         }
       />
 
@@ -141,261 +208,117 @@ export default function AssetsPage() {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AssetTab)}>
           {/* No visible TabsList — navigation between asset types happens via the sidebar's
               Assets sub-links now, so a redundant in-page tab bar would just duplicate it. */}
-          <TabsContent value="fd" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {fixedDeposits?.map((fd) => (
-                <FixedDepositCard key={fd.id} fd={fd} onEdit={setEditingFd} onDelete={handleDeleteFd} />
-              ))}
-              {fixedDeposits?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No fixed deposits found. Add your first FD to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="fd"
+            items={fd.data}
+            getKey={(row) => row.id}
+            emptyMessage="No fixed deposits found. Add your first FD to get started."
+            renderCard={(row) => <FixedDepositCard fd={row} onEdit={setEditingFd} onDelete={handleDeleteFd} />}
+          />
 
-          <TabsContent value="gold" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {goldHoldings?.map((gold) => (
-                <GoldCard key={gold.id} gold={gold} onEdit={setEditingGold} onDelete={handleDeleteGold} />
-              ))}
-              {goldHoldings?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No gold holdings found. Add your first gold asset to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="gold"
+            items={gold.data}
+            getKey={(row) => row.id}
+            emptyMessage="No gold holdings found. Add your first gold asset to get started."
+            renderCard={(row) => <GoldCard gold={row} onEdit={setEditingGold} onDelete={handleDeleteGold} />}
+          />
 
-          <TabsContent value="loans" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {loans?.map((loan) => (
-                <LoanCard key={loan.id} loan={loan} onEdit={setEditingLoan} onDelete={handleDeleteLoan} />
-              ))}
-              {loans?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No loans or liabilities found. Add your first loan to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="loans"
+            items={loans.data}
+            getKey={(row) => row.id}
+            emptyMessage="No loans or liabilities found. Add your first loan to get started."
+            renderCard={(row) => <LoanCard loan={row} onEdit={setEditingLoan} onDelete={handleDeleteLoan} />}
+          />
 
-          <TabsContent value="epf" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {epfAccounts?.map((epf) => (
-                <EpfCard key={epf.id} epf={epf} onEdit={setEditingEpf} onDelete={handleDeleteEpf} />
-              ))}
-              {epfAccounts?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No EPF accounts found. Add your first EPF account to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="epf"
+            items={epf.data}
+            getKey={(row) => row.id}
+            emptyMessage="No EPF accounts found. Add your first EPF account to get started."
+            renderCard={(row) => <EpfCard epf={row} onEdit={setEditingEpf} onDelete={handleDeleteEpf} />}
+          />
 
-          <TabsContent value="nps" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {npsAccounts?.map((nps) => (
-                <NpsCard key={nps.id} nps={nps} onEdit={setEditingNps} onDelete={handleDeleteNps} />
-              ))}
-              {npsAccounts?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No NPS accounts found. Add your first NPS account to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="nps"
+            items={nps.data}
+            getKey={(row) => row.id}
+            emptyMessage="No NPS accounts found. Add your first NPS account to get started."
+            renderCard={(row) => <NpsCard nps={row} onEdit={setEditingNps} onDelete={handleDeleteNps} />}
+          />
 
-          <TabsContent value="ssy" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {ssyAccounts?.map((ssy) => (
-                <SsyCard key={ssy.id} ssy={ssy} onEdit={setEditingSsy} onDelete={handleDeleteSsy} />
-              ))}
-              {ssyAccounts?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No SSY accounts found. Add your first SSY account to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="ssy"
+            items={ssy.data}
+            getKey={(row) => row.id}
+            emptyMessage="No SSY accounts found. Add your first SSY account to get started."
+            renderCard={(row) => <SsyCard ssy={row} onEdit={setEditingSsy} onDelete={handleDeleteSsy} />}
+          />
 
-          <TabsContent value="sgb" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sgbHoldings?.map((sgb) => (
-                <SgbCard key={sgb.id} sgb={sgb} onEdit={setEditingSgb} onDelete={handleDeleteSgb} />
-              ))}
-              {sgbHoldings?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No SGB holdings found. Add your first SGB holding to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="sgb"
+            items={sgb.data}
+            getKey={(row) => row.id}
+            emptyMessage="No SGB holdings found. Add your first SGB holding to get started."
+            renderCard={(row) => <SgbCard sgb={row} onEdit={setEditingSgb} onDelete={handleDeleteSgb} />}
+          />
 
-          <TabsContent value="ulip" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {ulipPolicies?.map((ulip) => (
-                <UlipCard key={ulip.id} ulip={ulip} onEdit={setEditingUlip} onDelete={handleDeleteUlip} />
-              ))}
-              {ulipPolicies?.length === 0 && (
-                <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-                  No ULIP policies found. Add your first ULIP policy to get started.
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <AssetTabPanel
+            value="ulip"
+            items={ulip.data}
+            getKey={(row) => row.id}
+            emptyMessage="No ULIP policies found. Add your first ULIP policy to get started."
+            renderCard={(row) => <UlipCard ulip={row} onEdit={setEditingUlip} onDelete={handleDeleteUlip} />}
+          />
+
+          <AssetTabPanel
+            value="realestate"
+            items={realEstate.data}
+            getKey={(row) => row.id}
+            emptyMessage="No real estate found. Add your first property to get started."
+            renderCard={(row) => (
+              <RealEstateCard property={row} onEdit={setEditingRealEstate} onDelete={handleDeleteRealEstate} />
+            )}
+          />
+
+          <AssetTabPanel
+            value="ppf"
+            items={ppf.data}
+            getKey={(row) => row.id}
+            emptyMessage="No PPF accounts found. Add your first PPF account to get started."
+            renderCard={(row) => <PpfCard ppf={row} onEdit={setEditingPpf} onDelete={handleDeletePpf} />}
+          />
+
+          <AssetTabPanel
+            value="rd"
+            items={rd.data}
+            getKey={(row) => row.id}
+            emptyMessage="No recurring deposits found. Add your first RD to get started."
+            renderCard={(row) => <RecurringDepositCard rd={row} onEdit={setEditingRd} onDelete={handleDeleteRd} />}
+          />
+
+          <AssetTabPanel
+            value="nsc"
+            items={nsc.data}
+            getKey={(row) => row.id}
+            emptyMessage="No NSC certificates found. Add your first certificate to get started."
+            renderCard={(row) => <NscCard nsc={row} onEdit={setEditingNsc} onDelete={handleDeleteNsc} />}
+          />
+
+          <AssetTabPanel
+            value="vehicles"
+            items={vehicles.data}
+            getKey={(row) => row.id}
+            emptyMessage="No vehicles found. Add your first vehicle to get started."
+            renderCard={(row) => (
+              <VehicleCard vehicle={row} onEdit={setEditingVehicle} onDelete={handleDeleteVehicle} />
+            )}
+          />
         </Tabs>
       )}
 
-      {(showForm && activeTab === 'fd') || editingFd ? (
-        <FixedDepositForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingFd
-              ? {
-                  id: editingFd.id,
-                  bank: editingFd.bank,
-                  principal: editingFd.principal,
-                  maturity_value: editingFd.maturity_value,
-                  maturity_date: editingFd.maturity_date,
-                  rate_pct: editingFd.rate_pct,
-                  withdrawn: editingFd.withdrawn,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'gold') || editingGold ? (
-        <GoldForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingGold
-              ? {
-                  id: editingGold.id,
-                  description: editingGold.description,
-                  grams: editingGold.grams,
-                  rate_per_gram: editingGold.rate_per_gram,
-                  purchase_value: editingGold.purchase_value,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'loans') || editingLoan ? (
-        <LoanForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingLoan
-              ? {
-                  id: editingLoan.id,
-                  lender: editingLoan.lender,
-                  outstanding: editingLoan.outstanding,
-                  emi: editingLoan.emi ?? undefined,
-                  interest_rate_pct: editingLoan.interest_rate_pct ?? undefined,
-                  months_left: editingLoan.months_left ?? undefined,
-                  notes: editingLoan.notes ?? undefined,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'epf') || editingEpf ? (
-        <EpfForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingEpf
-              ? {
-                  id: editingEpf.id,
-                  employer_name: editingEpf.employer_name,
-                  current_balance: editingEpf.current_balance,
-                  monthly_contribution: editingEpf.monthly_contribution,
-                  uan_number: editingEpf.uan_number ?? undefined,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'nps') || editingNps ? (
-        <NpsForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingNps
-              ? {
-                  id: editingNps.id,
-                  pran_number: editingNps.pran_number,
-                  current_value: editingNps.current_value,
-                  tier: editingNps.tier,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'ssy') || editingSsy ? (
-        <SsyForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingSsy
-              ? {
-                  id: editingSsy.id,
-                  account_holder_name: editingSsy.account_holder_name,
-                  account_number: editingSsy.account_number,
-                  current_balance: editingSsy.current_balance,
-                  opening_date: editingSsy.opening_date,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'sgb') || editingSgb ? (
-        <SgbForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingSgb
-              ? {
-                  id: editingSgb.id,
-                  units_held: editingSgb.units_held,
-                  issue_price: editingSgb.issue_price,
-                  issue_date: editingSgb.issue_date,
-                  rate_per_gram: editingSgb.rate_per_gram,
-                }
-              : undefined
-          }
-        />
-      ) : null}
-
-      {(showForm && activeTab === 'ulip') || editingUlip ? (
-        <UlipForm
-          onSuccess={closeForm}
-          onCancel={closeForm}
-          editing={
-            editingUlip
-              ? {
-                  id: editingUlip.id,
-                  insurer: editingUlip.insurer,
-                  policy_number: editingUlip.policy_number,
-                  sum_assured: editingUlip.sum_assured,
-                  current_fund_value: editingUlip.current_fund_value,
-                  premium_amount: editingUlip.premium_amount,
-                  premium_frequency: editingUlip.premium_frequency,
-                  maturity_date: editingUlip.maturity_date,
-                }
-              : undefined
-          }
-        />
-      ) : null}
+      <AssetFormHost activeTab={activeTab} showForm={showForm} editing={editing} onClose={closeForm} />
     </div>
   );
 }

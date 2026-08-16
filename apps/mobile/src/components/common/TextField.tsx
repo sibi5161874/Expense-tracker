@@ -18,7 +18,7 @@ export function TextField({ label, error, className, ...props }: TextFieldProps)
       <TextInput
         placeholderTextColor={mutedForeground}
         className={cn(
-          "h-10 rounded-lg border border-border bg-background px-3 text-foreground",
+          "h-12 rounded-2xl border border-border bg-background px-4 text-foreground",
           error && "border-destructive",
           className
         )}

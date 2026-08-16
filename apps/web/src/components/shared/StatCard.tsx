@@ -21,7 +21,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, tone = "neutral", trend, trendTone }: StatCardProps) {
   return (
-    <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+    <div className="bg-card rounded-2xl p-5">
       <div className="flex items-start justify-between">
         <p className="text-muted-foreground text-sm">{label}</p>
         <div className={cn("flex size-9 items-center justify-center rounded-full", ICON_TONE_CLASSES[tone])}>

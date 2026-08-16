@@ -58,7 +58,7 @@ export function AddTransactionSheet({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
+        <View className="flex-row items-center justify-between bg-card px-4 py-3">
           <AppText className="text-base font-semibold">{editing ? "Edit Transaction" : "Add Transaction"}</AppText>
           <Pressable onPress={onClose} hitSlop={8}>
             <X size={20} color={mutedForeground} />
@@ -163,7 +163,7 @@ export function AddTransactionSheet({
           />
         </ScrollView>
 
-        <View className="flex-row gap-3 border-t border-border p-4">
+        <View className="flex-row gap-3 bg-card p-4">
           <Button variant="outline" className="flex-1" onPress={onClose}>
             Cancel
           </Button>

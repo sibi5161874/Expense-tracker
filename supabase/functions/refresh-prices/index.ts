@@ -1,11 +1,17 @@
+// SUPERSEDED — no longer called by the app. Kept only so an already-deployed
+// copy stays readable; safe to delete once it is removed from your Supabase
+// project (`supabase functions delete refresh-prices`).
+//
+// Replaced by apps/web/src/app/api/prices/refresh/route.ts, which:
+//   - also prices Mutual Fund holdings from AMFI's official NAV file (this
+//     function covers Stock/ETF only — see the asset_type filter below), and
+//   - reuses the unit-tested matching logic in
+//     packages/shared/src/logic/priceRefresh.ts, which the Deno Edge runtime
+//     cannot import from the workspace package.
+//
 // Refreshes `holdings.live_price` for the caller's Stock/ETF symbols via Yahoo
 // Finance's unofficial quote endpoint (no API key — the reason this runs server-side
 // is CORS, not secret-hiding: Yahoo's endpoint doesn't allow direct browser fetches).
-//
-// Deploy: supabase functions deploy refresh-prices
-// Invoke from the client: supabase.functions.invoke('refresh-prices')
-// Debug: Supabase Dashboard -> Edge Functions -> refresh-prices -> Logs — every
-// failed symbol now logs the real reason there, not just "it failed".
 //
 // Rate limiting: RULES.md §7 doesn't actually specify a rate-limit number for this —
 // this is a reasonable default I'm applying, not a spec'd requirement. Adjust if needed.

@@ -64,6 +64,11 @@ export function calculateGoldMetrics(
   };
 }
 
+/** Real estate P&L — current value is a manually updated field, not derived like gold. */
+export function calculateRealEstatePnl(purchaseValue: number, currentValue: number): number {
+  return currentValue - purchaseValue;
+}
+
 /** SSY matures 21 years from account opening (DATA_MODEL.md §6b). */
 export function calculateSsyMaturityDate(openingDate: string): string {
   const date = new Date(openingDate);

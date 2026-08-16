@@ -6,16 +6,7 @@ import { toast } from 'sonner';
 import { UploadCloud } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-interface ImportResult {
-  totalDataRows: number;
-  validCount: number;
-  duplicateCount: number;
-  errors: { row: number; reason: string }[];
-  preview: Record<string, unknown>[];
-  committed: number;
-}
+import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
 
 interface ImportDialogProps {
   apiPath: string;
@@ -106,72 +97,7 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
         )}
 
         {(step === 'preview' || step === 'committing' || step === 'done') && result && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3 text-center text-sm">
-              <div className="bg-muted/50 rounded-lg p-3">
-                <div className="text-lg font-semibold">{result.totalDataRows}</div>
-                <div className="text-muted-foreground text-xs">Rows in file</div>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-3">
-                <div className="text-lg font-semibold">
-                  {step === 'done' ? result.committed : result.validCount}
-                </div>
-                <div className="text-muted-foreground text-xs">
-                  {step === 'done' ? 'Imported' : 'Ready to import'}
-                </div>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-3">
-                <div className="text-lg font-semibold">{result.duplicateCount}</div>
-                <div className="text-muted-foreground text-xs">Duplicates skipped</div>
-              </div>
-            </div>
-
-            {result.errors.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
-                <p className="mb-1 font-medium text-destructive">{result.errors.length} row error(s):</p>
-                <ul className="space-y-0.5 text-destructive/90">
-                  {result.errors.map((e, i) => (
-                    <li key={i}>
-                      Row {e.row}: {e.reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {result.preview.length > 0 && (
-              <div className="border-border/60 max-h-64 overflow-auto rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {Object.keys(result.preview[0]!).map((key) => (
-                        <TableHead key={key} className="text-xs whitespace-nowrap">
-                          {key}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {result.preview.map((row, i) => (
-                      <TableRow key={i}>
-                        {Object.values(row).map((val, j) => (
-                          <TableCell key={j} className="text-xs whitespace-nowrap">
-                            {val === null || val === undefined ? '' : String(val)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-            {step === 'done' && (
-              <p className="text-muted-foreground text-sm">
-                Done. You can close this dialog now.
-              </p>
-            )}
-          </div>
+          <ImportResultSummary result={result} step={step} />
         )}
 
         <DialogFooter>

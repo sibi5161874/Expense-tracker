@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useGenerateRecurringTransactions } from "@/hooks/useGenerateRecurringTransactions";
 import { AppShell } from "@/components/shared/AppShell";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useUserProfile();
+  useGenerateRecurringTransactions();
 
   useEffect(() => {
     if (!loading && !user) {

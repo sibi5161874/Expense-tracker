@@ -74,7 +74,8 @@ export default function DashboardPage() {
         title="Dashboard"
         description="Here's what's happening with your finances this month."
         action={
-          <Button variant="outline" render={<Link href="/reports/overall" />}>
+          // nativeButton={false} because this renders an <a> via Link, not a <button>.
+          <Button variant="outline" nativeButton={false} render={<Link href="/reports/overall" />}>
             <FileStack className="size-4" />
             View Overall Report
           </Button>

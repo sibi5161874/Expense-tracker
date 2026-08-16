@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
@@ -41,16 +40,17 @@ export function useMonthlyTrend(n = 6) {
   const isLoading = results.some((r) => r.isLoading);
   const resultsData = results.map((r) => r.data);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- resultsData length is fixed by `n`
-  const data = useMemo(() => {
-    return months.map((month, i) => {
-      const txns = resultsData[i] ?? [];
-      const income = txns.reduce((sum, t) => (t.type === 'Income' ? sum + t.amount : sum), 0);
-      const expense = txns.reduce((sum, t) => (t.type === 'Expense' ? sum + t.amount : sum), 0);
-      const label = new Date(`${month}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short' });
-      return { month, label, income, expense };
-    });
-  }, [months.join(','), ...resultsData]);
+  // Not memoized: useMemo needs a static, analyzable dependency array, and this one's length
+  // varies with `n` (via `...resultsData`), which isn't expressible as an array literal.
+  // Recomputing is cheap regardless — at most `n` months of already-fetched data, a couple of
+  // reduce() passes each — so there's nothing worth caching here.
+  const data = months.map((month, i) => {
+    const txns = resultsData[i] ?? [];
+    const income = txns.reduce((sum, t) => (t.type === 'Income' ? sum + t.amount : sum), 0);
+    const expense = txns.reduce((sum, t) => (t.type === 'Expense' ? sum + t.amount : sum), 0);
+    const label = new Date(`${month}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short' });
+    return { month, label, income, expense };
+  });
 
   return { data, isLoading };
 }
