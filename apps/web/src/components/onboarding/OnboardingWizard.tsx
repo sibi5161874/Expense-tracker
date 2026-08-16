@@ -166,7 +166,7 @@ export function OnboardingWizard({ onDone }: OnboardingWizardProps) {
                       />
                     </FormControl>
                     <p className="text-muted-foreground text-xs">
-                      Just an estimate for now — once you've logged 3 months of transactions we'll switch to
+                      Just an estimate for now — once you&apos;ve logged 3 months of transactions we&apos;ll switch to
                       your real average automatically.
                     </p>
                     <FormMessage />

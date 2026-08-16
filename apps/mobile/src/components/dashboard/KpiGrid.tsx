@@ -22,25 +22,17 @@ const TEXT_TONE: Record<BadgeTone, string> = {
 };
 
 /**
- * Mobile equivalent of KpiStrip.tsx — web lays 4 stats in one row divided by vertical hairlines;
- * a phone screen can't fit 4 currency values across, so this wraps to a 2x2 grid within the same
- * shared soft container, divided both ways. Same rule carries over: no icon-in-circle badges,
- * meaning comes from the value's color plus a small inline icon.
+ * Mobile equivalent of KpiStrip.tsx — each stat is its own flat rounded-2xl card in a 2x2
+ * grid, no divider lines between cells (design spec §4: hierarchy comes from weight/size/
+ * color, never borders). Meaning comes from the value's color plus a small inline icon.
  */
 export function KpiGrid({ items }: { items: KpiStatItem[] }) {
   const mutedForeground = useThemeColor("mutedForeground");
 
   return (
-    <View className="flex-row flex-wrap overflow-hidden rounded-2xl bg-muted/40">
-      {items.map(({ label, icon: Icon, tone = "neutral", value }, i) => (
-        <View
-          key={label}
-          className={cn(
-            "w-1/2 gap-1.5 p-4",
-            i % 2 === 1 && "border-l border-border",
-            i >= 2 && "border-t border-border"
-          )}
-        >
+    <View className="flex-row flex-wrap gap-3">
+      {items.map(({ label, icon: Icon, tone = "neutral", value }) => (
+        <View key={label} className="w-[48%] gap-1.5 rounded-2xl bg-muted/40 p-4">
           <View className="flex-row items-center gap-1.5">
             <Icon size={14} color={mutedForeground} />
             <AppText className="text-xs text-muted-foreground">{label}</AppText>

@@ -1,8 +1,11 @@
 // RLS isolation check per RULES.md §7: "Before marking any new table done: create a
 // second test user and confirm they cannot see the first user's rows."
 //
-// Run this yourself (it creates and deletes two real accounts in your Supabase
-// project, so it's your action to take, not something the assistant runs for you):
+// Runs automatically in CI (.github/workflows/ci.yml, "verify-rls" job) against a
+// dedicated TEST Supabase project, whenever RLS_TEST_SUPABASE_* secrets are set.
+//
+// To run it yourself locally (it creates and deletes two real accounts in whichever
+// Supabase project your env vars point at — never point this at production):
 //
 //   cd apps/web
 //   node --env-file=.env.local scripts/verify-rls.mjs

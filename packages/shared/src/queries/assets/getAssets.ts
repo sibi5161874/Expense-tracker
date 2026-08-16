@@ -73,3 +73,53 @@ export async function getUlipPolicies(supabase: SupabaseClient<Database>, userId
   if (error) throw error;
   return data;
 }
+
+export async function getRealEstate(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_real_estate')
+    .select('*')
+    .eq('user_id', userId)
+    .order('purchase_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getPpfAccounts(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_ppf')
+    .select('*')
+    .eq('user_id', userId)
+    .order('opening_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getRecurringDeposits(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_recurring_deposits')
+    .select('*')
+    .eq('user_id', userId)
+    .order('maturity_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getNscCertificates(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_nsc')
+    .select('*')
+    .eq('user_id', userId)
+    .order('maturity_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getVehicles(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_vehicles')
+    .select('*')
+    .eq('user_id', userId)
+    .order('purchase_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}

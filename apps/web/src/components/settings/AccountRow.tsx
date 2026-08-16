@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { Account } from '@repo/shared/types';
-import { formatINR } from '@repo/shared/utils/currency';
+import { formatCurrency, formatINR } from '@repo/shared/utils/currency';
+import { convertToBaseCurrency, BASE_CURRENCY, type FxRates } from '@repo/shared/logic';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -11,14 +12,25 @@ interface AccountRowProps {
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
+  fxRates: FxRates;
 }
 
-function AccountRowComponent({ account, onEdit, onDelete, isDeleting }: AccountRowProps) {
+function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates }: AccountRowProps) {
+  const isForeign = account.currency !== BASE_CURRENCY;
+  const converted = isForeign ? convertToBaseCurrency(account.opening_balance, account.currency, fxRates) : null;
+
   return (
     <TableRow>
       <TableCell className="font-medium">{account.name}</TableCell>
       <TableCell className="text-muted-foreground">{account.type}</TableCell>
-      <TableCell className="text-right">{formatINR(account.opening_balance)}</TableCell>
+      <TableCell className="text-right">
+        {formatCurrency(account.opening_balance, account.currency)}
+        {isForeign && (
+          <span className="text-muted-foreground ml-1.5 text-xs">
+            {converted !== null ? `≈ ${formatINR(converted)}` : '(rate unavailable)'}
+          </span>
+        )}
+      </TableCell>
       <TableCell>{account.currency}</TableCell>
       <TableCell>
         <StatusBadge tone={account.is_active ? 'success' : 'neutral'}>

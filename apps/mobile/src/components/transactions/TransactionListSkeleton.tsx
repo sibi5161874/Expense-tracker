@@ -6,7 +6,7 @@ export function TransactionListSkeleton() {
   return (
     <View>
       {Array.from({ length: 8 }, (_, i) => (
-        <View key={i} className="flex-row items-center gap-3 border-b border-border px-4 py-3">
+        <View key={i} className="flex-row items-center gap-3 px-4 py-4">
           <View className="flex-1 gap-2">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-4 w-40" />

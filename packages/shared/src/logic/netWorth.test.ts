@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAccountBalances, calculateNetWorth } from './netWorth';
+import {
+  calculateAccountBalances,
+  calculateNetWorth,
+  buildSnapshotFromBreakdown,
+  calculateSnapshotGrowthPct,
+  convertAccountBalancesToBase,
+} from './netWorth';
 
 describe('calculateAccountBalances', () => {
   it('applies opening balance with no transactions', () => {
@@ -79,5 +85,137 @@ describe('calculateNetWorth', () => {
       liabilities: [{ outstanding: 5000 }],
     });
     expect(result.netWorth).toBe(-4900);
+  });
+
+  it('includes real estate current value and PPF balance in the total', () => {
+    const result = calculateNetWorth({
+      accountBalances: [],
+      activeFixedDeposits: [],
+      goldHoldings: [],
+      realEstate: [{ current_value: 5_000_000 }],
+      ppfAccounts: [{ current_balance: 300_000 }],
+      portfolioCurrentValue: 0,
+      liabilities: [],
+    });
+    expect(result.realEstateTotal).toBe(5_000_000);
+    expect(result.ppfTotal).toBe(300_000);
+    expect(result.netWorth).toBe(5_300_000);
+  });
+
+  it('includes RD (at maturity value), NSC (at purchase value), and vehicles (at current value)', () => {
+    const result = calculateNetWorth({
+      accountBalances: [],
+      activeFixedDeposits: [],
+      goldHoldings: [],
+      recurringDeposits: [{ maturity_value: 120_000 }],
+      nscCertificates: [{ purchase_value: 50_000 }],
+      vehicles: [{ current_value: 400_000 }],
+      portfolioCurrentValue: 0,
+      liabilities: [],
+    });
+    expect(result.recurringDepositsTotal).toBe(120_000);
+    expect(result.nscTotal).toBe(50_000);
+    expect(result.vehiclesTotal).toBe(400_000);
+    expect(result.netWorth).toBe(570_000);
+  });
+});
+
+describe('buildSnapshotFromBreakdown', () => {
+  it('maps every breakdown field to its snapshot column', () => {
+    const breakdown = calculateNetWorth({
+      accountBalances: [1000],
+      activeFixedDeposits: [{ principal: 2000 }],
+      goldHoldings: [{ grams: 10, rate_per_gram: 6000 }],
+      realEstate: [{ current_value: 5_000_000 }],
+      ppfAccounts: [{ current_balance: 300_000 }],
+      portfolioCurrentValue: 3000,
+      liabilities: [{ outstanding: 1500 }],
+    });
+    const snapshot = buildSnapshotFromBreakdown(breakdown, '2026-08-15');
+
+    expect(snapshot.snapshot_date).toBe('2026-08-15');
+    expect(snapshot.net_worth).toBe(breakdown.netWorth);
+    expect(snapshot.real_estate_total).toBe(5_000_000);
+    expect(snapshot.ppf_total).toBe(300_000);
+    expect(snapshot.liabilities_total).toBe(1500);
+  });
+});
+
+describe('calculateSnapshotGrowthPct', () => {
+  it('computes positive growth', () => {
+    expect(calculateSnapshotGrowthPct(110_000, 100_000)).toBe(10);
+  });
+
+  it('computes negative growth', () => {
+    expect(calculateSnapshotGrowthPct(90_000, 100_000)).toBe(-10);
+  });
+
+  it('returns null when there is no previous snapshot', () => {
+    expect(calculateSnapshotGrowthPct(100_000, null)).toBeNull();
+  });
+
+  it('returns null when the previous net worth was zero (division by zero)', () => {
+    expect(calculateSnapshotGrowthPct(50_000, 0)).toBeNull();
+  });
+
+  it('handles growth off a negative baseline using absolute value as the base', () => {
+    expect(calculateSnapshotGrowthPct(-50_000, -100_000)).toBe(50);
+  });
+});
+
+describe('convertAccountBalancesToBase', () => {
+  const accounts = [
+    { id: 'acc-inr', currency: 'INR' },
+    { id: 'acc-usd', currency: 'USD' },
+    { id: 'acc-aed', currency: 'AED' },
+  ];
+  const rates = { USD: 0.012 }; // no AED rate available
+
+  it('passes INR balances through unchanged', () => {
+    const result = convertAccountBalancesToBase([{ accountId: 'acc-inr', balance: 1000 }], accounts, rates);
+    expect(result.convertedBalances).toEqual([1000]);
+    expect(result.unconvertedCurrencies).toEqual([]);
+  });
+
+  it('converts a foreign-currency balance to INR', () => {
+    const result = convertAccountBalancesToBase([{ accountId: 'acc-usd', balance: 100 }], accounts, rates);
+    expect(result.convertedBalances[0]).toBeCloseTo(8333.33, 1);
+  });
+
+  it('excludes a balance whose currency has no rate, rather than treating it as 0', () => {
+    const result = convertAccountBalancesToBase(
+      [
+        { accountId: 'acc-inr', balance: 1000 },
+        { accountId: 'acc-aed', balance: 500 },
+      ],
+      accounts,
+      rates
+    );
+    expect(result.convertedBalances).toEqual([1000]);
+    expect(result.unconvertedCurrencies).toEqual(['AED']);
+  });
+
+  it('treats an unknown account id as INR rather than throwing (defensive default)', () => {
+    const result = convertAccountBalancesToBase([{ accountId: 'unknown-id', balance: 500 }], accounts, rates);
+    expect(result.convertedBalances).toEqual([500]);
+  });
+
+  it('feeds straight into calculateNetWorth without any further transformation', () => {
+    const { convertedBalances } = convertAccountBalancesToBase(
+      [
+        { accountId: 'acc-inr', balance: 1000 },
+        { accountId: 'acc-usd', balance: 100 },
+      ],
+      accounts,
+      rates
+    );
+    const netWorth = calculateNetWorth({
+      accountBalances: convertedBalances,
+      activeFixedDeposits: [],
+      goldHoldings: [],
+      portfolioCurrentValue: 0,
+      liabilities: [],
+    });
+    expect(netWorth.cashAndBankTotal).toBeCloseTo(1000 + 8333.33, 1);
   });
 });

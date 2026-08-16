@@ -10,11 +10,18 @@ import {
   useSsyAccounts,
   useSgbHoldings,
   useUlipPolicies,
+  useRealEstateAssets,
+  usePpfAccounts,
+  useRecurringDeposits,
+  useNscCertificates,
+  useVehicles,
 } from '@/hooks/useAssets';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
+import { useFxRates } from '@/hooks/useFxRates';
 import {
   calculateAccountBalances,
   calculateNetWorth,
+  convertAccountBalancesToBase,
   groupInvestmentsBySymbol,
   summarizeHoldings,
 } from '@repo/shared/logic';
@@ -22,6 +29,7 @@ import {
 /** Composes existing account/asset/investment queries into a net worth snapshot for the dashboard hero. */
 export function useNetWorth() {
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
+  const { rates: fxRates } = useFxRates();
   const { data: transactions, isLoading: txnsLoading, error: txnsError } = useAllTimeTransactions();
   const { data: fds, isLoading: fdsLoading } = useFixedDeposits();
   const { data: gold, isLoading: goldLoading } = useGoldAssets();
@@ -32,6 +40,11 @@ export function useNetWorth() {
   const { data: ssyAccounts, isLoading: ssyLoading } = useSsyAccounts();
   const { data: sgbHoldings, isLoading: sgbLoading } = useSgbHoldings();
   const { data: ulipPolicies, isLoading: ulipLoading } = useUlipPolicies();
+  const { data: realEstateAssets, isLoading: realEstateLoading } = useRealEstateAssets();
+  const { data: ppfAccounts, isLoading: ppfLoading } = usePpfAccounts();
+  const { data: recurringDeposits, isLoading: rdLoading } = useRecurringDeposits();
+  const { data: nscCertificates, isLoading: nscLoading } = useNscCertificates();
+  const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
 
   const isLoading =
     accountsLoading ||
@@ -44,15 +57,25 @@ export function useNetWorth() {
     npsLoading ||
     ssyLoading ||
     sgbLoading ||
-    ulipLoading;
+    ulipLoading ||
+    realEstateLoading ||
+    ppfLoading ||
+    rdLoading ||
+    nscLoading ||
+    vehiclesLoading;
   const error = accountsError || txnsError;
 
-  const data = useMemo(() => {
+  const conversion = useMemo(() => {
     if (!accounts || !transactions) return null;
     const accountBalances = calculateAccountBalances(accounts, transactions);
+    return convertAccountBalancesToBase(accountBalances, accounts, fxRates);
+  }, [accounts, transactions, fxRates]);
+
+  const data = useMemo(() => {
+    if (!accounts || !transactions || !conversion) return null;
     const holdings = investments ? groupInvestmentsBySymbol(investments) : [];
     return calculateNetWorth({
-      accountBalances: accountBalances.map((b) => b.balance),
+      accountBalances: conversion.convertedBalances,
       activeFixedDeposits: (fds ?? []).filter((fd) => !fd.withdrawn),
       goldHoldings: gold ?? [],
       epfAccounts: epfAccounts ?? [],
@@ -60,10 +83,33 @@ export function useNetWorth() {
       ssyAccounts: ssyAccounts ?? [],
       sgbHoldings: sgbHoldings ?? [],
       ulipPolicies: ulipPolicies ?? [],
+      realEstate: realEstateAssets ?? [],
+      ppfAccounts: ppfAccounts ?? [],
+      recurringDeposits: recurringDeposits ?? [],
+      nscCertificates: nscCertificates ?? [],
+      vehicles: vehicles ?? [],
       portfolioCurrentValue: summarizeHoldings(holdings).currentValue,
       liabilities: liabilities ?? [],
     });
-  }, [accounts, transactions, fds, gold, liabilities, investments, epfAccounts, npsAccounts, ssyAccounts, sgbHoldings, ulipPolicies]);
+  }, [
+    accounts,
+    transactions,
+    conversion,
+    fds,
+    gold,
+    liabilities,
+    investments,
+    epfAccounts,
+    npsAccounts,
+    ssyAccounts,
+    sgbHoldings,
+    ulipPolicies,
+    realEstateAssets,
+    ppfAccounts,
+    recurringDeposits,
+    nscCertificates,
+    vehicles,
+  ]);
 
-  return { data, isLoading, error };
+  return { data, isLoading, error, unconvertedCurrencies: conversion?.unconvertedCurrencies ?? [] };
 }

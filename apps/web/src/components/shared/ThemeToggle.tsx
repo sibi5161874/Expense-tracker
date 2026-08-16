@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) {
+  // next-themes leaves resolvedTheme undefined until its client-side script has resolved
+  // the actual theme (it can't be known during SSR) — that's the mount signal already, so
+  // there's no need for a separate mounted-state-plus-effect to get the same information.
+  if (resolvedTheme === undefined) {
     return <Button variant="ghost" size="icon" className="size-9" disabled />;
   }
 

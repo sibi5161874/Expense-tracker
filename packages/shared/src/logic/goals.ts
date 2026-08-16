@@ -51,6 +51,27 @@ export function calculateGoalStatus(
   if (progressPct >= 0.75) {
     return 'On Track';
   }
-  
+
   return 'Behind';
+}
+
+/** FinBoom's stated default long-term inflation assumption for goal planning. */
+export const DEFAULT_INFLATION_RATE = 0.12;
+
+/**
+ * Future value of a present-day cost after compounding at `annualInflationRate`
+ * until `targetDate` — e.g. "a ₹50L house today costs how much in 7 years?"
+ * Clamped at 0 years (never negative) so a target date already in the past just
+ * returns the present value unchanged, instead of discounting it.
+ */
+export function calculateInflatedFutureValue(
+  presentValue: number,
+  targetDate: string,
+  annualInflationRate: number = DEFAULT_INFLATION_RATE,
+  today: Date = new Date()
+): number {
+  const target = new Date(targetDate);
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
+  const yearsRemaining = Math.max(0, (target.getTime() - today.getTime()) / msPerYear);
+  return Math.round(presentValue * Math.pow(1 + annualInflationRate, yearsRemaining));
 }

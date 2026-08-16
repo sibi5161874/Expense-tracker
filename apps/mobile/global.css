@@ -2,68 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Values are sRGB conversions of the exact oklch() tokens in apps/web/src/app/globals.css.
-   Keep both files in sync by re-deriving these whenever a web token changes — see the
-   conversion note in the Phase 4 handoff. */
+/* Mirrors apps/web/src/app/globals.css exactly — same token names, same values (converted
+   from hex to sRGB triplets since NativeWind's withOpacity() needs "R G B" not "#RRGGBB").
+   Don't add colors here that don't exist on web; add them to globals.css first, then port. */
 :root {
-  --background: 251 248 243;
-  --foreground: 25 21 16;
-  --card: 255 253 250;
-  --card-foreground: 25 21 16;
-  --primary: 167 98 0;
-  --primary-foreground: 255 251 245;
-  --secondary: 241 238 233;
-  --secondary-foreground: 25 21 16;
-  --muted: 241 238 233;
-  --muted-foreground: 103 99 93;
-  --accent: 245 229 213;
-  --accent-foreground: 74 43 0;
-  --destructive: 218 42 50;
-  --destructive-subtle: 255 233 230;
+  --background: 248 249 250;
+  --foreground: 26 26 26;
+  --card: 255 255 255;
+  --card-foreground: 26 26 26;
+  --primary: 25 118 210;
+  --primary-foreground: 255 255 255;
+  --secondary: 241 243 244;
+  --secondary-foreground: 26 26 26;
+  --muted: 241 243 244;
+  --muted-foreground: 107 114 128;
+  --accent: 227 242 253;
+  --accent-foreground: 25 118 210;
+  --accent2: 142 36 170;
+  --accent2-foreground: 255 255 255;
+  --accent2-subtle: 243 229 245;
+  --destructive: 211 47 47;
+  --destructive-subtle: 253 236 234;
   --success: 35 152 72;
   --success-foreground: 247 254 248;
   --success-subtle: 219 248 222;
   --warning: 227 159 8;
   --warning-foreground: 47 30 1;
   --warning-subtle: 255 240 204;
-  --info: 0 137 208;
-  --info-foreground: 246 253 255;
-  --info-subtle: 221 242 255;
-  --border: 224 222 217;
-  --chart1: 167 98 0;
-  --chart2: 0 133 133;
+  --info: 25 118 210;
+  --info-foreground: 255 255 255;
+  --info-subtle: 227 242 253;
+  --border: 229 231 235;
+  --chart1: 25 118 210;
+  --chart2: 142 36 170;
   --chart3: 167 74 140;
   --chart4: 53 102 184;
   --chart5: 119 112 104;
 }
 
 .dark {
-    --background: 16 13 8;
-    --foreground: 241 238 233;
-    --card: 25 21 16;
-    --card-foreground: 241 238 233;
-    --primary: 213 141 37;
-    --primary-foreground: 16 7 1;
-    --secondary: 40 35 29;
-    --secondary-foreground: 241 238 233;
-    --muted: 40 35 29;
-    --muted-foreground: 149 146 139;
-    --accent: 55 36 14;
-    --accent-foreground: 245 217 187;
-    --destructive: 255 99 103;
-    --destructive-subtle: 66 28 25;
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+    --card: 26 26 26;
+    --card-foreground: 255 255 255;
+    --primary: 33 150 243;
+    --primary-foreground: 255 255 255;
+    --secondary: 26 26 26;
+    --secondary-foreground: 255 255 255;
+    --muted: 26 26 26;
+    --muted-foreground: 176 176 176;
+    --accent: 13 42 68;
+    --accent-foreground: 100 181 246;
+    --accent2: 156 39 176;
+    --accent2-foreground: 255 255 255;
+    --accent2-subtle: 42 15 48;
+    --destructive: 229 57 53;
+    --destructive-subtle: 58 20 20;
     --success: 75 184 102;
     --success-foreground: 3 12 4;
     --success-subtle: 12 49 22;
     --warning: 236 179 60;
     --warning-foreground: 31 20 1;
     --warning-subtle: 58 43 7;
-    --info: 54 162 227;
-    --info-foreground: 2 10 18;
-    --info-subtle: 9 44 65;
-    --border: 40 37 33;
-    --chart1: 213 141 37;
-    --chart2: 9 174 174;
+    --info: 33 150 243;
+    --info-foreground: 255 255 255;
+    --info-subtle: 13 42 68;
+    --border: 38 38 38;
+    --chart1: 33 150 243;
+    --chart2: 156 39 176;
     --chart3: 210 114 180;
     --chart4: 88 142 231;
     --chart5: 163 158 148;

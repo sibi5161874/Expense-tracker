@@ -5,10 +5,17 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { useFinancialEssentials } from '@/hooks/useFinancialEssentials';
 import { formatINR } from '@repo/shared/utils/currency';
 import { Card, CardContent } from '@/components/ui/card';
+import { StatusBadge, type BadgeTone } from '@/components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
 
+function scoreTone(score: number): BadgeTone {
+  if (score >= 8) return 'success';
+  if (score >= 5) return 'warning';
+  return 'destructive';
+}
+
 export function FinancialEssentialsCard() {
-  const { items, isLoading, hasProfileData } = useFinancialEssentials();
+  const { items, isLoading, hasProfileData, score } = useFinancialEssentials();
 
   if (isLoading) return null;
 
@@ -16,7 +23,10 @@ export function FinancialEssentialsCard() {
     <Card>
       <CardContent>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Financial Essentials Check</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold">Financial Essentials Check</h2>
+            {score !== null && <StatusBadge tone={scoreTone(score)}>{score}/10</StatusBadge>}
+          </div>
           {!hasProfileData && (
             <Link href="/settings?tab=profile" className="text-primary text-xs hover:underline">
               Add income &amp; age for personalized numbers
@@ -47,7 +57,7 @@ export function FinancialEssentialsCard() {
           ))}
         </div>
 
-        <p className="text-muted-foreground mt-4 border-t pt-3 text-xs">
+        <p className="text-muted-foreground mt-4 text-xs">
           Simplified estimates based on your profile and data — not financial advice.
         </p>
       </CardContent>

@@ -12,6 +12,8 @@
     "./queries/*": "./src/queries/*/index.ts",
     "./logic": "./src/logic/index.ts",
     "./logic/*": "./src/logic/*.ts",
+    "./config": "./src/config/index.ts",
+    "./config/*": "./src/config/*.ts",
     "./utils": "./src/utils/index.ts",
     "./utils/*": "./src/utils/*.ts"
   },

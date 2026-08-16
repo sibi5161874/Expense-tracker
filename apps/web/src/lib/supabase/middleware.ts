@@ -2,7 +2,18 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@repo/shared/types";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth/callback"];
+// Prefix-matched against the pathname (see isPublicPath below) — "/" is handled
+// separately as an exact match so it doesn't accidentally prefix-match every route.
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/auth/callback",
+  "/privacy",
+  "/terms",
+  // Razorpay's server calls this directly and never has a session cookie —
+  // it authenticates itself via HMAC signature, not the auth middleware.
+  "/api/payments/webhook",
+];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -32,9 +43,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublicPath = PUBLIC_PATHS.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
+  const isPublicPath =
+    request.nextUrl.pathname === "/" ||
+    PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicPath) {
     const loginUrl = request.nextUrl.clone();

@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useFxRates } from '@/hooks/useFxRates';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountRow } from '@/components/settings/AccountRow';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function AccountsTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const { data: accounts, isLoading, error, deleteAccount, isDeleting } = useAccounts();
+  const { rates: fxRates } = useFxRates();
 
   const handleDelete = useCallback((id: string) => deleteAccount(id), [deleteAccount]);
   const closeForm = useCallback(() => {
@@ -53,6 +55,7 @@ export function AccountsTab() {
                 onEdit={setEditingAccount}
                 onDelete={handleDelete}
                 isDeleting={isDeleting}
+                fxRates={fxRates}
               />
             ))}
             {accounts?.length === 0 && (

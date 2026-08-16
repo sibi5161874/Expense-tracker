@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, FlatList, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, Receipt } from "lucide-react-native";
+import { Plus, Receipt, UploadCloud } from "lucide-react-native";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseClient } from "@/hooks/useSupabaseClient";
 import type { TransactionInput } from "@repo/shared/schemas";
 import type { getTransactions } from "@repo/shared/queries/transactions";
+import { getTransactionsForDedup, createTransactionsBulk } from "@repo/shared/queries/transactions";
+import { buildNameIndex, buildTransactionImportPlan, TRANSACTIONS_TEMPLATE_COLUMNS } from "@repo/shared";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/common/Button";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -14,6 +18,8 @@ import { AppText } from "@/components/common/AppText";
 import { TransactionListItem } from "@/components/transactions/TransactionListItem";
 import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
 import { AddTransactionSheet } from "@/components/transactions/AddTransactionSheet";
+import { ImportSheet } from "@/components/shared/ImportSheet";
+import { useThemeColor } from "@/lib/colors";
 
 type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[number];
 
@@ -24,10 +30,28 @@ export default function TransactionsScreen() {
   const [items, setItems] = useState<Transaction[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [preparingImport, setPreparingImport] = useState(false);
+  const [existingKeys, setExistingKeys] = useState<string[]>([]);
 
+  const { user } = useAuth();
+  const supabase = useSupabaseClient();
+  const foreground = useThemeColor("foreground");
   const { data: accounts } = useAccounts(true);
   const { data: categories } = useCategories();
   const { data, isLoading, error, createTransaction, updateTransaction, deleteTransaction } = useTransactions({ page });
+
+  async function openImport() {
+    if (!user) return;
+    setPreparingImport(true);
+    try {
+      const existing = await getTransactionsForDedup(supabase, user.id);
+      setExistingKeys((existing ?? []).map((t) => `${t.date}|${t.category_id ?? ""}|${Number(t.amount)}`));
+      setImportOpen(true);
+    } finally {
+      setPreparingImport(false);
+    }
+  }
 
   useEffect(() => {
     if (!data) return;
@@ -86,15 +110,20 @@ export default function TransactionsScreen() {
           title="Transactions"
           description="Track your income, expenses, and transfers."
           action={
-            <Button
-              onPress={() => {
-                setEditing(null);
-                setSheetOpen(true);
-              }}
-            >
-              <Plus size={16} color="white" />
-              <AppText className="text-sm font-medium text-primary-foreground">Add</AppText>
-            </Button>
+            <View className="flex-row items-center gap-2">
+              <Button variant="outline" className="size-11 px-0" onPress={openImport} disabled={preparingImport}>
+                <UploadCloud size={16} color={foreground} />
+              </Button>
+              <Button
+                onPress={() => {
+                  setEditing(null);
+                  setSheetOpen(true);
+                }}
+              >
+                <Plus size={16} color="white" />
+                <AppText className="text-sm font-medium text-primary-foreground">Add</AppText>
+              </Button>
+            </View>
           }
         />
       </View>
@@ -122,6 +151,7 @@ export default function TransactionsScreen() {
       ) : (
         <FlatList
           className="mt-2"
+          contentContainerStyle={{ paddingBottom: 128 }}
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -168,6 +198,18 @@ export default function TransactionsScreen() {
               }
             : undefined
         }
+      />
+
+      <ImportSheet
+        visible={importOpen}
+        onClose={() => setImportOpen(false)}
+        entityLabel="transactions"
+        templateColumns={TRANSACTIONS_TEMPLATE_COLUMNS}
+        buildPlan={(records) =>
+          buildTransactionImportPlan(records, buildNameIndex(accounts ?? []), buildNameIndex(categories ?? []), existingKeys)
+        }
+        createBulk={(rows) => (user ? createTransactionsBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
+        onImported={() => setPage(0)}
       />
     </SafeAreaView>
   );

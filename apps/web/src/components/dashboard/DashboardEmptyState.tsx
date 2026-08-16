@@ -10,7 +10,7 @@ export function DashboardEmptyState() {
       title="Your dashboard is ready"
       description="Log your first transaction to see income, expenses, and net worth come together here."
       action={
-        <Button render={<Link href="/transactions" />}>
+        <Button nativeButton={false} render={<Link href="/transactions" />}>
           <PlusCircle className="size-4" />
           Add your first transaction
         </Button>

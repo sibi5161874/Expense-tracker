@@ -66,20 +66,41 @@ export async function getInvestmentLogById(
   return data;
 }
 
+const ALL_INVESTMENT_LOG_BATCH_SIZE = 1000;
+
 /**
  * Unpaginated fetch for portfolio aggregation (units held, avg cost, P&L) — never
  * for list rendering. RULES.md §15 says this aggregation should ultimately move to
  * a SQL view (Phase 3); this is the interim fix for computing it over the full
  * dataset instead of silently truncating to one page of 50 rows.
+ *
+ * Pages through the table in batches rather than a single `.limit()` call — a fixed
+ * limit silently truncates (and therefore silently corrupts) portfolio math for any
+ * user whose investment log grows past that cap, with no error to signal it happened.
  */
 export async function getAllInvestmentLog(supabase: SupabaseClient<Database>, userId: string) {
-  const { data, error } = await supabase
+  const all: NonNullable<
+    Awaited<ReturnType<typeof fetchInvestmentLogBatch>>
+  > = [];
+
+  for (let from = 0; ; from += ALL_INVESTMENT_LOG_BATCH_SIZE) {
+    const batch = await fetchInvestmentLogBatch(supabase, userId, from, from + ALL_INVESTMENT_LOG_BATCH_SIZE - 1);
+    all.push(...batch);
+    if (batch.length < ALL_INVESTMENT_LOG_BATCH_SIZE) break;
+  }
+
+  return all;
+}
+
+function fetchInvestmentLogBatch(supabase: SupabaseClient<Database>, userId: string, from: number, to: number) {
+  return supabase
     .from('investment_log')
     .select('id, date, symbol, exchange, action, quantity, price, fees, asset_type')
     .eq('user_id', userId)
     .order('date', { ascending: false })
-    .limit(5000);
-
-  if (error) throw error;
-  return data;
+    .range(from, to)
+    .then(({ data, error }) => {
+      if (error) throw error;
+      return data ?? [];
+    });
 }

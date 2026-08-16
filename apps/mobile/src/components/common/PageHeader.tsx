@@ -13,7 +13,7 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
     <View className="flex-row items-center justify-between gap-4">
       <View className="flex-1">
-        <AppText className="text-2xl font-semibold tracking-tight">{title}</AppText>
+        <AppText className="text-2xl font-bold tracking-tight">{title}</AppText>
         {description && <AppText className="mt-1 text-sm text-muted-foreground">{description}</AppText>}
       </View>
       {action}

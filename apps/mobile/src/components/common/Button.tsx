@@ -31,7 +31,7 @@ export function Button({ variant = "default", children, className, disabled, ...
     <Pressable
       disabled={disabled}
       className={cn(
-        "h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-4",
+        "h-11 flex-row items-center justify-center gap-1.5 rounded-2xl px-4",
         CONTAINER[variant],
         disabled && "opacity-50",
         className

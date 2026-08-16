@@ -1,4 +1,5 @@
 import "../global.css";
+import { useEffect } from "react";
 import { View } from "react-native";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -7,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/lib/QueryProvider";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
+import { loadThemePreference } from "@/lib/themePreference";
 
 /** Root-level catch-all — expo-router wraps the whole app in this when any screen throws. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -22,6 +24,12 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 export default function RootLayout() {
+  // Applies the user's saved light/dark/system choice before anything else renders —
+  // otherwise every screen would briefly flash the OS default first.
+  useEffect(() => {
+    loadThemePreference();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <QueryProvider>

@@ -32,11 +32,18 @@ import {
   User,
   SquareStack,
   Cog,
+  Repeat,
+  Home,
+  CalendarClock,
+  ScrollText,
+  Car,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { REPORTS } from "@/lib/reportsRegistry";
+import { isReportEnabled } from "@repo/shared/logic";
 
 interface NavLeaf {
   href: string;
@@ -65,20 +72,31 @@ const ASSET_CHILDREN: NavLeaf[] = [
   { href: "/assets?tab=ssy", label: "SSY", icon: Baby },
   { href: "/assets?tab=sgb", label: "SGB", icon: Banknote },
   { href: "/assets?tab=ulip", label: "ULIP", icon: Umbrella },
+  { href: "/assets?tab=realestate", label: "Real Estate", icon: Home },
+  { href: "/assets?tab=ppf", label: "PPF", icon: Landmark },
+  { href: "/assets?tab=rd", label: "Recurring Deposits", icon: CalendarClock },
+  { href: "/assets?tab=nsc", label: "NSC", icon: ScrollText },
+  { href: "/assets?tab=vehicles", label: "Vehicles", icon: Car },
 ];
 
 const CONFIG_CHILDREN: NavLeaf[] = [
   { href: "/config?tab=accounts", label: "Accounts", icon: Wallet },
   { href: "/config?tab=categories", label: "Categories & Sub-Categories", icon: Tags },
   { href: "/config?tab=budgets", label: "Budgets", icon: SquareStack },
+  { href: "/config?tab=recurring", label: "Recurring", icon: Repeat },
 ];
 
 const SETTINGS_CHILDREN: NavLeaf[] = [
   { href: "/settings?tab=profile", label: "Profile", icon: User },
+  { href: "/settings?tab=billing", label: "Billing", icon: Crown },
   { href: "/settings?tab=preferences", label: "Preferences", icon: SlidersHorizontal },
+  { href: "/settings?tab=data", label: "Data & Privacy", icon: ShieldCheck },
 ];
 
-const REPORT_CHILDREN: NavLeaf[] = REPORTS.map((r) => ({ href: `/reports/${r.slug}`, label: r.title }));
+const REPORT_CHILDREN: NavLeaf[] = REPORTS.filter((r) => isReportEnabled(r.slug)).map((r) => ({
+  href: `/reports/${r.slug}`,
+  label: r.title,
+}));
 
 const NAV_ENTRIES: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -121,20 +139,29 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  // Persist the collapse preference; auto-open whichever group contains the active route.
+  // localStorage only exists client-side, so restoring the saved collapse preference has to
+  // happen in an effect (React's own documented use for one — synchronizing with an external
+  // system) rather than during render.
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
     if (stored) setCollapsed(stored === "true");
   }, []);
 
-  useEffect(() => {
-    for (const entry of NAV_ENTRIES) {
-      if (isGroup(entry) && entry.children.some((c) => isActive(c.href))) {
-        setOpenGroups((prev) => ({ ...prev, [entry.label]: true }));
-      }
+  // Auto-open whichever group contains the active route. Unlike the localStorage read above,
+  // everything this needs (pathname, NAV_ENTRIES, isActive) is already available during
+  // render, so this uses React's documented "adjusting state when a prop changes" pattern —
+  // comparing against the last-seen pathname and calling setState conditionally — instead of
+  // an effect, tracking its own lastPathname rather than relying on openGroups being absent
+  // so a user's manual collapse of that group afterwards is never re-opened by this check.
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    const activeGroup = NAV_ENTRIES.find((entry) => isGroup(entry) && entry.children.some((c) => isActive(c.href)));
+    if (activeGroup) {
+      setOpenGroups((prev) => ({ ...prev, [activeGroup.label]: true }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-check when the route changes
-  }, [pathname]);
+  }
 
   function toggleCollapsed() {
     setCollapsed((prev) => {

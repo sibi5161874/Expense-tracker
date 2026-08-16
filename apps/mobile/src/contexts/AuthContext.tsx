@@ -6,8 +6,16 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** True for a session created via `signInAnonymously` — no email/password set yet, so
+   * the account can't be recovered if the device is wiped. Screens use this to prompt
+   * upgrading to a full account (see Settings). */
+  isAnonymous: boolean;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  /** Opt-in, not automatic — creates a real `auth.uid()` (existing RLS policies need no
+   * changes) so the app is usable immediately with zero login friction. Requires
+   * "Anonymous Sign-Ins" enabled in the Supabase dashboard (Authentication → Providers). */
+  signInAnonymously: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -48,12 +56,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const signInAnonymously = async () => {
+    const { error } = await supabase.auth.signInAnonymously();
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, isAnonymous: user?.is_anonymous === true, signUp, signIn, signInAnonymously, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

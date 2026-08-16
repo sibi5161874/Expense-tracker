@@ -19,6 +19,10 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        /** Notification/alert count badge — solid fill per design spec §3. */
+        count: "bg-destructive text-white [a]:hover:bg-destructive/90",
+        /** Secondary (purple) accent badge — segmented-control-adjacent highlights. */
+        accent2: "bg-accent2 text-accent2-foreground [a]:hover:bg-accent2/90",
       },
     },
     defaultVariants: {

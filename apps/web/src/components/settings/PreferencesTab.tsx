@@ -23,12 +23,18 @@ const LANGUAGE_STORAGE_KEY = 'preferred-language';
 
 export function PreferencesTab() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // next-themes leaves resolvedTheme undefined until its client-side script has resolved the
+  // actual theme (unknowable during SSR) — that doubles as the mount signal, no separate
+  // mounted-state-plus-effect needed for it.
+  const mounted = resolvedTheme !== undefined;
   const [language, setLanguage] = useState('en');
 
+  // localStorage only exists client-side, so reading the saved preference has to happen in
+  // an effect (this is React's own documented use for one — synchronizing with an external
+  // system) rather than during render.
   useEffect(() => {
-    setMounted(true);
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
     if (stored) setLanguage(stored);
   }, []);
 

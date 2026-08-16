@@ -1,10 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, Receipt, Download, UploadCloud, Pencil, Trash2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Plus, Receipt, Download, UploadCloud, Landmark, Pencil, Trash2 } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { TransactionForm } from '@/components/TransactionForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
+import { BankStatementImportDialog } from '@/components/shared/BankStatementImportDialog';
+import { ProLockedButton } from '@/components/shared/ProGate';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { AmountText } from '@/components/shared/AmountText';
@@ -20,18 +25,30 @@ import type { getTransactions } from '@repo/shared/queries/transactions';
 type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[number];
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showBankImport, setShowBankImport] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const { data: transactions, isLoading, error, deleteTransaction, isDeleting } = useTransactions({ page });
+  const { hasFeature } = useEntitlements();
 
-  // Stagger-fade rows in only on the very first successful load — never on pagination or refetch.
-  const hasAnimatedRef = useRef(false);
-  const shouldAnimateRows = !isLoading && !hasAnimatedRef.current;
-  useEffect(() => {
-    if (!isLoading) hasAnimatedRef.current = true;
-  }, [isLoading]);
+  function goToUpgrade() {
+    toast.info('Native bank import is a Pro feature — start your free trial to unlock it.');
+    router.push('/settings?tab=billing');
+  }
+
+  // Stagger-fade rows in only on the very first successful load — never on pagination or
+  // refetch. Tracked as state, not a ref (refs can't be read during render), flipped via the
+  // same render-time "adjusting state" pattern used on the portfolio page: this render's
+  // shouldAnimateRows is computed first and used as-is, then setHasAnimated schedules the
+  // flag for next render without this render ever re-reading it.
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const shouldAnimateRows = !isLoading && !hasAnimated;
+  if (shouldAnimateRows) {
+    setHasAnimated(true);
+  }
 
   const handleEdit = useCallback((transaction: Transaction) => setEditingTransaction(transaction), []);
   const handleDelete = useCallback((id: string) => deleteTransaction(id), [deleteTransaction]);
@@ -107,6 +124,18 @@ export default function TransactionsPage() {
               <UploadCloud className="size-4" />
               Import CSV
             </Button>
+            {hasFeature('bankStatementImport') ? (
+              <Button variant="outline" onClick={() => setShowBankImport(true)}>
+                <Landmark className="size-4" />
+                Import from Bank
+              </Button>
+            ) : (
+              <ProLockedButton
+                label="Import from Bank"
+                icon={<Landmark className="size-4" />}
+                onUpgradeClick={goToUpgrade}
+              />
+            )}
             <Button onClick={() => setShowForm(true)}>
               <Plus className="size-4" />
               Add Transaction
@@ -216,6 +245,8 @@ export default function TransactionsPage() {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {showBankImport && <BankStatementImportDialog onClose={() => setShowBankImport(false)} />}
     </div>
   );
 }

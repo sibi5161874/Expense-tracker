@@ -13,14 +13,38 @@ import {
   createFixedDeposit,
   createGold,
   createLoanLiability,
+  createEpfAccount,
+  createNpsAccount,
+  createSsyAccount,
+  createSgbHolding,
+  createUlipPolicy,
   updateFixedDeposit,
   updateGold,
   updateLoanLiability,
+  updateEpfAccount,
+  updateNpsAccount,
+  updateSsyAccount,
+  updateSgbHolding,
+  updateUlipPolicy,
   deleteFixedDeposit,
   deleteGold,
   deleteLoanLiability,
+  deleteEpfAccount,
+  deleteNpsAccount,
+  deleteSsyAccount,
+  deleteSgbHolding,
+  deleteUlipPolicy,
 } from '@repo/shared/queries/assets';
-import type { AssetFixedDepositInput, AssetGoldInput, AssetLoanLiabilityInput } from '@repo/shared/schemas';
+import type {
+  AssetFixedDepositInput,
+  AssetGoldInput,
+  AssetLoanLiabilityInput,
+  AssetEpfInput,
+  AssetNpsInput,
+  AssetSsyInput,
+  AssetSgbInput,
+  AssetUlipInput,
+} from '@repo/shared/schemas';
 
 /** Mirrors apps/web/src/hooks/useAssets.ts. */
 export function useFixedDeposits() {
@@ -173,16 +197,13 @@ export function useLoanLiabilities() {
   };
 }
 
-// Read-only for now — mobile has no Assets screen yet (web-only per this pass), these exist
-// solely so useNetWorth.ts stays correct/consistent with web's net worth total. Add the
-// mutation half here when a mobile Assets screen gets built.
-
 export function useEpfAccounts() {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['epfAccounts', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -191,14 +212,48 @@ export function useEpfAccounts() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const createMutation = useMutation({
+    mutationFn: (data: AssetEpfInput) => {
+      if (!userId) throw new Error('User not authenticated');
+      return createEpfAccount(supabase, userId, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['epfAccounts', userId] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssetEpfInput> }) => {
+      if (!userId) throw new Error('User not authenticated');
+      return updateEpfAccount(supabase, userId, id, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['epfAccounts', userId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      return deleteEpfAccount(supabase, userId, id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['epfAccounts', userId] }),
+  });
+
+  return {
+    ...query,
+    createEpfAccount: createMutation.mutateAsync,
+    updateEpfAccount: updateMutation.mutateAsync,
+    deleteEpfAccount: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+  };
 }
 
 export function useNpsAccounts() {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['npsAccounts', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -207,14 +262,48 @@ export function useNpsAccounts() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const createMutation = useMutation({
+    mutationFn: (data: AssetNpsInput) => {
+      if (!userId) throw new Error('User not authenticated');
+      return createNpsAccount(supabase, userId, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['npsAccounts', userId] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssetNpsInput> }) => {
+      if (!userId) throw new Error('User not authenticated');
+      return updateNpsAccount(supabase, userId, id, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['npsAccounts', userId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      return deleteNpsAccount(supabase, userId, id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['npsAccounts', userId] }),
+  });
+
+  return {
+    ...query,
+    createNpsAccount: createMutation.mutateAsync,
+    updateNpsAccount: updateMutation.mutateAsync,
+    deleteNpsAccount: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+  };
 }
 
 export function useSsyAccounts() {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['ssyAccounts', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -223,14 +312,48 @@ export function useSsyAccounts() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const createMutation = useMutation({
+    mutationFn: (data: AssetSsyInput) => {
+      if (!userId) throw new Error('User not authenticated');
+      return createSsyAccount(supabase, userId, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ssyAccounts', userId] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssetSsyInput> }) => {
+      if (!userId) throw new Error('User not authenticated');
+      return updateSsyAccount(supabase, userId, id, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ssyAccounts', userId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      return deleteSsyAccount(supabase, userId, id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ssyAccounts', userId] }),
+  });
+
+  return {
+    ...query,
+    createSsyAccount: createMutation.mutateAsync,
+    updateSsyAccount: updateMutation.mutateAsync,
+    deleteSsyAccount: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+  };
 }
 
 export function useSgbHoldings() {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['sgbHoldings', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -239,14 +362,48 @@ export function useSgbHoldings() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const createMutation = useMutation({
+    mutationFn: (data: AssetSgbInput) => {
+      if (!userId) throw new Error('User not authenticated');
+      return createSgbHolding(supabase, userId, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sgbHoldings', userId] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssetSgbInput> }) => {
+      if (!userId) throw new Error('User not authenticated');
+      return updateSgbHolding(supabase, userId, id, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sgbHoldings', userId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      return deleteSgbHolding(supabase, userId, id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sgbHoldings', userId] }),
+  });
+
+  return {
+    ...query,
+    createSgbHolding: createMutation.mutateAsync,
+    updateSgbHolding: updateMutation.mutateAsync,
+    deleteSgbHolding: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+  };
 }
 
 export function useUlipPolicies() {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['ulipPolicies', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -255,4 +412,37 @@ export function useUlipPolicies() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const createMutation = useMutation({
+    mutationFn: (data: AssetUlipInput) => {
+      if (!userId) throw new Error('User not authenticated');
+      return createUlipPolicy(supabase, userId, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ulipPolicies', userId] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssetUlipInput> }) => {
+      if (!userId) throw new Error('User not authenticated');
+      return updateUlipPolicy(supabase, userId, id, data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ulipPolicies', userId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      return deleteUlipPolicy(supabase, userId, id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ulipPolicies', userId] }),
+  });
+
+  return {
+    ...query,
+    createUlipPolicy: createMutation.mutateAsync,
+    updateUlipPolicy: updateMutation.mutateAsync,
+    deleteUlipPolicy: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+  };
 }
