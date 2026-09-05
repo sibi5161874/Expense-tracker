@@ -1,11 +1,13 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types';
 
-const PAGE_SIZE = 50;
+export const INVESTMENT_LOG_PAGE_SIZE = 10;
+const PAGE_SIZE = INVESTMENT_LOG_PAGE_SIZE;
 
 export interface GetInvestmentLogOptions {
   symbol?: string;
   page?: number;
+  pageSize?: number;
   action?: 'BUY' | 'SELL' | 'SIP' | 'DIVIDEND' | 'BONUS' | 'SPLIT';
   asset_type?: 'Stock' | 'ETF' | 'Mutual Fund' | 'Crypto' | 'Bond' | 'Other';
 }
@@ -36,8 +38,9 @@ export async function getInvestmentLog(
   }
 
   const page = opts.page ?? 0;
-  const from = page * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const pageSize = opts.pageSize ?? PAGE_SIZE;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
   query = query.order('date', { ascending: false }).range(from, to);
 
@@ -45,6 +48,28 @@ export async function getInvestmentLog(
 
   if (error) throw error;
   return data;
+}
+
+/** Row count for the same filters `getInvestmentLog` applies — a separate `head: true`
+ * request so paginated views can render "Page X of Y" without widening the main query. */
+export async function getInvestmentLogCount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  opts: Pick<GetInvestmentLogOptions, 'symbol' | 'action' | 'asset_type'> = {}
+) {
+  let query = supabase
+    .from('investment_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (opts.symbol) query = query.eq('symbol', opts.symbol);
+  if (opts.action) query = query.eq('action', opts.action);
+  if (opts.asset_type) query = query.eq('asset_type', opts.asset_type);
+
+  const { count, error } = await query;
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getInvestmentLogById(

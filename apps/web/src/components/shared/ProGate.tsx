@@ -30,12 +30,13 @@ interface ProLockedButtonProps {
   label: string;
   icon?: React.ReactNode;
   onUpgradeClick: () => void;
+  size?: React.ComponentProps<typeof Button>['size'];
 }
 
 /** The disabled, upsell-labeled stand-in for a button a free-tier user can't use yet. */
-export function ProLockedButton({ label, icon, onUpgradeClick }: ProLockedButtonProps) {
+export function ProLockedButton({ label, icon, onUpgradeClick, size }: ProLockedButtonProps) {
   return (
-    <Button variant="outline" onClick={onUpgradeClick} title="Available on Pro">
+    <Button variant="outline" size={size} onClick={onUpgradeClick} title="Available on Pro">
       {icon ?? <Lock className="size-4" />}
       {label}
       <span className="bg-warning-subtle text-warning-foreground ml-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase">

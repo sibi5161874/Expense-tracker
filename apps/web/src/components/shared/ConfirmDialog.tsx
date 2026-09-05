@@ -1,6 +1,8 @@
 'use client';
 
+import { Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -46,15 +48,30 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+        <DialogHeader className="gap-2">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'flex size-9 shrink-0 items-center justify-center rounded-full',
+                destructive ? 'bg-destructive/10 text-destructive' : 'bg-info/10 text-info'
+              )}
+            >
+              {destructive ? <Trash2 className="size-4" /> : <Info className="size-4" />}
+            </div>
+            <DialogTitle>{title}</DialogTitle>
+          </div>
+          {description && <DialogDescription className="pl-12">{description}</DialogDescription>}
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isConfirming}>
+        <DialogFooter className="sm:flex-row sm:justify-stretch">
+          <Button className="flex-1" variant="outline" onClick={() => onOpenChange(false)} disabled={isConfirming}>
             {cancelLabel}
           </Button>
-          <Button variant={destructive ? 'destructive' : 'default'} onClick={onConfirm} disabled={isConfirming}>
+          <Button
+            className="flex-1"
+            variant={destructive ? 'destructive' : 'default'}
+            onClick={onConfirm}
+            disabled={isConfirming}
+          >
             {isConfirming ? confirmingLabel : confirmLabel}
           </Button>
         </DialogFooter>

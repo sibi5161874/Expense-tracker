@@ -1,11 +1,13 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types';
 
-const PAGE_SIZE = 50;
+export const CASHBOOK_PAGE_SIZE = 10;
+const PAGE_SIZE = CASHBOOK_PAGE_SIZE;
 
 export interface GetCashbookOptions {
   counterparty?: string;
   page?: number;
+  pageSize?: number;
   flow?: 'Gave' | 'Received';
 }
 
@@ -31,8 +33,9 @@ export async function getCashbook(
   }
 
   const page = opts.page ?? 0;
-  const from = page * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const pageSize = opts.pageSize ?? PAGE_SIZE;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
   query = query.order('date', { ascending: false }).range(from, to);
 
@@ -40,6 +43,27 @@ export async function getCashbook(
 
   if (error) throw error;
   return data;
+}
+
+/** Row count for the same filters `getCashbook` applies — a separate `head: true` request
+ * so paginated views can render "Page X of Y" without widening the main query's payload. */
+export async function getCashbookCount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  opts: Pick<GetCashbookOptions, 'counterparty' | 'flow'> = {}
+) {
+  let query = supabase
+    .from('cashbook')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (opts.counterparty) query = query.eq('counterparty', opts.counterparty);
+  if (opts.flow) query = query.eq('flow', opts.flow);
+
+  const { count, error } = await query;
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getCashbookById(

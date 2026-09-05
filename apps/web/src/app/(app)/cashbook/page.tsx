@@ -9,8 +9,10 @@ import { CounterpartySummaryCard } from '@/components/cashbook/CounterpartySumma
 import { ImportDialog } from '@/components/shared/ImportDialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { CashbookCalendarView } from '@/components/cashbook/CashbookCalendarView';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -24,6 +26,8 @@ type CashbookEntry = NonNullable<Awaited<ReturnType<typeof getCashbook>>>[number
 
 export default function CashbookPage() {
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CashbookEntry | null>(null);
@@ -32,12 +36,13 @@ export default function CashbookPage() {
     summary,
     isLoading,
     error,
+    totalCount,
     createCashbook,
     createCashbookBulk,
     deleteCashbook,
     deleteCashbookBulk,
     isDeleting,
-  } = useCashbook({ page });
+  } = useCashbook({ page, pageSize });
 
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
   const handleEdit = useCallback((entry: CashbookEntry) => setEditingEntry(entry), []);
@@ -144,7 +149,20 @@ export default function CashbookPage() {
         }
       />
 
-      {error ? (
+      <div className="mb-4 flex justify-end">
+        <SegmentedControl
+          options={[
+            { value: 'table', label: 'Table' },
+            { value: 'calendar', label: 'Calendar' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+      </div>
+
+      {view === 'calendar' ? (
+        <CashbookCalendarView />
+      ) : error ? (
         <ErrorState error={error} />
       ) : (
         <>
@@ -200,7 +218,13 @@ export default function CashbookPage() {
             emptyMessage="No cashbook entries found. Add your first entry to get started."
             page={page}
             onPageChange={setPage}
-            hasNextPage={!!cashbook && cashbook.length >= 50}
+            hasNextPage={!!cashbook && cashbook.length >= pageSize}
+            totalCount={totalCount}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(0);
+            }}
           />
         </>
       )}

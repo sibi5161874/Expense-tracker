@@ -41,7 +41,13 @@ function Field({ label, value, onChange, suffix }: { label: string; value: strin
     <div className="space-y-1.5">
       <Label>{label}</Label>
       <div className="relative">
-        <Input type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
+        <Input
+          type="number"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={suffix ? "pr-14" : undefined}
+        />
         {suffix && (
           <span className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm">
             {suffix}
@@ -292,10 +298,6 @@ function BasicCalculator() {
           </Button>
         ))}
       </div>
-
-      <p className="text-muted-foreground text-center text-xs">
-        Click the display, then type on your keyboard — digits, <code>+ − * /</code>, Enter, and Backspace all work.
-      </p>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
 import { FileDropzone } from '@/components/shared/FileDropzone';
@@ -129,7 +129,7 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import {entityLabel} from CSV</DialogTitle>
           <DialogDescription>
@@ -137,7 +137,7 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
           </DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-4 min-h-0 flex-1 space-y-4 overflow-y-auto px-4">
+        <DialogBody>
           {errorMessage && (
             <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errorMessage}</p>
           )}
@@ -164,7 +164,7 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
               Importing in batches — {progress.done} of {progress.total} done…
             </p>
           )}
-        </div>
+        </DialogBody>
 
         <DialogFooter>
           {step === 'preview' && (

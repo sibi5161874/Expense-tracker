@@ -2,11 +2,13 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types';
 import { monthDateRange } from '../../utils/date';
 
-const PAGE_SIZE = 50;
+export const TRANSACTIONS_PAGE_SIZE = 10;
+const PAGE_SIZE = TRANSACTIONS_PAGE_SIZE;
 
 export interface GetTransactionsOptions {
   month?: string;
   page?: number;
+  pageSize?: number;
   type?: 'Income' | 'Expense' | 'Transfer';
   category_id?: string;
 }
@@ -40,8 +42,9 @@ export async function getTransactions(
   }
 
   const page = opts.page ?? 0;
-  const from = page * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const pageSize = opts.pageSize ?? PAGE_SIZE;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
   query = query.order('date', { ascending: false }).range(from, to);
 
@@ -49,6 +52,38 @@ export async function getTransactions(
 
   if (error) throw error;
   return data;
+}
+
+/** Row count for the same filters `getTransactions` applies — a separate `head: true` request
+ * so paginated list views can render "Page X of Y" without widening the main query's payload
+ * with a count on every page fetch. */
+export async function getTransactionsCount(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  opts: Pick<GetTransactionsOptions, 'month' | 'type' | 'category_id'> = {}
+) {
+  let query = supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (opts.month) {
+    const { from: monthStart, to: monthEnd } = monthDateRange(opts.month);
+    query = query.gte('date', monthStart).lt('date', monthEnd);
+  }
+
+  if (opts.type) {
+    query = query.eq('type', opts.type);
+  }
+
+  if (opts.category_id) {
+    query = query.eq('category_id', opts.category_id);
+  }
+
+  const { count, error } = await query;
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getTransactionById(

@@ -8,7 +8,7 @@ import { parseSupabaseError } from '@repo/shared/utils';
 import { useGoldAssets } from '@/hooks/useAssets';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -49,12 +49,13 @@ export function GoldForm({ onSuccess, onCancel, editing }: GoldFormProps) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Gold Holding' : 'Add Gold Holding'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+            <DialogBody>
             <FormField
               control={form.control}
               name="description"
@@ -134,14 +135,16 @@ export function GoldForm({ onSuccess, onCancel, editing }: GoldFormProps) {
 
             {formError && <p className="text-destructive text-sm">{formError}</p>}
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
+            </DialogBody>
+
+            <DialogFooter className="sm:justify-stretch">
+              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Saving...' : editing ? 'Save Changes' : 'Save Gold'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

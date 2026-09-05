@@ -3,6 +3,16 @@ import type { Account } from '@repo/shared/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
+/**
+ * Base UI's <Select.Value> can only show a selected item's label once that item has actually
+ * mounted inside the (portalled, closed-by-default) popup — without this `items` map it falls
+ * back to rendering the raw value, which is why editing a transaction showed the account's
+ * UUID instead of its name until the dropdown had been opened at least once.
+ */
+function accountItems(accounts: Account[] | undefined): Record<string, string> {
+  return Object.fromEntries((accounts ?? []).map((account) => [account.id, `${account.name} (${account.type})`]));
+}
+
 interface AccountSelectFieldProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
@@ -25,7 +35,11 @@ export function AccountSelectField<T extends FieldValues>({
       render={({ field }) => (
         <FormItem>
           <FormLabel>{label}</FormLabel>
-          <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+          <Select
+            items={accountItems(accounts)}
+            onValueChange={field.onChange}
+            value={field.value ?? undefined}
+          >
             <FormControl>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={placeholder} />

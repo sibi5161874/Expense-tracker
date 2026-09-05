@@ -3,12 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import {
   getCashbook,
+  getCashbookCount,
   getCashbookSummary,
+  getCashbookForDedup,
   createCashbook,
   createCashbookBulk,
   updateCashbook,
   deleteCashbook,
   deleteCashbookBulk,
+  CASHBOOK_PAGE_SIZE,
 } from '@repo/shared/queries/cashbook';
 import type { CashbookInput } from '@repo/shared/schemas';
 
@@ -18,7 +21,7 @@ function removeFromCashbookCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useCashbook(opts: { counterparty?: string; page?: number } = {}) {
+export function useCashbook(opts: { counterparty?: string; page?: number; pageSize?: number } = {}) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
@@ -29,6 +32,18 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
       return getCashbook(supabase, userId, opts);
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  // Kept separate from the row query above (a `head: true` count-only request) so paginated
+  // views can render "Page X of Y" without adding a count to every page's payload.
+  const countQuery = useQuery({
+    queryKey: ['cashbookCount', userId, opts.counterparty],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getCashbookCount(supabase, userId, { counterparty: opts.counterparty });
     },
     enabled: !!userId,
     staleTime: 30_000,
@@ -51,6 +66,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
     },
   });
@@ -62,6 +78,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
     },
   });
@@ -73,6 +90,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
     },
   });
@@ -96,6 +114,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
     },
   });
@@ -119,6 +138,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
     },
   });
@@ -126,6 +146,8 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
   return {
     ...query,
     summary: summaryQuery.data,
+    totalCount: countQuery.data,
+    pageSize: opts.pageSize ?? CASHBOOK_PAGE_SIZE,
     createCashbook: createMutation.mutateAsync,
     createCashbookBulk: createBulkMutation.mutateAsync,
     updateCashbook: updateMutation.mutateAsync,
@@ -135,4 +157,22 @@ export function useCashbook(opts: { counterparty?: string; page?: number } = {})
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending || deleteBulkMutation.isPending,
   };
+}
+
+/** Unpaginated fetch (date/counterparty/amount/flow only) for the calendar view's per-day
+ * grouping — the same lightweight shape import-dedup already uses, not a new query. */
+export function useAllCashbook() {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const supabase = useSupabaseClient();
+
+  return useQuery({
+    queryKey: ['allCashbook', userId],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getCashbookForDedup(supabase, userId);
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
 }
