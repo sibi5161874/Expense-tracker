@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
@@ -15,6 +15,7 @@ interface DividendHoldingRow {
 }
 
 export function DividendIncomeReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const { data: investments, isLoading, error } = useAllInvestmentLog();
 
   const { byHolding, byMonth, total } = useMemo(() => {
@@ -63,8 +64,9 @@ export function DividendIncomeReport() {
         { name: 'By Holding', rows: byHolding.map((h) => ({ Symbol: h.symbol, Amount: h.amount })) },
         { name: 'By Month', rows: byMonth.map((m) => ({ Month: m.month, Amount: m.income })) },
       ]}
+      chartRef={chartRef}
     >
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Dividend Income Over Time</h2>
         {byMonth.length > 0 ? (
           <CashFlowChart data={byMonth} />

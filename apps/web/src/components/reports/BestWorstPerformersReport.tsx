@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Cell, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { groupInvestmentsBySymbol } from '@repo/shared/logic';
@@ -15,6 +15,7 @@ interface PerformerRow {
 }
 
 export function BestWorstPerformersReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const { data: investments, isLoading, error } = useAllInvestmentLog();
 
   const holdings = useMemo(() => {
@@ -43,6 +44,7 @@ export function BestWorstPerformersReport() {
       title="Best/Worst Performing Holdings"
       description="Holdings ranked by unrealised return %."
       excelSheets={[{ name: 'Performance', rows: holdings.map((h) => ({ Symbol: h.symbol, 'Return %': h.returnPct })) }]}
+      chartRef={chartRef}
     >
       {holdings.length === 0 ? (
         <div className="text-muted-foreground rounded-2xl border border-dashed p-12 text-center">
@@ -50,7 +52,7 @@ export function BestWorstPerformersReport() {
         </div>
       ) : (
         <>
-          <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+          <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold">Return % by Holding</h2>
             <ResponsiveContainer width="100%" height={Math.max(200, holdings.length * 40)}>
               <BarChart data={holdings} layout="vertical" margin={{ left: 16 }}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { TrendingUp, TrendingDown, Calendar, Tag } from 'lucide-react';
 import { useTransactionsInRange, yearRange } from '@/hooks/useReportsData';
 import { formatINR } from '@repo/shared/utils/currency';
@@ -13,6 +13,7 @@ import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function YearInReviewReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const year = new Date().getFullYear();
   const { from, to } = yearRange(year);
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
@@ -64,6 +65,7 @@ export function YearInReviewReport() {
       excelSheets={[
         { name: 'Monthly Totals', rows: chartData.map((m) => ({ Month: m.label, Income: m.income, Expense: m.expense })) },
       ]}
+      chartRef={chartRef}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Income" value={formatINR(totals.income)} icon={TrendingUp} tone="success" />
@@ -77,7 +79,7 @@ export function YearInReviewReport() {
         <StatCard label="Top Category" value={topCategory?.[0] ?? '-'} icon={Tag} tone="warning" />
       </div>
 
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Monthly Totals — {year}</h2>
         <CashFlowChart data={chartData} />
       </div>

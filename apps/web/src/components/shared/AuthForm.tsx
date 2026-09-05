@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Form,
   FormControl,
@@ -135,8 +136,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     )}
                   </div>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       autoComplete={mode === "login" ? "current-password" : "new-password"}
                       {...field}
                     />
@@ -153,7 +153,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <FormItem>
                     <FormLabel>Confirm password</FormLabel>
                     <FormControl>
-                      <Input type="password" autoComplete="new-password" {...field} />
+                      <PasswordInput autoComplete="new-password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

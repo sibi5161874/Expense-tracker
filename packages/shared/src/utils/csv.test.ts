@@ -48,4 +48,11 @@ describe('parseCsv', () => {
   it('returns an empty array for empty input', () => {
     expect(parseCsv('')).toEqual([]);
   });
+
+  it('strips a leading UTF-8 BOM so the first header cell matches exactly', () => {
+    expect(parseCsv('﻿Date,Amount\n2026-01-01,100\n')).toEqual([
+      ['Date', 'Amount'],
+      ['2026-01-01', '100'],
+    ]);
+  });
 });

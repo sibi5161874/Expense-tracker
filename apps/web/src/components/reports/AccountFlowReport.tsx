@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTransactionsInRange, monthsAgo } from '@/hooks/useReportsData';
 import { formatINR } from '@repo/shared/utils/currency';
@@ -21,6 +21,7 @@ interface AccountFlowRow {
 const MONTHS_BACK = 3;
 
 export function AccountFlowReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const from = monthsAgo(MONTHS_BACK - 1);
   const to = formatMonth(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)) + '-01';
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
@@ -70,8 +71,9 @@ export function AccountFlowReport() {
           rows: rows.map((r) => ({ Account: r.name, In: r.in, Out: r.out, Net: r.net })),
         },
       ]}
+      chartRef={chartRef}
     >
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Net Flow per Account</h2>
         <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 45)}>
           <BarChart data={rows} layout="vertical" margin={{ left: 16 }}>

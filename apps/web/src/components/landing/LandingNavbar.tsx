@@ -9,9 +9,9 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { APP_BRANDING } from '@repo/shared/config';
 
 const LINKS = [
-  { href: '#features', label: 'Features' },
-  { href: '#reports', label: 'Reports' },
-  { href: '#pricing', label: 'Pricing' },
+  { href: '/features', label: 'Features' },
+  { href: '/reports-overview', label: 'Reports' },
+  { href: '/pricing', label: 'Pricing' },
 ];
 
 export function LandingNavbar() {
@@ -27,9 +27,9 @@ export function LandingNavbar() {
 
         <div className="hidden items-center gap-8 md:flex">
           {LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
+            <Link key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -69,14 +69,14 @@ export function LandingNavbar() {
           >
             <div className="flex flex-col gap-1 px-4 py-4">
               {LINKS.map((link) => (
-                <a
+                <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setOpen(false)}
                   className="text-foreground rounded-xl px-3 py-2.5 text-sm font-medium"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
               <div className="border-border/60 mt-2 flex items-center gap-2 border-t pt-3">
                 <Link href="/login" className="text-foreground flex-1 rounded-xl px-3 py-2.5 text-center text-sm font-medium">

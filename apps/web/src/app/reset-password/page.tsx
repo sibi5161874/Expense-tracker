@@ -8,7 +8,7 @@ import { resetPasswordSchema, type ResetPasswordInput } from "@repo/shared/schem
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthPageShell } from "@/components/shared/AuthPageShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
                     <FormItem>
                       <FormLabel>New password</FormLabel>
                       <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
+                        <PasswordInput autoComplete="new-password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
                     <FormItem>
                       <FormLabel>Confirm new password</FormLabel>
                       <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
+                        <PasswordInput autoComplete="new-password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

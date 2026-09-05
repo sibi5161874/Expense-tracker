@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { inlineCssVars, exportChartReportToPdf } from './exportChartReportToPdf';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { inlineCssVars, resolveCssVarsUsedIn, pickChartSvg, withLightThemeVars, exportChartReportToPdf } from './exportChartReportToPdf';
 
 const { docSave, docText, docAddImage } = vi.hoisted(() => ({
   docSave: vi.fn(),
@@ -41,6 +41,120 @@ describe('inlineCssVars', () => {
     const svg = '<rect fill="var(--chart-1)" stroke="var(--unknown)" />';
     const result = inlineCssVars(svg, { '--chart-1': '#ff0000' });
     expect(result).toBe('<rect fill="#ff0000" stroke="var(--unknown)" />');
+  });
+});
+
+describe('resolveCssVarsUsedIn', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('style');
+  });
+
+  it('resolves every var(--x) reference found in the markup, not just a fixed subset', () => {
+    // The bug this guards against: an earlier version hardcoded a list of "the vars we
+    // remembered charts use" (--chart-1..5, --border, etc.) and silently skipped anything not
+    // on it — CashFlowChart's --success/--destructive bars and --muted/--popover tooltip were
+    // never on that list, so every export of a report using that chart rendered as a solid
+    // black block (an unresolved var() in an SVG attribute is an invalid color, and browsers
+    // fall back to black rather than the intended fill). Discovering vars from the actual
+    // markup instead of a maintained list means a color token this test doesn't even know
+    // about yet still gets resolved.
+    document.documentElement.style.setProperty('--success', 'rgb(1, 2, 3)');
+    document.documentElement.style.setProperty('--destructive', 'rgb(4, 5, 6)');
+    document.documentElement.style.setProperty('--some-future-token', 'rgb(7, 8, 9)');
+
+    const svg = '<rect fill="var(--success)" /><rect fill="var(--destructive)" /><rect fill="var(--some-future-token)" />';
+    const resolved = resolveCssVarsUsedIn(svg);
+
+    expect(resolved).toEqual({
+      '--success': 'rgb(1, 2, 3)',
+      '--destructive': 'rgb(4, 5, 6)',
+      '--some-future-token': 'rgb(7, 8, 9)',
+    });
+  });
+
+  it('omits a var referenced in markup that has no computed value, rather than inlining an empty string', () => {
+    const resolved = resolveCssVarsUsedIn('<rect fill="var(--never-defined)" />');
+    expect(resolved).toEqual({});
+  });
+});
+
+describe('pickChartSvg', () => {
+  function withRect(svg: SVGSVGElement, width: number, height: number) {
+    svg.getBoundingClientRect = () => ({ width, height }) as DOMRect;
+    return svg;
+  }
+
+  it('picks the largest svg, not the first one in DOM order', () => {
+    // Real-world shape of the bug this guards: recharts renders a tiny <svg> per Legend entry
+    // (e.g. a 16x16 circle swatch) before the actual chart surface <svg> in the DOM. Picking
+    // element order instead of size rasterized the swatch, stretched across the page, which
+    // is the "solid black blob" a user actually downloaded and reported.
+    const container = document.createElement('div');
+    const legendIcon = withRect(document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement, 16, 16);
+    const chartSurface = withRect(document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement, 500, 280);
+    container.append(legendIcon, chartSurface);
+
+    expect(pickChartSvg(container)).toBe(chartSurface);
+  });
+
+  it('returns undefined when the container has no svg at all', () => {
+    expect(pickChartSvg(document.createElement('div'))).toBeUndefined();
+  });
+});
+
+describe('withLightThemeVars', () => {
+  afterEach(() => {
+    document.documentElement.classList.remove('dark');
+  });
+
+  it('removes the dark class while reading, then restores it', () => {
+    document.documentElement.classList.add('dark');
+    let sawDarkClassDuringRead = true;
+
+    withLightThemeVars(() => {
+      sawDarkClassDuringRead = document.documentElement.classList.contains('dark');
+    });
+
+    expect(sawDarkClassDuringRead).toBe(false);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+  });
+
+  it('leaves the class untouched (absent) when the page was already in light mode', () => {
+    withLightThemeVars(() => {
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    });
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('restores the dark class even if the reader throws', () => {
+    document.documentElement.classList.add('dark');
+
+    expect(() =>
+      withLightThemeVars(() => {
+        throw new Error('boom');
+      })
+    ).toThrow('boom');
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+  });
+
+  it('resolves a css var to its light-mode value even while the page is in dark mode', () => {
+    // Mirrors this app's real setup: globals.css defines --success under :root (light) and
+    // overrides it again under .dark. Forcing light mode for export must resolve the :root
+    // value regardless of which class is on <html> right now.
+    const style = document.createElement('style');
+    style.textContent = ':root { --success: rgb(1, 2, 3); } .dark { --success: rgb(9, 9, 9); }';
+    document.head.appendChild(style);
+    document.documentElement.classList.add('dark');
+
+    try {
+      const resolved = withLightThemeVars(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--success').trim()
+      );
+      expect(resolved).toBe('rgb(1,2,3)');
+    } finally {
+      style.remove();
+    }
   });
 });
 

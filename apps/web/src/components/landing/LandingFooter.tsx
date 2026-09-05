@@ -19,9 +19,9 @@ export function LandingFooter() {
             <div>
               <p className="text-xs font-semibold tracking-wide uppercase">Product</p>
               <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#reports" className="hover:text-foreground transition-colors">Reports</a></li>
-                <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><Link href="/features" className="hover:text-foreground transition-colors">Features</Link></li>
+                <li><Link href="/reports-overview" className="hover:text-foreground transition-colors">Reports</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
               </ul>
             </div>
             <div>

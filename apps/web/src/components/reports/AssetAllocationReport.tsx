@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { groupInvestmentsBySymbol } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 export function AssetAllocationReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const { data: investments, isLoading, error } = useAllInvestmentLog();
 
   const holdings = useMemo(() => (investments ? groupInvestmentsBySymbol(investments) : []), [investments]);
@@ -37,8 +38,9 @@ export function AssetAllocationReport() {
         { name: 'By Asset Type', rows: byAssetType.map((a) => ({ 'Asset Type': a.name, 'Current Value': a.value })) },
         { name: 'By Holding', rows: byHolding.map((h) => ({ Symbol: h.name, 'Current Value': h.value })) },
       ]}
+      chartRef={chartRef}
     >
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div ref={chartRef} className="grid gap-4 lg:grid-cols-2">
         <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold">By Asset Type</h2>
           <ExpenseBreakdownChart data={byAssetType} />

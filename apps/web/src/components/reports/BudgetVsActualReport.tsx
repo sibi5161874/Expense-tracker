@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useBudgetLimits } from '@/hooks/useBudgetLimits';
 import { useMonthlyOverview } from '@/hooks/useTransactions';
@@ -22,6 +22,7 @@ interface BudgetRow {
 }
 
 export function BudgetVsActualReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const currentMonth = formatMonth(new Date());
   const { data: budgetLimits, isLoading: budgetsLoading, error: budgetsError } = useBudgetLimits();
   const { categoryBreakdown, isLoading: overviewLoading, error: overviewError } = useMonthlyOverview(currentMonth);
@@ -70,6 +71,7 @@ export function BudgetVsActualReport() {
           })),
         },
       ]}
+      chartRef={chartRef}
     >
       {rows.length === 0 ? (
         <div className="text-muted-foreground rounded-2xl border border-dashed p-12 text-center">
@@ -77,7 +79,7 @@ export function BudgetVsActualReport() {
         </div>
       ) : (
         <>
-          <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+          <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold">Budget vs Actual</h2>
             <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 50)}>
               <BarChart data={rows} layout="vertical" margin={{ left: 24 }}>

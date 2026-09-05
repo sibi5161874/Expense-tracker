@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useMonthlyOverview } from '@/hooks/useTransactions';
 import { formatINR } from '@repo/shared/utils/currency';
 import { formatMonth } from '@repo/shared/utils';
@@ -15,6 +16,7 @@ interface CategoryRow {
 }
 
 export function CategoryBreakdownReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const currentMonth = formatMonth(new Date());
   const { categoryBreakdown, expense, isLoading, error } = useMonthlyOverview(currentMonth);
 
@@ -47,8 +49,9 @@ export function CategoryBreakdownReport() {
           })),
         },
       ]}
+      chartRef={chartRef}
     >
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Expenses by Category</h2>
         <ExpenseBreakdownChart data={categoryBreakdown} />
       </div>
