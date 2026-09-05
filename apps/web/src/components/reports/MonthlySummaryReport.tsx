@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { TrendingUp, TrendingDown, PiggyBank, Percent } from 'lucide-react';
 import { useMonthlyOverview } from '@/hooks/useTransactions';
 import { formatINR } from '@repo/shared/utils/currency';
@@ -11,6 +12,7 @@ import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 export function MonthlySummaryReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const currentMonth = formatMonth(new Date());
   const { income, expense, netSavings, savingsRate, isLoading, error } = useMonthlyOverview(currentMonth);
 
@@ -34,6 +36,7 @@ export function MonthlySummaryReport() {
           ],
         },
       ]}
+      chartRef={chartRef}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Income" value={formatINR(income)} icon={TrendingUp} tone="success" />
@@ -47,7 +50,7 @@ export function MonthlySummaryReport() {
         <StatCard label="Savings Rate" value={`${savingsRate.toFixed(1)}%`} icon={Percent} tone="info" />
       </div>
 
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Income vs Expense</h2>
         <CashFlowChart data={chartData} />
       </div>

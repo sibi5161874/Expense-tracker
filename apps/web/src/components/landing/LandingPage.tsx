@@ -116,12 +116,12 @@ export function LandingPage() {
               Get started for free
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <a
-              href="#pricing"
+            <Link
+              href="/pricing"
               className="border-border text-foreground hover:bg-muted inline-flex w-full items-center justify-center rounded-2xl border px-6 py-3.5 text-base font-semibold transition-colors sm:w-auto"
             >
               See pricing
-            </a>
+            </Link>
           </motion.div>
           <p className="text-muted-foreground mt-3 text-xs">No credit card required to start.</p>
         </div>

@@ -9,6 +9,11 @@ const PUBLIC_PATHS = [
   "/login",
   "/signup",
   "/forgot-password",
+  // Public marketing pages, reachable from the landing page's navbar/footer by anyone,
+  // signed in or not.
+  "/features",
+  "/pricing",
+  "/reports-overview",
   // No cookie session exists yet when this loads directly from an unauthenticated browser
   // — but by the time a real recovery link lands here, /auth/callback has already exchanged
   // the code for a real session, so this only needs to be public for the direct-visit case.

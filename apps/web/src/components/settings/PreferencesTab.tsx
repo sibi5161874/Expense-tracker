@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 import { Moon, Sun } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
@@ -22,9 +27,27 @@ const LANGUAGES = [
 const LANGUAGE_STORAGE_KEY = 'preferred-language';
 
 export function PreferencesTab() {
+  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState('en');
+  const { data: profile, saveProfile, isSaving: isSavingReportEmail } = useUserProfile();
+  const { hasFeature } = useEntitlements();
+  const canReceiveReportEmail = hasFeature('reportExport');
+  const reportEmailEnabled = profile?.monthly_report_email_enabled ?? false;
+
+  async function handleReportEmailToggle(checked: boolean) {
+    try {
+      await saveProfile({ monthly_report_email_enabled: checked });
+      toast.success(
+        checked
+          ? "You'll get your Overall Report by email on the 1st of every month."
+          : 'Monthly report emails turned off.'
+      );
+    } catch {
+      toast.error('Could not update this setting — please try again.');
+    }
+  }
 
   // Whether resolvedTheme is defined yet on the client's first render depends on the
   // installed next-themes version's internal timing — in this project it's already defined
@@ -101,6 +124,33 @@ export function PreferencesTab() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">Email Reports</h2>
+        <p className="text-muted-foreground mt-1 mb-4 text-sm">
+          Get your Overall Report emailed to you automatically at 6:00 AM IST on the 1st of every
+          month. Off by default.
+        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <span className="text-sm font-medium">Monthly Overall Report</span>
+            {!canReceiveReportEmail && (
+              <p className="text-muted-foreground text-xs">Requires Pro — same as PDF report export.</p>
+            )}
+          </div>
+          {canReceiveReportEmail ? (
+            <Switch
+              checked={reportEmailEnabled}
+              onCheckedChange={handleReportEmailToggle}
+              disabled={isSavingReportEmail}
+            />
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => router.push('/settings?tab=billing')}>
+              Upgrade to Pro
+            </Button>
+          )}
         </div>
       </div>
     </div>

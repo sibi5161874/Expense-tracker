@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAllTimeTransactions } from '@/hooks/useReportsData';
@@ -42,6 +42,7 @@ interface NetWorthRow {
 }
 
 export function NetWorthReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: transactions, isLoading: txnsLoading, error: txnsError } = useAllTimeTransactions();
   const { rates: fxRates, isStale: fxRatesStale, fetchedAt: fxRatesFetchedAt } = useFxRates();
@@ -173,6 +174,7 @@ export function NetWorthReport() {
           ],
         },
       ]}
+      chartRef={chartRef}
     >
       {conversion && conversion.unconvertedCurrencies.length > 0 && (
         <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
@@ -197,7 +199,7 @@ export function NetWorthReport() {
         </p>
       </div>
 
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Breakdown</h2>
         <ResponsiveContainer width="100%" height={340}>
           <BarChart data={chartData} layout="vertical" margin={{ left: 16 }}>

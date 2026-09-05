@@ -34,12 +34,13 @@ async function fetchFxRates(requestId: string | undefined): Promise<FxRates> {
 }
 
 /**
- * Vercel Cron target (see vercel.json), scheduled for 00:00 UTC on the 1st of every month.
- * Loops every Pro/trial user, skips anyone already logged for this month (re-running the
- * cron manually, or a retry after a partial failure, must not double-send), computes their
- * net worth, generates a PDF (server-side jsPDF + autoTable — see generateMonthlySummaryPdf's
- * own comment for why not html2canvas), uploads it to a private Storage bucket, and emails a
- * signed link.
+ * Vercel Cron target (see vercel.json), scheduled for 00:30 UTC (6:00 AM IST) on the 1st of
+ * every month. Loops every Pro/trial user who has opted in via the "Monthly Overall Report"
+ * toggle in Settings > Preferences (off by default — `user_profiles.monthly_report_email_enabled`),
+ * skips anyone already logged for this month (re-running the cron manually, or a retry after a
+ * partial failure, must not double-send), computes their net worth, generates a PDF
+ * (server-side jsPDF + autoTable — see generateMonthlySummaryPdf's own comment for why not
+ * html2canvas), uploads it to a private Storage bucket, and emails a signed link.
  *
  * One user's failure is logged and does not abort the run for everyone else — this loops
  * sequentially and can take a while as the user base grows; at real scale this wants to move
@@ -72,8 +73,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Failed to load users' }, { status: 500 });
   }
 
-  const proProfiles = (profiles ?? []).filter((p) =>
-    isUnlimitedTier(resolveEffectiveTier(p as ProfileTierFields))
+  const proProfiles = (profiles ?? []).filter(
+    (p) => p.monthly_report_email_enabled && isUnlimitedTier(resolveEffectiveTier(p as ProfileTierFields))
   );
 
   const results = { sent: 0, skipped: 0, failed: 0 };
@@ -117,9 +118,9 @@ export async function GET(req: Request) {
         const { error: sendError } = await resend.emails.send({
           from: getResendFromAddress(),
           to: email,
-          subject: 'Your Monthly Financial Summary is ready',
-          html: `<p>Your net worth summary for ${month} is ready.</p><p><a href="${signedUrlData.signedUrl}">View your summary (PDF)</a> — link valid for 30 days.</p>`,
-          attachments: [{ filename: `summary-${month}.pdf`, content: pdfBuffer }],
+          subject: 'Your Monthly Overall Report is ready',
+          html: `<p>Your overall financial report for ${month} is ready.</p><p><a href="${signedUrlData.signedUrl}">View your report (PDF)</a> — link valid for 30 days.</p><p>Turn this off anytime from Settings &gt; Preferences.</p>`,
+          attachments: [{ filename: `overall-report-${month}.pdf`, content: pdfBuffer }],
         });
         if (sendError) throw new Error(sendError.message);
       } else {

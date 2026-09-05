@@ -82,6 +82,21 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
       return;
     }
     setErrorMessage(null);
+
+    // Some banks' "CSV" export button actually delivers an Excel file (.xlsx/.xls, sometimes
+    // even with a .csv extension) — file.text() decodes that binary as garbage text instead of
+    // throwing, which used to surface as unreadable "PK□□"-style column names in the mapping
+    // step below rather than a clear error. Check the format's real magic bytes first.
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const isZipBased = head[0] === 0x50 && head[1] === 0x4b; // .xlsx/.xls (2007+), also .docx/.zip
+    const isLegacyXls = head[0] === 0xd0 && head[1] === 0xcf && head[2] === 0x11 && head[3] === 0xe0; // .xls (97-2003)
+    if (isZipBased || isLegacyXls) {
+      toast.error(
+        `${file.name} looks like an Excel file, not a CSV. In Excel, use "Save As" → "CSV UTF-8 (Comma delimited)", then upload that file instead.`
+      );
+      return;
+    }
+
     const text = await file.text();
     setCsvText(text);
     setStep('previewing');

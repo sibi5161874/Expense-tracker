@@ -5,7 +5,11 @@ export function parseCsv(text: string): string[][] {
   let row: string[] = [];
   let field = '';
   let inQuotes = false;
-  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Excel's "CSV UTF-8" export prepends a byte-order-mark (U+FEFF) — invisible in a text editor,
+  // but it silently corrupts the first header cell ("Date" becomes "﻿Date"), which then
+  // fails every exact-match header check against a template despite the file looking correct.
+  const withoutBom = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const normalized = withoutBom.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized[i];
