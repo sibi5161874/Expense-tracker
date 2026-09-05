@@ -7,7 +7,7 @@
   },
   "packageManager": "pnpm@11.11.0",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --continue",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",

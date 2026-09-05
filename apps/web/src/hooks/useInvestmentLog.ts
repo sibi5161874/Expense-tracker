@@ -3,12 +3,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import {
   getInvestmentLog,
+  getInvestmentLogCount,
   getAllInvestmentLog,
   createInvestmentLog,
   createInvestmentLogsBulk,
   updateInvestmentLog,
   deleteInvestmentLog,
   deleteInvestmentLogBulk,
+  INVESTMENT_LOG_PAGE_SIZE,
 } from '@repo/shared/queries/investmentLog';
 import type { InvestmentLogInput } from '@repo/shared/schemas';
 
@@ -18,7 +20,7 @@ function removeFromInvestmentLogCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) {
+export function useInvestmentLog(opts: { symbol?: string; page?: number; pageSize?: number } = {}) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
@@ -34,6 +36,18 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) 
     staleTime: 30_000,
   });
 
+  // Kept separate from the row query above (a `head: true` count-only request) so paginated
+  // views can render "Page X of Y" without adding a count to every page's payload.
+  const countQuery = useQuery({
+    queryKey: ['investmentLogCount', userId, opts.symbol],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getInvestmentLogCount(supabase, userId, { symbol: opts.symbol });
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: InvestmentLogInput) => {
       if (!userId) throw new Error('User not authenticated');
@@ -41,6 +55,7 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
     },
   });
@@ -52,6 +67,7 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
     },
   });
@@ -86,6 +102,7 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) 
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
     },
   });
@@ -109,12 +126,15 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number } = {}) 
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
     },
   });
 
   return {
     ...query,
+    totalCount: countQuery.data,
+    pageSize: opts.pageSize ?? INVESTMENT_LOG_PAGE_SIZE,
     createInvestmentLog: createMutation.mutateAsync,
     createInvestmentLogsBulk: createBulkMutation.mutateAsync,
     updateInvestmentLog: updateMutation.mutateAsync,

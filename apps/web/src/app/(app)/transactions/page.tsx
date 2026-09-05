@@ -30,6 +30,7 @@ type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[numb
 export default function TransactionsPage() {
   const router = useRouter();
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -41,12 +42,13 @@ export default function TransactionsPage() {
     data: transactions,
     isLoading,
     error,
+    totalCount,
     createTransaction,
     createTransactionsBulk,
     deleteTransaction,
     deleteTransactionsBulk,
     isDeleting,
-  } = useTransactions({ page });
+  } = useTransactions({ page, pageSize });
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
@@ -268,7 +270,13 @@ export default function TransactionsPage() {
           emptyMessage="No transactions on this page."
           page={page}
           onPageChange={setPage}
-          hasNextPage={!!transactions && transactions.length >= 50}
+          hasNextPage={!!transactions && transactions.length >= pageSize}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(0);
+          }}
           animateRows={shouldAnimateRows}
         />
       )}

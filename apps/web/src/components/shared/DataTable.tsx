@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,10 +41,46 @@ interface DataTableProps<T> {
   page?: number;
   onPageChange?: (page: number) => void;
   hasNextPage?: boolean;
+  /** Total row count across all pages and the server's page size — when both are given, the
+   * footer renders "Page X of Y" with numbered page buttons instead of the plain Previous/Next
+   * fallback used when the caller doesn't know the total (hasNextPage stays the source of
+   * truth for whether Next is enabled in that fallback mode). */
+  totalCount?: number;
+  pageSize?: number;
+  /** Renders a "Rows per page" select next to the pagination info when provided, alongside `totalCount`. */
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
   animateRows?: boolean;
 }
 
 type SortDirection = 'asc' | 'desc';
+
+/**
+ * Numbered-pagination range with ellipsis gaps — always keeps the first and last page
+ * visible plus a window of `siblingCount` pages around the current one, collapsing anything
+ * further away into a single "…" per side instead of listing every page.
+ */
+function paginationRange(current: number, total: number, siblingCount = 1): (number | 'ellipsis')[] {
+  const totalNumbers = siblingCount * 2 + 5; // first + last + current + 2 ellipses + siblings
+  if (total <= totalNumbers) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSibling = Math.max(current - siblingCount, 1);
+  const rightSibling = Math.min(current + siblingCount, total);
+  const showLeftEllipsis = leftSibling > 2;
+  const showRightEllipsis = rightSibling < total - 1;
+
+  const pages: (number | 'ellipsis')[] = [1];
+  if (showLeftEllipsis) pages.push('ellipsis');
+  for (let p = Math.max(leftSibling, 2); p <= Math.min(rightSibling, total - 1); p++) {
+    pages.push(p);
+  }
+  if (showRightEllipsis) pages.push('ellipsis');
+  pages.push(total);
+
+  return pages;
+}
 
 export function DataTable<T>({
   data,
@@ -61,6 +97,10 @@ export function DataTable<T>({
   page,
   onPageChange,
   hasNextPage,
+  totalCount,
+  pageSize = 50,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
   animateRows = false,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
@@ -192,7 +232,7 @@ export function DataTable<T>({
       <div className="bg-card overflow-hidden rounded-2xl">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableRow className="bg-muted hover:bg-muted">
               {selectable && (
                 <TableHead className="w-10">
                   <Checkbox
@@ -230,7 +270,7 @@ export function DataTable<T>({
               {rowActions && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody className="[&_tr:nth-child(even)]:bg-muted/40">
+          <TableBody className="[&_tr:nth-child(even)]:bg-muted/70">
             {filtered.map((row, index) => {
               const id = getRowId(row);
               return (
@@ -274,14 +314,85 @@ export function DataTable<T>({
       )}
 
       {!isLoading && page !== undefined && onPageChange && (
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>
-            Previous
-          </Button>
-          <span className="text-muted-foreground text-sm">Page {page + 1}</span>
-          <Button variant="outline" onClick={() => onPageChange(page + 1)} disabled={!hasNextPage}>
-            Next
-          </Button>
+        <div className="bg-card border-border/60 rounded-2xl border px-4 py-3">
+        {totalCount !== undefined ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground text-sm">
+                Page {page + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+              </span>
+              {onPageSizeChange && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground text-sm">Rows per page</span>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(value) => onPageSizeChange(Number(value))}
+                  >
+                    <SelectTrigger size="sm" className="w-[70px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pageSizeOptions.map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(Math.max(0, page - 1))}
+                disabled={page === 0}
+              >
+                <ChevronLeft className="size-3.5" />
+                Previous
+              </Button>
+              {paginationRange(page + 1, Math.max(1, Math.ceil(totalCount / pageSize))).map((p, i) =>
+                p === 'ellipsis' ? (
+                  <span key={`ellipsis-${i}`} className="text-muted-foreground px-1.5 text-sm">
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === page + 1 ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-8 px-0"
+                    onClick={() => onPageChange(p - 1)}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page + 1 >= Math.ceil(totalCount / pageSize)}
+              >
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>
+              Previous
+            </Button>
+            <span className="text-muted-foreground text-sm">
+              {filtered.length} {filtered.length === 1 ? 'row' : 'rows'} · Page {page + 1}
+            </span>
+            <Button variant="outline" onClick={() => onPageChange(page + 1)} disabled={!hasNextPage}>
+              Next
+            </Button>
+          </div>
+        )}
         </div>
       )}
     </div>

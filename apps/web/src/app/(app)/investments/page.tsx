@@ -12,8 +12,10 @@ import { BrokerImportDialog } from '@/components/shared/BrokerImportDialog';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { InvestmentLogCalendarView } from '@/components/investments/InvestmentLogCalendarView';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -30,6 +32,8 @@ const ACTIONS = ['BUY', 'SELL', 'SIP', 'DIVIDEND', 'BONUS', 'SPLIT'];
 export default function InvestmentsPage() {
   const router = useRouter();
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showBrokerImport, setShowBrokerImport] = useState(false);
@@ -38,12 +42,13 @@ export default function InvestmentsPage() {
     data: investments,
     isLoading,
     error,
+    totalCount,
     createInvestmentLog,
     createInvestmentLogsBulk,
     deleteInvestmentLog,
     deleteInvestmentLogBulk,
     isDeleting,
-  } = useInvestmentLog({ page });
+  } = useInvestmentLog({ page, pageSize });
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
@@ -147,6 +152,7 @@ export default function InvestmentsPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() =>
                 downloadCsvTemplate(
                   'investment-log-template.csv',
@@ -158,12 +164,12 @@ export default function InvestmentsPage() {
               <Download className="size-4" />
               Download Template
             </Button>
-            <Button variant="outline" onClick={() => setShowImport(true)}>
+            <Button variant="outline" size="sm" onClick={() => setShowImport(true)}>
               <UploadCloud className="size-4" />
               Import CSV
             </Button>
             {hasFeature('brokerImport') ? (
-              <Button variant="outline" onClick={() => setShowBrokerImport(true)}>
+              <Button variant="outline" size="sm" onClick={() => setShowBrokerImport(true)}>
                 <Landmark className="size-4" />
                 Import from Broker
               </Button>
@@ -172,6 +178,7 @@ export default function InvestmentsPage() {
                 label="Import from Broker"
                 icon={<Landmark className="size-4" />}
                 onUpgradeClick={goToUpgrade}
+                size="sm"
               />
             )}
             <Button onClick={() => setShowForm(true)}>
@@ -182,7 +189,20 @@ export default function InvestmentsPage() {
         }
       />
 
-      {error ? (
+      <div className="mb-4 flex justify-end">
+        <SegmentedControl
+          options={[
+            { value: 'table', label: 'Table' },
+            { value: 'calendar', label: 'Calendar' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+      </div>
+
+      {view === 'calendar' ? (
+        <InvestmentLogCalendarView />
+      ) : error ? (
         <ErrorState error={error} />
       ) : (
         <DataTable
@@ -229,7 +249,13 @@ export default function InvestmentsPage() {
           emptyMessage="No investments found. Add your first investment to get started."
           page={page}
           onPageChange={setPage}
-          hasNextPage={!!investments && investments.length >= 50}
+          hasNextPage={!!investments && investments.length >= pageSize}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(0);
+          }}
         />
       )}
 

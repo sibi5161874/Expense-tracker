@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { BROKERS } from '@repo/shared/logic';
 import { useAccounts } from '@/hooks/useAccounts';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
@@ -170,7 +170,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import from Broker</DialogTitle>
           <DialogDescription>
@@ -180,7 +180,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-4 min-h-0 flex-1 space-y-4 overflow-y-auto px-4">
+        <DialogBody>
         {errorMessage && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errorMessage}</p>}
 
         {step === 'options' && (
@@ -254,7 +254,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
             Importing in batches — {progress.done} of {progress.total} done…
           </p>
         )}
-        </div>
+        </DialogBody>
 
         <DialogFooter>
           {step === 'mapping' && (

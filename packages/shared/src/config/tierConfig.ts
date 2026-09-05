@@ -25,6 +25,19 @@ export const APP_BRANDING = {
 } as const;
 
 /**
+ * Canonical production URL for the web app. Auth redirects (signup confirmation, Google
+ * OAuth, password reset — see apps/web/src/lib/siteUrl.ts) are pinned to this exact value
+ * so they always match Supabase's Auth "Site URL" / "Redirect URLs" allow-list
+ * (Authentication > URL Configuration in the dashboard) instead of whatever domain/alias
+ * happened to serve the request — Vercel's auto-generated preview aliases otherwise produce
+ * a different redirect target per deployment that Supabase would reject.
+ *
+ * Update this the moment a custom domain is attached, AND add the new domain to that same
+ * Supabase allow-list — changing only one of the two leaves auth redirects broken.
+ */
+export const PRODUCTION_SITE_URL = "https://web-six-beta-34.vercel.app";
+
+/**
  * Master switch for the entire paid-tier system.
  *
  * `false` (current) — the app runs 100% free for every user. No trial, no

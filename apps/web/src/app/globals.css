@@ -97,7 +97,7 @@
 
   --secondary: #F1F3F4;
   --secondary-foreground: #1A1A1A;
-  --muted: #F1F3F4;
+  --muted: #E9ECEF;
   --muted-foreground: #6B7280;
   --accent: #E3F2FD;
   --accent-foreground: #1976D2;
@@ -120,8 +120,8 @@
   --info-foreground: #FFFFFF;
   --info-subtle: #E3F2FD;
 
-  --border: #E5E7EB;
-  --input: #E5E7EB;
+  --border: #D6DAE0;
+  --input: #C9CFD6;
   --ring: #1976D2;
 
   /* Data-viz palette: distinct from brand/semantic so charts read as their own system */
@@ -161,7 +161,7 @@
 
   --secondary: #1A1A1A;
   --secondary-foreground: #FFFFFF;
-  --muted: #1A1A1A;
+  --muted: #242424;
   --muted-foreground: #B0B0B0;
   --accent: #0D2A44;
   --accent-foreground: #64B5F6;
@@ -183,7 +183,7 @@
   --info-subtle: #0D2A44;
 
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --input: oklch(1 0 0 / 24%);
   --ring: #2196F3;
 
   --chart-1: #2196F3;
@@ -225,12 +225,23 @@
     font-weight: var(--text-hero--font-weight);
   }
 
-  /* Sparing glass treatment — sticky headers/overlays only, composed from existing tokens
-     rather than a one-off color so it stays theme-correct in both modes. */
+  /* Sparing glass treatment — sticky headers and floating popovers/dropdowns (Select,
+     DropdownMenu), composed from existing tokens rather than a one-off color so it stays
+     theme-correct in both modes. Base/cards stay solid; glass is reserved for elements that
+     visually float above the page — see .glass-surface-strong below for the modal tier. */
   .glass-surface {
     background-color: color-mix(in oklch, var(--card) 70%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Highest tier of the glass hierarchy — dialogs/modals, which need to read as clearly
+     separated from everything underneath them. More opaque than .glass-surface (so form
+     content stays readable) but still translucent enough to show depth, plus a stronger blur. */
+  .glass-surface-strong {
+    background-color: color-mix(in oklch, var(--popover) 75%, transparent);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
   }
 
   /* Keeps a scroll container's scroll behavior while hiding the visible scrollbar chrome — the sidebar nav. */

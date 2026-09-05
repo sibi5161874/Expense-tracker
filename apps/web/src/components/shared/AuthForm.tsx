@@ -3,9 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { emailPasswordSchema, type EmailPasswordInput } from "@repo/shared/schemas";
+import {
+  emailPasswordSchema,
+  signupSchema,
+  type SignupInput,
+} from "@repo/shared/schemas";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,14 +34,20 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const form = useForm<EmailPasswordInput>({
-    resolver: zodResolver(emailPasswordSchema),
-    defaultValues: { email: "", password: "" },
+  // Login only needs email+password, but the form is typed as SignupInput year-round so
+  // switching `mode` doesn't need a second <Form> tree — the login resolver simply never
+  // looks at (or requires) confirmPassword, and it's stripped from the parsed output since
+  // emailPasswordSchema doesn't declare it.
+  const form = useForm<SignupInput>({
+    resolver: (
+      mode === "signup" ? zodResolver(signupSchema) : zodResolver(emailPasswordSchema)
+    ) as Resolver<SignupInput>,
+    defaultValues: { email: "", password: "", confirmPassword: "" },
   });
 
   const isPending = form.formState.isSubmitting;
 
-  async function onSubmit(values: EmailPasswordInput) {
+  async function onSubmit(values: SignupInput) {
     setFormError(null);
     setInfoMessage(null);
 
@@ -135,6 +145,21 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </FormItem>
               )}
             />
+            {mode === "signup" && (
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             {formError && <p className="text-destructive text-sm">{formError}</p>}
             {infoMessage && <p className="text-success text-sm">{infoMessage}</p>}
             <Button type="submit" className="w-full" disabled={isPending}>

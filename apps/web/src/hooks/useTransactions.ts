@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import {
   getTransactions,
+  getTransactionsCount,
+  TRANSACTIONS_PAGE_SIZE,
   getMonthlyTransactionSummary,
   getMonthlyCategoryBreakdown,
   getAllTransactionsForMonth,
@@ -23,7 +25,7 @@ function removeFromTransactionsCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useTransactions(opts: { month?: string; page?: number } = {}) {
+export function useTransactions(opts: { month?: string; page?: number; pageSize?: number } = {}) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
@@ -39,6 +41,19 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     staleTime: 30_000,
   });
 
+  // Kept separate from the row query above (a `head: true` count-only request) so paginated
+  // views can render "Page X of Y" without adding a count to every page's payload — and keyed
+  // on just `month` since that's the only filter the list page actually applies via `opts`.
+  const countQuery = useQuery({
+    queryKey: ['transactionsCount', userId, opts.month],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getTransactionsCount(supabase, userId, { month: opts.month });
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: TransactionInput) => {
       if (!userId) throw new Error('User not authenticated');
@@ -46,6 +61,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
     },
   });
 
@@ -56,6 +72,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
     },
   });
 
@@ -88,6 +105,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
     },
   });
 
@@ -110,11 +128,14 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
     },
   });
 
   return {
     ...query,
+    totalCount: countQuery.data,
+    pageSize: opts.pageSize ?? TRANSACTIONS_PAGE_SIZE,
     createTransaction: createMutation.mutateAsync,
     createTransactionsBulk: createBulkMutation.mutateAsync,
     updateTransaction: updateMutation.mutateAsync,
