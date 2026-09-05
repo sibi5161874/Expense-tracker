@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "KashMap",
     "slug": "mobile",
     "scheme": "moneymanager",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.jpg",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.kashmap.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,12 +22,19 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.jpg"
     },
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-sharing"
-    ]
+      "expo-sharing",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e0df42e2-1061-4f86-bc8c-a606263f3fe6"
+      }
+    }
   }
 }

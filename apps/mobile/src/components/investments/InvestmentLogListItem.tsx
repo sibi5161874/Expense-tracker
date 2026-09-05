@@ -49,7 +49,12 @@ export function InvestmentLogListItem({ investment, onPress, onDelete }: Investm
 
       <AmountText value={total} colorBySign={false} className="text-base font-semibold" />
 
-      <Pressable hitSlop={8} onPress={() => onDelete(investment.id)}>
+      <Pressable
+        hitSlop={14}
+        onPress={() => onDelete(investment.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Delete investment"
+      >
         <Trash2 size={16} color={mutedForeground} />
       </Pressable>
     </Pressable>

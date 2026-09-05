@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +27,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<EmailPasswordInput>({
@@ -37,22 +39,41 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   async function onSubmit(values: EmailPasswordInput) {
     setFormError(null);
-    const { error } =
-      mode === "login"
-        ? await signIn(values.email, values.password)
-        : await signUp(values.email, values.password);
+    setInfoMessage(null);
 
+    if (mode === "login") {
+      const { error } = await signIn(values.email, values.password);
+      if (error) {
+        setFormError(error.message);
+        return;
+      }
+      router.push("/dashboard");
+      return;
+    }
+
+    const { user, session, error } = await signUp(values.email, values.password);
     if (error) {
       setFormError(error.message);
       return;
     }
 
-    if (mode === "login") {
-      router.push("/dashboard");
-    } else {
-      setFormError(null);
-      form.reset();
+    // Supabase never errors on a duplicate email at signUp (that would let an attacker probe
+    // which emails are registered) — instead it returns a user with no identities. Without
+    // checking for this, a returning user typing their real email would just see a generic
+    // "check your email" message and never learn they should log in instead.
+    if (user && user.identities?.length === 0) {
+      setFormError("An account with this email already exists — try logging in instead.");
+      return;
     }
+
+    if (session) {
+      // Email confirmation isn't required on this project — the account is already active.
+      router.push("/dashboard");
+      return;
+    }
+
+    setInfoMessage("Almost there — check your email for a confirmation link to finish creating your account.");
+    form.reset();
   }
 
   async function handleGoogleSignIn() {
@@ -95,7 +116,14 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    {mode === "login" && (
+                      <Link href="/forgot-password" className="text-muted-foreground text-xs hover:underline">
+                        Forgot password?
+                      </Link>
+                    )}
+                  </div>
                   <FormControl>
                     <Input
                       type="password"
@@ -108,6 +136,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               )}
             />
             {formError && <p className="text-destructive text-sm">{formError}</p>}
+            {infoMessage && <p className="text-success text-sm">{infoMessage}</p>}
             <Button type="submit" className="w-full" disabled={isPending}>
               {mode === "login" ? "Log in" : "Sign up"}
             </Button>

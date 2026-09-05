@@ -1,5 +1,5 @@
 /** Field configs for AssetForm, one per asset sub-type — kept separate from the screen
- * so the screen component itself stays under RULES.md §10's 200-line limit. */
+ * so the screen component itself stays small per RULES.md §12. */
 
 export const FD_FIELDS = [
   { name: "bank", label: "Bank", type: "text" },
@@ -66,4 +66,47 @@ export const ULIP_FIELDS = [
     options: ["Monthly", "Quarterly", "Half-Yearly", "Yearly"],
   },
   { name: "maturity_date", label: "Maturity Date", type: "date" },
+] as const;
+
+export const REAL_ESTATE_FIELDS = [
+  { name: "description", label: "Description", type: "text" },
+  { name: "property_type", label: "Property Type", type: "enum", options: ["Residential", "Commercial", "Land", "Other"] },
+  { name: "location", label: "Location", type: "text", optional: true },
+  { name: "purchase_value", label: "Purchase Value", type: "number" },
+  { name: "current_value", label: "Current Value", type: "number" },
+  { name: "purchase_date", label: "Purchase Date", type: "date" },
+] as const;
+
+export const PPF_FIELDS = [
+  { name: "account_number", label: "Account Number", type: "text" },
+  { name: "current_balance", label: "Current Balance", type: "number" },
+  { name: "annual_contribution", label: "Annual Contribution", type: "number" },
+  { name: "opening_date", label: "Opening Date", type: "date" },
+] as const;
+
+export const RECURRING_DEPOSIT_FIELDS = [
+  { name: "bank", label: "Bank", type: "text" },
+  { name: "monthly_installment", label: "Monthly Installment", type: "number" },
+  { name: "rate_pct", label: "Interest Rate %", type: "number" },
+  { name: "start_date", label: "Start Date", type: "date" },
+  { name: "maturity_date", label: "Maturity Date", type: "date" },
+  { name: "maturity_value", label: "Maturity Value", type: "number" },
+] as const;
+
+export const NSC_FIELDS = [
+  { name: "certificate_number", label: "Certificate Number", type: "text" },
+  { name: "purchase_value", label: "Purchase Value", type: "number" },
+  { name: "maturity_value", label: "Maturity Value", type: "number" },
+  { name: "rate_pct", label: "Interest Rate %", type: "number" },
+  { name: "purchase_date", label: "Purchase Date", type: "date" },
+  { name: "maturity_date", label: "Maturity Date", type: "date" },
+] as const;
+
+export const VEHICLE_FIELDS = [
+  { name: "description", label: "Description", type: "text" },
+  { name: "vehicle_type", label: "Vehicle Type", type: "enum", options: ["Car", "Two Wheeler", "Commercial", "Other"] },
+  { name: "registration_number", label: "Registration Number", type: "text", optional: true },
+  { name: "purchase_value", label: "Purchase Value", type: "number" },
+  { name: "current_value", label: "Current Value", type: "number" },
+  { name: "purchase_date", label: "Purchase Date", type: "date" },
 ] as const;

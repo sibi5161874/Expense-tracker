@@ -9,7 +9,6 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { ReportEmbedContext, type ReportEmbedRegistry } from '@/components/shared/ReportContainer';
-import { exportReportToPdf } from '@/lib/exportToPdf';
 import type { ExcelSheet } from '@/lib/exportToExcel';
 import { REPORTS } from '@/lib/reportsRegistry';
 import { MonthlySummaryReport } from '@/components/reports/MonthlySummaryReport';
@@ -59,7 +58,9 @@ export default function OverallReportPage() {
     router.push('/settings?tab=billing');
   }
 
-  function handleExport() {
+  // Dynamically imported — see ReportContainer.tsx's handlePdfExport for why: this route
+  // only pulls in jsPDF at the moment Export is actually clicked, not on every page load.
+  async function handleExport() {
     const collected = [...sheetsRef.current.entries()]
       .sort(([a], [b]) => (REPORT_ORDER.get(a) ?? Infinity) - (REPORT_ORDER.get(b) ?? Infinity))
       .flatMap(([reportTitle, sheets]) =>
@@ -78,6 +79,7 @@ export default function OverallReportPage() {
 
     setIsExporting(true);
     try {
+      const { exportReportToPdf } = await import('@/lib/exportToPdf');
       exportReportToPdf(
         'Overall Report',
         'Every report combined into one document.',

@@ -1,0 +1,50 @@
+import { memo } from "react";
+import { Pressable, View } from "react-native";
+import { Landmark, Pencil, Trash2 } from "lucide-react-native";
+import type { PpfAsset } from "@repo/shared/types";
+import { formatINR } from "@repo/shared/utils/currency";
+import { AppText } from "@/components/common/AppText";
+import { AssetCardField as Field } from "@/components/assets/AssetCardField";
+import { useThemeColor } from "@/lib/colors";
+
+function PpfCardComponent({
+  ppf,
+  onEdit,
+  onDelete,
+}: {
+  ppf: PpfAsset;
+  onEdit: (ppf: PpfAsset) => void;
+  onDelete: (id: string) => void;
+}) {
+  const accentForeground = useThemeColor("accentForeground");
+
+  return (
+    <View className="gap-4 rounded-2xl bg-card p-5">
+      <View className="flex-row items-center gap-3">
+        <View className="size-9 items-center justify-center rounded-full bg-accent">
+          <Landmark size={18} color={accentForeground} />
+        </View>
+        <AppText className="font-semibold">PPF · {ppf.account_number}</AppText>
+      </View>
+
+      <View className="flex-row flex-wrap gap-x-6 gap-y-3">
+        <Field label="Current Balance" value={formatINR(ppf.current_balance)} />
+        <Field label="Annual Contribution" value={formatINR(ppf.annual_contribution)} />
+        <Field label="Opening Date" value={ppf.opening_date} />
+      </View>
+
+      <View className="flex-row justify-end gap-4">
+        <Pressable className="flex-row items-center gap-1.5" onPress={() => onEdit(ppf)} hitSlop={14}>
+          <Pencil size={14} color={accentForeground} />
+          <AppText className="text-sm text-muted-foreground">Edit</AppText>
+        </Pressable>
+        <Pressable className="flex-row items-center gap-1.5" onPress={() => onDelete(ppf.id)} hitSlop={14}>
+          <Trash2 size={14} color={accentForeground} />
+          <AppText className="text-sm text-muted-foreground">Delete</AppText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export const PpfCard = memo(PpfCardComponent);

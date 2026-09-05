@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { transactionTypeTone } from '@/lib/badgeTones';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
 interface CategoryRowProps {
   category: Category;
@@ -14,6 +15,11 @@ interface CategoryRowProps {
 }
 
 function CategoryRowComponent({ category, onEdit, onDelete, isDeleting }: CategoryRowProps) {
+  const { requestDelete, dialog } = useConfirmDelete(
+    onDelete,
+    `Delete category "${category.name}"?`,
+    "This can't be undone."
+  );
   return (
     <TableRow>
       <TableCell className="font-medium">{category.name}</TableCell>
@@ -34,17 +40,14 @@ function CategoryRowComponent({ category, onEdit, onDelete, isDeleting }: Catego
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-destructive size-8"
-            onClick={() => {
-              if (confirm(`Delete category "${category.name}"? This cannot be undone.`)) {
-                onDelete(category.id);
-              }
-            }}
+            onClick={() => requestDelete(category.id)}
             disabled={isDeleting}
           >
             <Trash2 className="size-4" />
           </Button>
         </div>
       </TableCell>
+      {dialog}
     </TableRow>
   );
 }

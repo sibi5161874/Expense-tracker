@@ -4,3 +4,4 @@ export * from './createCashbook';
 export * from './createCashbookBulk';
 export * from './updateCashbook';
 export * from './deleteCashbook';
+export * from './deleteCashbookBulk';

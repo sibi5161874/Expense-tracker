@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { StatusBadge } from "@/components/common/Badge";
 import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { budgetStatusTone } from "@/lib/badgeTones";
 import { useThemeColor } from "@/lib/colors";
 
@@ -35,20 +35,24 @@ export default function BudgetVsActualReportScreen() {
   const isLoading = budgetsLoading || overviewLoading;
   const error = budgetsError || overviewError;
 
+  const sheets = [
+    {
+      name: "Budget vs Actual",
+      rows: rows.map((r) => ({ Category: r.category, Budget: r.limit, Actual: r.actual, Status: r.status })),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
         <PageHeader title="Budget vs Actual" description={`Spend against your monthly limit for ${currentMonth}.`} />
-        <ReportExportBar
-          title="Budget vs Actual"
-          description={`Spend against your monthly limit for ${currentMonth}.`}
-          sheets={[
-            {
-              name: "Budget vs Actual",
-              rows: rows.map((r) => ({ Category: r.category, "Budget Limit": r.limit, Actual: r.actual, Status: r.status })),
-            },
-          ]}
-        />
+        {!isLoading && rows.length > 0 && (
+          <ReportExportBar
+            title="Budget vs Actual"
+            description={`Spend against your monthly limit for ${currentMonth}.`}
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

@@ -57,11 +57,11 @@ function GoalCardComponent({ goal, onEdit, onDelete }: GoalCardProps) {
       </View>
 
       <View className="flex-row justify-end gap-4">
-        <Pressable className="flex-row items-center gap-1.5" onPress={() => onEdit(goal)} hitSlop={8}>
+        <Pressable className="flex-row items-center gap-1.5" onPress={() => onEdit(goal)} hitSlop={14}>
           <Pencil size={14} color={accentForeground} />
           <AppText className="text-sm text-muted-foreground">Edit</AppText>
         </Pressable>
-        <Pressable className="flex-row items-center gap-1.5" onPress={() => onDelete(goal.id)} hitSlop={8}>
+        <Pressable className="flex-row items-center gap-1.5" onPress={() => onDelete(goal.id)} hitSlop={14}>
           <Trash2 size={14} color={accentForeground} />
           <AppText className="text-sm text-muted-foreground">Delete</AppText>
         </Pressable>

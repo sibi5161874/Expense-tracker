@@ -5,7 +5,8 @@ import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 interface CashbookPositionRow {
   counterparty: string;
@@ -22,7 +23,7 @@ export function CashbookNetPositionReport() {
     : [];
   const tableRows: CashbookPositionRow[] = rows.map(([counterparty, item]) => ({ counterparty, ...item }));
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const columns: DataTableColumn<CashbookPositionRow>[] = [

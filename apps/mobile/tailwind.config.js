@@ -48,7 +48,10 @@ module.exports = {
         "chart-4": withOpacity("--chart4"),
         "chart-5": withOpacity("--chart5"),
       },
-      // Fixed 16px on 2xl per design spec §5A — cards/buttons/inputs all use rounded-2xl.
+      // Legacy scale (sm..3xl) kept for any not-yet-migrated screen still using it.
+      // PRISM OPS tokens (apps/mobile/src/theme/tokens.ts `radius`) add named, per-surface
+      // keys below — prefer `rounded-card`/`rounded-button`/etc in new/touched components
+      // instead of the generic 2xl/3xl that previously meant "everything, uniformly".
       borderRadius: {
         sm: "8px",
         md: "10px",
@@ -56,6 +59,14 @@ module.exports = {
         xl: "14px",
         "2xl": "16px",
         "3xl": "20px",
+        card: "16px",
+        button: "12px",
+        chip: "12px",
+        toggle: "12px",
+        input: "20px",
+        "bottom-sheet": "24px",
+        dialog: "28px",
+        pill: "9999px",
       },
     },
   },

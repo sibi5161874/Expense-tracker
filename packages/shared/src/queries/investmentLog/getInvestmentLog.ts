@@ -70,7 +70,7 @@ const ALL_INVESTMENT_LOG_BATCH_SIZE = 1000;
 
 /**
  * Unpaginated fetch for portfolio aggregation (units held, avg cost, P&L) — never
- * for list rendering. RULES.md §15 says this aggregation should ultimately move to
+ * for list rendering. RULES.md §14 says this aggregation should ultimately move to
  * a SQL view (Phase 3); this is the interim fix for computing it over the full
  * dataset instead of silently truncating to one page of 50 rows.
  *

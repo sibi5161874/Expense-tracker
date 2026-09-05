@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
 import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 export default function DividendIncomeReportScreen() {
@@ -33,18 +33,17 @@ export default function DividendIncomeReportScreen() {
     return { byHolding, byMonth, total: dividends.reduce((sum, d) => sum + d.price, 0) };
   }, [investments]);
 
+  const sheets = [
+    { name: "Dividend Income", rows: byHolding.map((h) => ({ Symbol: h.symbol, Total: h.amount })) },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Dividend Income" description={`Total dividends received: ${formatINR(total)}.`} />
-        <ReportExportBar
-          title="Dividend Income"
-          description={`Total dividends received: ${formatINR(total)}.`}
-          sheets={[
-            { name: "By Holding", rows: byHolding.map((h) => ({ Symbol: h.symbol, Amount: h.amount })) },
-            { name: "By Month", rows: byMonth.map((m) => ({ Month: m.month, Amount: m.income })) },
-          ]}
-        />
+        {!isLoading && byHolding.length > 0 && (
+          <ReportExportBar title="Dividend Income" description={`Total dividends received: ${formatINR(total)}.`} sheets={sheets} />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

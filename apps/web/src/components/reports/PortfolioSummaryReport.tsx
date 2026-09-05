@@ -8,7 +8,8 @@ import { groupInvestmentsBySymbol, summarizeHoldings } from '@repo/shared/logic'
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatCard } from '@/components/shared/StatCard';
 import { HoldingsTable } from '@/components/investments/HoldingsTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 export function PortfolioSummaryReport() {
   const { data: investments, isLoading, error } = useAllInvestmentLog();
@@ -16,7 +17,7 @@ export function PortfolioSummaryReport() {
   const holdings = useMemo(() => (investments ? groupInvestmentsBySymbol(investments) : []), [investments]);
   const summary = useMemo(() => summarizeHoldings(holdings), [holdings]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   return (

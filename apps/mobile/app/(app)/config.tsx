@@ -5,7 +5,16 @@ import { Plus } from "lucide-react-native";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
-import { accountSchema, categorySchema, type AccountInput, type CategoryInput, type BudgetLimitInput } from "@repo/shared/schemas";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import {
+  accountSchema,
+  categorySchema,
+  type AccountInput,
+  type CategoryInput,
+  type BudgetLimitInput,
+  type RecurringTransactionInput,
+} from "@repo/shared/schemas";
+import { SUPPORTED_CURRENCIES } from "@repo/shared/logic";
 import { formatINR } from "@repo/shared/utils/currency";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/common/Button";
@@ -15,19 +24,22 @@ import { AssetForm, type AssetFieldConfig } from "@/components/assets/AssetForm"
 import { confirmAssetDelete, findEditingRow, submitAssetForm, toFormDefaults } from "@/components/assets/assetFormHelpers";
 import { ConfigListItem } from "@/components/config/ConfigListItem";
 import { AddBudgetLimitSheet } from "@/components/config/AddBudgetLimitSheet";
+import { RecurringTransactionListItem } from "@/components/config/RecurringTransactionListItem";
+import { RecurringTransactionSheet } from "@/components/transactions/RecurringTransactionSheet";
 import { useThemeColor } from "@/lib/colors";
 
 const CONFIG_TABS = [
   { value: "accounts", label: "Accounts" },
   { value: "categories", label: "Categories" },
   { value: "budgets", label: "Budgets" },
+  { value: "recurring", label: "Recurring" },
 ];
 
 const ACCOUNT_FIELDS: readonly AssetFieldConfig<AccountInput>[] = [
   { name: "name", label: "Name", type: "text" },
   { name: "type", label: "Type", type: "text" },
   { name: "opening_balance", label: "Opening Balance", type: "number" },
-  { name: "currency", label: "Currency", type: "text" },
+  { name: "currency", label: "Currency", type: "enum", options: SUPPORTED_CURRENCIES.map((c) => c.code) },
   { name: "is_active", label: "Active", type: "boolean" },
 ];
 const ACCOUNT_DEFAULTS: AccountInput = { name: "", type: "", opening_balance: 0, currency: "INR", is_active: true };
@@ -47,6 +59,7 @@ export default function ConfigScreen() {
   const accounts = useAccounts();
   const categories = useCategories();
   const budgets = useBudgetLimits();
+  const recurring = useRecurringTransactions();
 
   function openAdd() {
     setEditingId(null);
@@ -61,7 +74,8 @@ export default function ConfigScreen() {
     setEditingId(null);
   }
 
-  const isLoading = { accounts, categories, budgets }[tab as "accounts" | "categories" | "budgets"].isLoading;
+  const isLoading = { accounts, categories, budgets, recurring }[tab as "accounts" | "categories" | "budgets" | "recurring"]
+    .isLoading;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -76,7 +90,9 @@ export default function ConfigScreen() {
           }
         />
 
-        <SegmentedControl options={CONFIG_TABS} value={tab} onChange={setTab} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <SegmentedControl options={CONFIG_TABS} value={tab} onChange={setTab} />
+        </ScrollView>
 
         {isLoading ? (
           <View className="items-center py-16">
@@ -108,9 +124,26 @@ export default function ConfigScreen() {
                   onDelete={() => confirmAssetDelete(() => budgets.deleteBudgetLimit(b.id))}
                 />
               ))}
-            {({ accounts, categories, budgets }[tab as "accounts" | "categories" | "budgets"].data?.length ?? 0) === 0 && (
-              <AppText className="py-8 text-center text-sm text-muted-foreground">Nothing here yet. Add your first one to get started.</AppText>
+            {tab === "recurring" &&
+              recurring.data?.map((rt) => (
+                <RecurringTransactionListItem
+                  key={rt.id}
+                  recurringTransaction={rt}
+                  onEdit={() => openEdit(rt.id)}
+                  onDelete={(id) => confirmAssetDelete(() => recurring.deleteRecurringTransaction(id))}
+                  onToggleActive={(rt) => recurring.updateRecurringTransaction({ id: rt.id, data: { is_active: !rt.is_active } })}
+                  isDeleting={recurring.isDeleting}
+                />
+              ))}
+            {tab === "recurring" && recurring.data?.length === 0 && (
+              <AppText className="py-8 text-center text-sm text-muted-foreground">
+                No recurring transactions set up. Add rent, salary, or EMIs to auto-generate them each period.
+              </AppText>
             )}
+            {tab !== "recurring" &&
+              ({ accounts, categories, budgets }[tab as "accounts" | "categories" | "budgets"].data?.length ?? 0) === 0 && (
+                <AppText className="py-8 text-center text-sm text-muted-foreground">Nothing here yet. Add your first one to get started.</AppText>
+              )}
           </View>
         )}
       </ScrollView>
@@ -151,6 +184,36 @@ export default function ConfigScreen() {
           }
           onClose={closeSheet}
           onSubmit={(data) => submitAssetForm(editingId, data, budgets.createBudgetLimit, budgets.updateBudgetLimit, closeSheet)}
+        />
+      )}
+      {tab === "recurring" && (
+        <RecurringTransactionSheet
+          visible={sheetOpen}
+          accounts={accounts.data ?? []}
+          categories={categories.data ?? []}
+          editing={
+            editingId
+              ? (() => {
+                  const row = findEditingRow(recurring.data, editingId);
+                  return row
+                    ? ({
+                        type: row.type,
+                        category_id: row.category_id,
+                        sub_category: row.sub_category ?? undefined,
+                        amount: row.amount,
+                        from_account_id: row.from_account_id,
+                        to_account_id: row.to_account_id,
+                        notes: row.notes ?? undefined,
+                        frequency: row.frequency,
+                        next_run_date: row.next_run_date,
+                        is_active: row.is_active,
+                      } as RecurringTransactionInput)
+                    : undefined;
+                })()
+              : undefined
+          }
+          onClose={closeSheet}
+          onSubmit={(data) => submitAssetForm(editingId, data, recurring.createRecurringTransaction, recurring.updateRecurringTransaction, closeSheet)}
         />
       )}
     </SafeAreaView>

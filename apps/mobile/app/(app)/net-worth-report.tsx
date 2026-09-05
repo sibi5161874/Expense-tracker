@@ -5,11 +5,13 @@ import { formatINR } from "@repo/shared/utils/currency";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { NetWorthSnapshotHistory } from "@/components/reports/NetWorthSnapshotHistory";
 import { useThemeColor } from "@/lib/colors";
 
 export default function NetWorthReportScreen() {
-  const { data: breakdown, isLoading, error } = useNetWorth();
+  const { data: breakdown, isLoading, error, unconvertedCurrencies, fxRatesStale, fxRatesFetchedAt } = useNetWorth();
+  const warning = useThemeColor("warning");
   const primary = useThemeColor("primary");
 
   const chartData = breakdown
@@ -22,28 +24,39 @@ export default function NetWorthReportScreen() {
         { name: "SSY", value: breakdown.ssyTotal },
         { name: "SGB", value: breakdown.sgbTotal },
         { name: "ULIP", value: breakdown.ulipTotal },
+        { name: "Real Estate", value: breakdown.realEstateTotal },
+        { name: "PPF", value: breakdown.ppfTotal },
+        { name: "Recurring Deposits", value: breakdown.recurringDepositsTotal },
+        { name: "NSC", value: breakdown.nscTotal },
+        { name: "Vehicles", value: breakdown.vehiclesTotal },
         { name: "Portfolio", value: breakdown.portfolioValue },
       ].filter((row) => row.value > 0)
+    : [];
+
+  const sheets = breakdown
+    ? [
+        {
+          name: "Net Worth",
+          rows: [
+            ...chartData.map((d) => ({ Item: d.name, Amount: d.value })),
+            { Item: "Liabilities", Amount: -breakdown.liabilitiesTotal },
+            { Item: "Net Worth", Amount: breakdown.netWorth },
+          ],
+        },
+      ]
     : [];
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Net Worth Statement" description="Current snapshot — assets, portfolio, and liabilities." />
-        <ReportExportBar
-          title="Net Worth Statement"
-          description="Current snapshot — assets, portfolio, and liabilities."
-          sheets={[
-            {
-              name: "Net Worth",
-              rows: [
-                ...chartData.map((d) => ({ Item: d.name, Amount: d.value })),
-                ...(breakdown ? [{ Item: "Net Worth", Amount: breakdown.netWorth }] : []),
-              ],
-            },
-          ]}
-        />
-
+        {!isLoading && breakdown && (
+          <ReportExportBar
+            title="Net Worth Statement"
+            description="Current snapshot — assets, portfolio, and liabilities."
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />
@@ -52,6 +65,29 @@ export default function NetWorthReportScreen() {
           <AppText className="text-sm text-destructive">{error.message}</AppText>
         ) : breakdown ? (
           <>
+            {unconvertedCurrencies.length > 0 && (
+              <View className="gap-1 rounded-2xl bg-warning-subtle p-4">
+                <AppText className="text-sm" style={{ color: warning }}>
+                  ⚠ Couldn&apos;t fetch a live rate for {unconvertedCurrencies.join(", ")} — accounts in{" "}
+                  {unconvertedCurrencies.length === 1 ? "that currency are" : "those currencies are"} excluded from
+                  the totals below until rates are available.
+                </AppText>
+              </View>
+            )}
+
+            {fxRatesStale && fxRatesFetchedAt && (
+              <AppText className="text-xs text-muted-foreground">
+                Exchange rates as of{" "}
+                {new Date(fxRatesFetchedAt).toLocaleString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}{" "}
+                — the live rate provider is unreachable, so foreign-currency totals use the last successful fetch.
+              </AppText>
+            )}
+
             <View className="gap-1 rounded-2xl bg-card p-5">
               <AppText className="text-sm text-muted-foreground">Net Worth</AppText>
               <AppText
@@ -73,6 +109,8 @@ export default function NetWorthReportScreen() {
               <AppText className="text-sm font-semibold">Breakdown</AppText>
               <CategoryBarList data={chartData} />
             </View>
+
+            <NetWorthSnapshotHistory currentBreakdown={breakdown} />
           </>
         ) : null}
       </ScrollView>

@@ -125,10 +125,6 @@ export function DataTable<T>({
   const clearSelection = () => setSelectedIds(new Set());
   const hasActiveFilters = search.trim() !== '' || Object.values(activeFilters).some(Boolean);
 
-  if (isLoading) {
-    return <TableSkeleton columns={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)} />;
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -140,6 +136,7 @@ export function DataTable<T>({
               onChange={(e) => setSearch(e.target.value)}
               placeholder={searchPlaceholder}
               className="pl-8"
+              disabled={isLoading}
             />
           </div>
         )}
@@ -151,6 +148,7 @@ export function DataTable<T>({
             onValueChange={(value) =>
               setActiveFilters((prev) => ({ ...prev, [filter.id]: (value as string) ?? '' }))
             }
+            disabled={isLoading}
           >
             <SelectTrigger className="w-fit">
               <SelectValue placeholder={filter.label} />
@@ -188,6 +186,9 @@ export function DataTable<T>({
         )}
       </div>
 
+      {isLoading ? (
+        <TableSkeleton columns={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)} />
+      ) : (
       <div className="bg-card overflow-hidden rounded-2xl">
         <Table>
           <TableHeader>
@@ -270,8 +271,9 @@ export function DataTable<T>({
           </TableBody>
         </Table>
       </div>
+      )}
 
-      {page !== undefined && onPageChange && (
+      {!isLoading && page !== undefined && onPageChange && (
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>
             Previous

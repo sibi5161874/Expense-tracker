@@ -1,3 +1,6 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import type { SymbolHolding } from '@repo/shared/logic';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +16,8 @@ interface HoldingsTableProps {
 }
 
 export function HoldingsTable({ holdings, animateRows = false }: HoldingsTableProps) {
+  const router = useRouter();
+
   return (
     <div className="bg-card overflow-hidden rounded-2xl">
       <Table>
@@ -37,8 +42,9 @@ export function HoldingsTable({ holdings, animateRows = false }: HoldingsTablePr
           {holdings.map((holding, index) => (
             <TableRow
               key={`${holding.symbol}-${holding.exchange}`}
+              onClick={() => router.push(`/portfolio/${encodeURIComponent(holding.symbol)}`)}
               className={cn(
-                'hover:bg-accent/40 transition-colors duration-150',
+                'hover:bg-accent/40 cursor-pointer transition-colors duration-150',
                 animateRows && 'animate-in fade-in-0 slide-in-from-bottom-1 duration-300'
               )}
               style={animateRows ? { animationDelay: `${index * 20}ms`, animationFillMode: 'both' } : undefined}
@@ -47,10 +53,30 @@ export function HoldingsTable({ holdings, animateRows = false }: HoldingsTablePr
               <TableCell className="text-muted-foreground">{holding.exchange}</TableCell>
               <TableCell className={NUMERIC_CELL}>{holding.unitsHeld}</TableCell>
               <TableCell className={NUMERIC_CELL}>
-                <AmountText value={holding.avgBuyPrice} colorBySign={false} />
+                <div className="flex items-center justify-end gap-1.5">
+                  <AmountText value={holding.avgBuyPrice} colorBySign={false} />
+                  {holding.lotCount > 1 && (
+                    <span
+                      title={`Weighted average across ${holding.lotCount} purchases`}
+                      className="bg-info-subtle text-info rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                    >
+                      WAC
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className={NUMERIC_CELL}>
-                <AmountText value={holding.currentPrice} colorBySign={false} />
+                <div className="flex items-center justify-end gap-1.5">
+                  <AmountText value={holding.currentPrice} colorBySign={false} />
+                  {!holding.hasLivePrice && (
+                    <span
+                      title="No live price has ever been fetched for this symbol — showing the most recent trade price instead."
+                      className="bg-warning-subtle text-warning-foreground rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                    >
+                      Est.
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className={NUMERIC_CELL}>
                 <AmountText value={holding.invested} colorBySign={false} />

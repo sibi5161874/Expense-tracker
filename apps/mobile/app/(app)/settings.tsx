@@ -13,6 +13,7 @@ import { Button } from "@/components/common/Button";
 import { AppText } from "@/components/common/AppText";
 import { AnonymousUpgradeCard } from "@/components/settings/AnonymousUpgradeCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
+import { DataManagementCard } from "@/components/settings/DataManagementCard";
 import { useThemeColor } from "@/lib/colors";
 
 export default function SettingsScreen() {
@@ -133,6 +134,7 @@ export default function SettingsScreen() {
         )}
 
         <AppearanceCard />
+        <DataManagementCard />
       </ScrollView>
     </SafeAreaView>
   );

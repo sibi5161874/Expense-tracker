@@ -6,6 +6,7 @@ import { convertToBaseCurrency, BASE_CURRENCY, type FxRates } from '@repo/shared
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
 interface AccountRowProps {
   account: Account;
@@ -18,6 +19,11 @@ interface AccountRowProps {
 function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates }: AccountRowProps) {
   const isForeign = account.currency !== BASE_CURRENCY;
   const converted = isForeign ? convertToBaseCurrency(account.opening_balance, account.currency, fxRates) : null;
+  const { requestDelete, dialog } = useConfirmDelete(
+    onDelete,
+    `Delete account "${account.name}"?`,
+    "This can't be undone."
+  );
 
   return (
     <TableRow>
@@ -51,17 +57,14 @@ function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates }:
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-destructive size-8"
-            onClick={() => {
-              if (confirm(`Delete account "${account.name}"? This cannot be undone.`)) {
-                onDelete(account.id);
-              }
-            }}
+            onClick={() => requestDelete(account.id)}
             disabled={isDeleting}
           >
             <Trash2 className="size-4" />
           </Button>
         </div>
       </TableCell>
+      {dialog}
     </TableRow>
   );
 }

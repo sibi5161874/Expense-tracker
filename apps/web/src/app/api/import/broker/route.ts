@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
+import { importFileTooLarge } from '@/lib/importLimits';
 import { parseCsv } from '@repo/shared';
 import {
   resolveBrokerMapping,
@@ -12,6 +14,7 @@ import {
 } from '@repo/shared/logic';
 import { getAccounts } from '@repo/shared/queries/config';
 import { getInvestmentLogForDedup, createInvestmentLogsBulk } from '@repo/shared/queries/investmentLog';
+import { brokerImportSchema } from '@repo/shared/schemas';
 
 const REQUIRED = ['date', 'symbol', 'tradeType', 'quantity', 'price'] as const;
 
@@ -38,15 +41,21 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`import:broker:${user.id}`, 20, 60 * 60_000);
+  // 500, not 20 — a single large import now commits as many ~200-row chunked requests (see
+  // chunkCsv.ts), so this has to bound "how many imports per hour", not "how many requests".
+  const limited = await enforceRateLimit(`import:broker:${user.id}`, 500, 60 * 60_000);
   if (limited) return limited;
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body.csv !== 'string' || typeof body.linked_account_id !== 'string') {
+  const parsed = brokerImportSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Missing csv text or linked_account_id' }, { status: 400 });
   }
+  const body = parsed.data;
+  if (importFileTooLarge(Buffer.byteLength(body.csv, 'utf8'))) {
+    return NextResponse.json({ error: 'File is too large — the max import size is 10MB.' }, { status: 413 });
+  }
   const commit: boolean = body.commit === true;
-  const brokerId: string | undefined = typeof body.broker === 'string' ? body.broker : undefined;
+  const brokerId: string | undefined = body.broker;
   const matchedBroker = brokerId ? findBroker(brokerId) : undefined;
   const brokerLabel = matchedBroker?.label ?? brokerId ?? 'broker';
 
@@ -111,7 +120,7 @@ export async function POST(req: Request) {
       committed,
     });
   } catch (e) {
-    logError('import.broker', e, { userId: user.id });
+    logError('import.broker', e, { userId: user.id, requestId: getRequestId(req) });
     return NextResponse.json({ error: 'Import failed, please try again.' }, { status: 500 });
   }
 }

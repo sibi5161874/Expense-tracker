@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { ExpenseBreakdownChart } from '@/components/shared/ExpenseBreakdownChart';
 import { HoldingsTable } from '@/components/investments/HoldingsTable';
+import { TaxLossHarvestingCard } from '@/components/investments/TaxLossHarvestingCard';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import { AmountText } from '@/components/shared/AmountText';
 import { cn } from '@/lib/utils';
@@ -165,6 +166,8 @@ export default function PortfolioPage() {
           <ExpenseBreakdownChart data={allocation} />
         </div>
       </div>
+
+      <TaxLossHarvestingCard holdings={holdings} />
 
       <div>
         <h2 className="mb-3 text-sm font-semibold">Recent transactions</h2>

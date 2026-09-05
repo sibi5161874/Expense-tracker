@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useBudgetLimits } from '@/hooks/useBudgetLimits';
-import { useMonthlyOverview } from '@/hooks/useTransactions';
+import { useTransactionsForMonth } from '@/hooks/useTransactions';
 import { formatMonth } from '@repo/shared/utils';
 import { BudgetLimitForm } from '@/components/BudgetLimitForm';
 import { BudgetLimitRow } from '@/components/settings/BudgetLimitRow';
@@ -20,7 +20,7 @@ export function BudgetsTab() {
   const { data: budgetLimits, isLoading, error, deleteBudgetLimit, isDeleting } = useBudgetLimits();
 
   const currentMonth = formatMonth(new Date());
-  const { data: monthTransactions } = useMonthlyOverview(currentMonth);
+  const { data: monthTransactions } = useTransactionsForMonth(currentMonth);
   const actualByCategoryId = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const txn of monthTransactions ?? []) {

@@ -5,6 +5,9 @@ export interface ImportReconciliation {
   totalChecked: number;
   mismatches: number;
   firstMismatchRow: number | null;
+  /** Not rendered — carried through so a chunked bank-statement commit can seed the next
+   * chunk's reconciliation check with it. See checkBalanceReconciliation's doc comment. */
+  lastBalance?: number | null;
 }
 
 export interface ImportResult {
@@ -23,7 +26,7 @@ export interface ImportResult {
 
 interface ImportResultSummaryProps {
   result: ImportResult;
-  step: 'preview' | 'committing' | 'done';
+  step: 'preview' | 'committing' | 'partial' | 'done';
 }
 
 /**
@@ -77,8 +80,12 @@ export function ImportResultSummary({ result, step }: ImportResultSummaryProps) 
           <div className="text-muted-foreground text-xs">Rows in file</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
-          <div className="text-lg font-semibold">{step === 'done' ? result.committed : result.validCount}</div>
-          <div className="text-muted-foreground text-xs">{step === 'done' ? 'Imported' : 'Ready to import'}</div>
+          <div className="text-lg font-semibold">
+            {step === 'preview' ? result.validCount : result.committed}
+          </div>
+          <div className="text-muted-foreground text-xs">
+            {step === 'preview' ? 'Ready to import' : step === 'partial' ? 'Imported so far' : 'Imported'}
+          </div>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="text-lg font-semibold">{result.duplicateCount}</div>

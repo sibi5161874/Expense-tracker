@@ -3,22 +3,28 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { UploadCloud } from 'lucide-react';
 import { BANKS } from '@repo/shared/logic';
 import { useAccounts } from '@/hooks/useAccounts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
+import { FileDropzone } from '@/components/shared/FileDropzone';
+import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { ColumnMapper, BANK_MAPPABLE_FIELDS } from '@/components/shared/ColumnMapper';
 import { ImportConfidenceNotice, needsReviewAcknowledgement } from '@/components/shared/ImportConfidenceNotice';
+import { chunkCsv } from '@/lib/chunkCsv';
 import { findBank } from '@repo/shared/logic';
 
 interface BankStatementImportDialogProps {
   onClose: () => void;
 }
 
-type Step = 'options' | 'previewing' | 'mapping' | 'preview' | 'committing' | 'done';
+/** Same rationale as the generic ImportDialog's COMMIT_CHUNK_SIZE — keeps each commit request
+ * inside one serverless function's execution timeout. */
+const COMMIT_CHUNK_SIZE = 200;
+
+type Step = 'options' | 'previewing' | 'mapping' | 'preview' | 'committing' | 'partial' | 'done';
 
 const REGIONS = Array.from(new Set(BANKS.map((b) => b.region ?? 'Other')));
 
@@ -34,12 +40,28 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [remainingChunks, setRemainingChunks] = useState<string[]>([]);
+  const [remainingRowOffset, setRemainingRowOffset] = useState(0);
+  const [remainingPreviousBalance, setRemainingPreviousBalance] = useState<number | null>(null);
 
-  async function runImport(csv: string, commit: boolean, overrideMapping?: Record<string, string>) {
+  async function runImport(
+    csv: string,
+    commit: boolean,
+    overrideMapping?: Record<string, string>,
+    previousBalance?: number | null
+  ) {
     const res = await fetch('/api/import/bank-statement', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csv, bank, account_id: accountId, commit, mapping: overrideMapping }),
+      body: JSON.stringify({
+        csv,
+        bank,
+        account_id: accountId,
+        commit,
+        mapping: overrideMapping,
+        previous_balance: previousBalance ?? undefined,
+      }),
     });
     const data = await res.json();
     // 422 means "we need your help mapping columns" — a step, not a failure.
@@ -53,9 +75,12 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     return data as ImportResult;
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !accountId) return;
+  async function handleFile(file: File) {
+    if (!accountId) return;
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      toast.error(`${file.name} is too large — the max import size is 10MB.`);
+      return;
+    }
     setErrorMessage(null);
     const text = await file.text();
     setCsvText(text);
@@ -89,21 +114,95 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     }
   }
 
-  async function handleConfirm() {
-    if (!csvText) return;
-    setStep('committing');
-    try {
-      const committed = await runImport(csvText, true, Object.keys(mapping).length ? mapping : undefined);
-      if (!committed) return;
-      setResult(committed);
-      setStep('done');
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyOverview'] });
-      toast.success(`Imported ${committed.committed} transaction${committed.committed === 1 ? '' : 's'}.`);
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Import failed');
-      setStep('preview');
+  /** Merges one chunk's reconciliation result into the running total. `offset` converts the
+   * chunk-local row numbers checkBalanceReconciliation returns (each chunk is parsed as its
+   * own file, starting at row 2) back into the original file's row numbers. */
+  function mergeReconciliation(
+    acc: ImportResult['reconciliation'],
+    chunk: ImportResult['reconciliation'],
+    offset: number
+  ): ImportResult['reconciliation'] {
+    if (!chunk) return acc;
+    if (!chunk.checkable) return chunk;
+    return {
+      checkable: true,
+      totalChecked: (acc?.totalChecked ?? 0) + chunk.totalChecked,
+      mismatches: (acc?.mismatches ?? 0) + chunk.mismatches,
+      firstMismatchRow: acc?.firstMismatchRow ?? (chunk.firstMismatchRow !== null ? chunk.firstMismatchRow + offset : null),
+      lastBalance: chunk.lastBalance,
+    };
+  }
+
+  /**
+   * Commits `chunks` sequentially, threading the running balance from each chunk's
+   * `reconciliation.lastBalance` into the next chunk's `previous_balance` — without this, the
+   * self-check would silently lose one comparison at every chunk boundary instead of just the
+   * single gap a whole-file import already tolerates. A failure partway through preserves
+   * whatever already committed and offers to resume, same as the generic ImportDialog.
+   */
+  async function commitChunks(
+    chunks: string[],
+    base: ImportResult,
+    rowOffset: number,
+    previousBalance: number | null
+  ) {
+    let accumulated = base;
+    let offset = rowOffset;
+    let runningBalance = previousBalance;
+    const mappingToSend = Object.keys(mapping).length ? mapping : undefined;
+
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress({ done: i, total: chunks.length });
+      const chunkRowCount = chunks[i]!.split(/\r\n|\n/).filter((line) => line.length > 0).length - 1;
+      try {
+        const chunkResult = await runImport(chunks[i]!, true, mappingToSend, runningBalance);
+        if (!chunkResult) throw new Error('This file needs column mapping confirmed again before it can commit.');
+
+        accumulated = {
+          ...accumulated,
+          committed: accumulated.committed + chunkResult.committed,
+          errors: [...accumulated.errors, ...chunkResult.errors.map((e) => ({ ...e, row: e.row + offset }))],
+          reconciliation: mergeReconciliation(accumulated.reconciliation, chunkResult.reconciliation, offset),
+        };
+        setResult(accumulated);
+        runningBalance = chunkResult.reconciliation?.lastBalance ?? runningBalance;
+        offset += chunkRowCount;
+      } catch (err) {
+        setRemainingChunks(chunks.slice(i));
+        setRemainingRowOffset(offset);
+        setRemainingPreviousBalance(runningBalance);
+        setErrorMessage(
+          `Import stopped partway — ${accumulated.committed} row${accumulated.committed === 1 ? '' : 's'} already saved. ${
+            err instanceof Error ? err.message : 'That request failed.'
+          } The rest weren't touched; retry to pick up where this left off.`
+        );
+        setStep('partial');
+        return;
+      }
     }
+
+    setProgress(null);
+    setRemainingChunks([]);
+    setStep('done');
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['monthlyOverview'] });
+    toast.success(`Imported ${accumulated.committed} transaction${accumulated.committed === 1 ? '' : 's'}.`);
+  }
+
+  async function handleConfirm() {
+    if (!csvText || !result) return;
+    setErrorMessage(null);
+    setStep('committing');
+    const base: ImportResult = { ...result, committed: 0, errors: [], reconciliation: undefined };
+    setResult(base);
+    await commitChunks(chunkCsv(csvText, COMMIT_CHUNK_SIZE), base, 0, null);
+  }
+
+  async function handleRetryRemaining() {
+    if (!result) return;
+    setErrorMessage(null);
+    setStep('committing');
+    await commitChunks(remainingChunks, result, remainingRowOffset, remainingPreviousBalance);
   }
 
   const mappingComplete = !!mapping.date && !!mapping.description && (!!mapping.debit || !!mapping.credit || !!mapping.amount);
@@ -115,7 +214,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Bank Statement</DialogTitle>
           <DialogDescription>
@@ -125,6 +224,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
           </DialogDescription>
         </DialogHeader>
 
+        <div className="-mx-4 min-h-0 flex-1 space-y-4 overflow-y-auto px-4">
         {errorMessage && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errorMessage}</p>}
 
         {step === 'options' && (
@@ -167,18 +267,14 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
               </div>
             </div>
 
-            <label
-              className={`border-border/60 flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center transition-colors ${
-                accountId ? 'hover:bg-muted/40 cursor-pointer' : 'cursor-not-allowed opacity-50'
-              }`}
-            >
-              <UploadCloud className="text-muted-foreground size-8" />
-              <span className="text-sm font-medium">Click to choose your statement file</span>
-              <span className="text-muted-foreground text-xs">
-                {accountId ? 'CSV export from your bank' : 'Select an account first'}
-              </span>
-              <input type="file" accept=".csv" className="hidden" disabled={!accountId} onChange={handleFileChange} />
-            </label>
+            <FileDropzone
+              onFile={handleFile}
+              disabled={!accountId}
+              accept=".csv"
+              title="Click to choose your statement file"
+              subtitle="CSV export from your bank"
+              disabledSubtitle="Select an account first"
+            />
           </div>
         )}
 
@@ -198,9 +294,16 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
           />
         )}
 
-        {(step === 'preview' || step === 'committing' || step === 'done') && result && (
+        {(step === 'preview' || step === 'committing' || step === 'partial' || step === 'done') && result && (
           <ImportResultSummary result={result} step={step} />
         )}
+
+        {step === 'committing' && progress && progress.total > 1 && (
+          <p className="text-muted-foreground text-xs">
+            Importing in batches — {progress.done} of {progress.total} done…
+          </p>
+        )}
+        </div>
 
         <DialogFooter>
           {step === 'mapping' && (
@@ -214,6 +317,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
             </Button>
           )}
           {step === 'committing' && <Button disabled>Importing…</Button>}
+          {step === 'partial' && <Button onClick={handleRetryRemaining}>Retry remaining rows</Button>}
           {step === 'done' && <Button onClick={onClose}>Close</Button>}
         </DialogFooter>
       </DialogContent>

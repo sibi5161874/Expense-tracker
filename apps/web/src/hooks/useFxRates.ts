@@ -5,6 +5,11 @@ interface FxRatesResponse {
   base: string;
   rates: FxRates;
   fetchedAt: string;
+  /** True when the provider was unreachable and this is the last successfully cached fetch,
+   * not a fresh one — distinct from a hard failure so the UI can show "rates as of ..." rather
+   * than either silently serving wrong-looking-fresh data or erroring for foreign-currency
+   * users while INR-only users see nothing wrong at all. */
+  stale: boolean;
 }
 
 /**
@@ -28,5 +33,11 @@ export function useFxRates() {
   // Empty object rather than undefined so every caller can pass this straight
   // into convertToBaseCurrency/sumInBaseCurrency without a loading branch —
   // INR conversions still work with no rates loaded; only foreign ones wait.
-  return { rates: query.data?.rates ?? {}, isLoading: query.isLoading, error: query.error };
+  return {
+    rates: query.data?.rates ?? {},
+    isLoading: query.isLoading,
+    error: query.error,
+    isStale: query.data?.stale ?? false,
+    fetchedAt: query.data?.fetchedAt,
+  };
 }

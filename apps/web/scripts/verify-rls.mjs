@@ -1,4 +1,4 @@
-// RLS isolation check per RULES.md §7: "Before marking any new table done: create a
+// RLS isolation check per RULES.md §10: "Before marking any new table done: create a
 // second test user and confirm they cannot see the first user's rows."
 //
 // Runs automatically in CI (.github/workflows/ci.yml, "verify-rls" job) against a

@@ -3,6 +3,7 @@ import type { Database } from '@repo/shared/types';
 import { startTrial, purchaseLifetime } from '@repo/shared/logic';
 import { updateUserTier } from '@repo/shared/queries/profile';
 import { getRazorpayClient } from '@/lib/razorpay';
+import { logWarn } from '@/lib/logger';
 
 /**
  * The one place a verified Razorpay payment turns into an actual tier change.
@@ -49,8 +50,12 @@ export async function applyPaymentCapture(
     } catch (refundError) {
       // The trial itself is already active — a refund failure here is a
       // billing-ops problem to chase up, not a reason to fail the request or
-      // undo the trial the user is now relying on.
-      console.error('Failed to auto-refund trial verification charge:', refundError);
+      // undo the trial the user is now relying on. Warn, not error: nothing
+      // failed from the user's perspective, but ops needs to know to issue the
+      // refund manually.
+      logWarn('payments.autoRefund', 'Failed to auto-refund trial verification charge', {
+        error: refundError instanceof Error ? refundError.message : String(refundError),
+      });
     }
   } else {
     await updateUserTier(supabase, userId, purchaseLifetime());

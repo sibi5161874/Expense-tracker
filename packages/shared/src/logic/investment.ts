@@ -131,6 +131,15 @@ export interface SymbolHolding {
   invested: number;
   unrealisedPnl: number;
   returnPct: number;
+  /** Count of BUY/SIP entries that fed avgBuyPrice — >1 means it's a weighted average across multiple purchases, not a single buy price. */
+  lotCount: number;
+  /** True only when `livePriceOverrides` actually had an entry for this symbol — false means
+   * `currentPrice` fell back to the most recent trade price (or `avgBuyPrice` with no trades
+   * at all), which is a real number but not a live market price. Lets the UI show "Est." for
+   * a holding that has never received a live price, distinct from one that has but is now
+   * stale from a failed refresh — two different situations a single price figure can't tell
+   * apart on its own. */
+  hasLivePrice: boolean;
 }
 
 export function groupInvestmentsBySymbol(
@@ -159,11 +168,13 @@ export function groupInvestmentsBySymbol(
 
     const avgBuyPrice = calculateAvgBuyPrice(entries);
     const mostRecent = [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const hasLivePrice = livePriceOverrides[symbol] !== undefined;
     const currentPrice = livePriceOverrides[symbol] ?? mostRecent?.price ?? avgBuyPrice;
     const currentValue = unitsHeld * currentPrice;
     const invested = unitsHeld * avgBuyPrice;
     const unrealisedPnl = currentValue - invested;
     const returnPct = invested > 0 ? unrealisedPnl / invested : 0;
+    const lotCount = entries.filter((e) => e.action === 'BUY' || e.action === 'SIP').length;
 
     holdings.push({
       symbol,
@@ -176,6 +187,8 @@ export function groupInvestmentsBySymbol(
       invested,
       unrealisedPnl,
       returnPct,
+      lotCount,
+      hasLivePrice,
     });
   }
 

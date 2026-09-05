@@ -2,22 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mirrors apps/web/src/app/globals.css exactly — same token names, same values (converted
-   from hex to sRGB triplets since NativeWind's withOpacity() needs "R G B" not "#RRGGBB").
-   Don't add colors here that don't exist on web; add them to globals.css first, then port. */
+/* PRISM OPS — apps/mobile's OWN token set as of this file. This deliberately stopped
+   mirroring apps/web/src/app/globals.css (confirmed decision, not an oversight): mobile now
+   has its own accent-picker/AMOLED system with no web equivalent. Do NOT port these values
+   back into apps/web/src/app/globals.css, and don't assume a color here also exists on web.
+   Canonical source for anything beyond raw CSS vars (accents, radius categories, typography,
+   spacing) is apps/mobile/src/theme/tokens.ts — this file only carries what NativeWind's
+   `dark:` className mechanism needs (background/card/foreground/border/semantic base
+   values); accent + AMOLED overrides are applied at runtime via ThemeProvider, not here. */
 :root {
-  --background: 248 249 250;
+  /* Static defaults matching theme/tokens.ts's neutrals.light + accents.ocean.light — the
+     values ThemeProvider's vars() override replaces at runtime once preferences load. Kept
+     in sync by hand (there are only two blocks); see tokens.ts for the source hex. */
+  --background: 244 245 247;
   --foreground: 26 26 26;
   --card: 255 255 255;
   --card-foreground: 26 26 26;
-  --primary: 25 118 210;
+  --primary: 25 103 210;
   --primary-foreground: 255 255 255;
   --secondary: 241 243 244;
   --secondary-foreground: 26 26 26;
   --muted: 241 243 244;
-  --muted-foreground: 107 114 128;
-  --accent: 227 242 253;
-  --accent-foreground: 25 118 210;
+  --muted-foreground: 91 100 114;
+  --accent: 211 227 253;
+  --accent-foreground: 11 61 145;
   --accent2: 142 36 170;
   --accent2-foreground: 255 255 255;
   --accent2-subtle: 243 229 245;
@@ -26,13 +34,13 @@
   --success: 35 152 72;
   --success-foreground: 247 254 248;
   --success-subtle: 219 248 222;
-  --warning: 227 159 8;
+  --warning: 181 121 10;
   --warning-foreground: 47 30 1;
   --warning-subtle: 255 240 204;
   --info: 25 118 210;
   --info-foreground: 255 255 255;
   --info-subtle: 227 242 253;
-  --border: 229 231 235;
+  --border: 221 225 230;
   --chart1: 25 118 210;
   --chart2: 142 36 170;
   --chart3: 167 74 140;
@@ -41,18 +49,21 @@
 }
 
 .dark {
-    --background: 0 0 0;
-    --foreground: 255 255 255;
-    --card: 26 26 26;
-    --card-foreground: 255 255 255;
-    --primary: 33 150 243;
-    --primary-foreground: 255 255 255;
-    --secondary: 26 26 26;
-    --secondary-foreground: 255 255 255;
-    --muted: 26 26 26;
-    --muted-foreground: 176 176 176;
-    --accent: 13 42 68;
-    --accent-foreground: 100 181 246;
+    /* Matching theme/tokens.ts's neutrals.dark + accents.ocean.dark. Note this is no longer
+       pure black by default — AMOLED (true #000000) is a separate, opt-in runtime override
+       (ThemeProvider), not this class's baseline. */
+    --background: 18 18 18;
+    --foreground: 230 230 230;
+    --card: 30 30 30;
+    --card-foreground: 230 230 230;
+    --primary: 138 180 248;
+    --primary-foreground: 26 26 26;
+    --secondary: 30 30 30;
+    --secondary-foreground: 230 230 230;
+    --muted: 30 30 30;
+    --muted-foreground: 168 173 180;
+    --accent: 30 58 95;
+    --accent-foreground: 211 227 253;
     --accent2: 156 39 176;
     --accent2-foreground: 255 255 255;
     --accent2-subtle: 42 15 48;
@@ -67,7 +78,7 @@
     --info: 33 150 243;
     --info-foreground: 255 255 255;
     --info-subtle: 13 42 68;
-    --border: 38 38 38;
+    --border: 46 46 46;
     --chart1: 33 150 243;
     --chart2: 156 39 176;
     --chart3: 210 114 180;

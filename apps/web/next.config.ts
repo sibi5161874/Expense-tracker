@@ -24,7 +24,16 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // max-age=2 years + preload, the standard HSTS-preload-list submission bar — tells browsers
+  // to never downgrade this origin to plain HTTP, even on the very first visit.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
 ];
+
+// No Access-Control-* headers below: every legitimate caller of /api/* is either this same
+// origin (the web app's own client code) or the mobile app's server-side fetch (Bearer token,
+// not a browser — CORS is a browser-enforced policy and doesn't apply to it). There is no
+// legitimate cross-origin *browser* caller these routes need to allow, so adding CORS headers
+// here would only be widening access with nothing that needs it.
 
 const nextConfig: NextConfig = {
   async headers() {

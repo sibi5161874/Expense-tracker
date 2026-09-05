@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, FlatList, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, TrendingUp, UploadCloud } from "lucide-react-native";
+import { router } from "expo-router";
+import { Plus, TrendingUp, UploadCloud, Briefcase, Lock } from "lucide-react-native";
 import { useInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseClient } from "@/hooks/useSupabaseClient";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import type { InvestmentLogInput } from "@repo/shared/schemas";
 import type { getInvestmentLog } from "@repo/shared/queries/investmentLog";
 import { getInvestmentLogForDedup, createInvestmentLogsBulk } from "@repo/shared/queries/investmentLog";
@@ -18,6 +20,7 @@ import { InvestmentLogListItem } from "@/components/investments/InvestmentLogLis
 import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
 import { ImportSheet } from "@/components/shared/ImportSheet";
+import { BrokerImportSheet } from "@/components/shared/BrokerImportSheet";
 import { useThemeColor } from "@/lib/colors";
 
 type InvestmentLogEntry = NonNullable<Awaited<ReturnType<typeof getInvestmentLog>>>[number];
@@ -28,16 +31,29 @@ export default function InvestmentsScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<InvestmentLogEntry | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [brokerImportOpen, setBrokerImportOpen] = useState(false);
   const [preparingImport, setPreparingImport] = useState(false);
   const [existingKeys, setExistingKeys] = useState<string[]>([]);
 
   const { user } = useAuth();
   const supabase = useSupabaseClient();
+  const { hasFeature } = useEntitlements();
   const foreground = useThemeColor("foreground");
   const { data: accounts } = useAccounts(true);
   const { data, isLoading, error, createInvestmentLog, updateInvestmentLog, deleteInvestmentLog } = useInvestmentLog({
     page,
   });
+
+  function openBrokerImport() {
+    if (!hasFeature("brokerImport")) {
+      Alert.alert("Pro feature", "Broker import is a Pro feature.", [
+        { text: "Not now", style: "cancel" },
+        { text: "View plans", onPress: () => router.push("/(app)/billing") },
+      ]);
+      return;
+    }
+    setBrokerImportOpen(true);
+  }
 
   async function openImport() {
     if (!user) return;
@@ -109,6 +125,9 @@ export default function InvestmentsScreen() {
             <View className="flex-row items-center gap-2">
               <Button variant="outline" className="size-11 px-0" onPress={openImport} disabled={preparingImport}>
                 <UploadCloud size={16} color={foreground} />
+              </Button>
+              <Button variant="outline" className="size-11 px-0" onPress={openBrokerImport}>
+                {hasFeature("brokerImport") ? <Briefcase size={16} color={foreground} /> : <Lock size={16} color={foreground} />}
               </Button>
               <Button
                 onPress={() => {
@@ -206,6 +225,12 @@ export default function InvestmentsScreen() {
         templateColumns={INVESTMENT_LOG_TEMPLATE_COLUMNS}
         buildPlan={(records) => buildInvestmentLogImportPlan(records, buildNameIndex(accounts ?? []), existingKeys)}
         createBulk={(rows) => (user ? createInvestmentLogsBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
+        onImported={() => setPage(0)}
+      />
+
+      <BrokerImportSheet
+        visible={brokerImportOpen}
+        onClose={() => setBrokerImportOpen(false)}
         onImported={() => setPage(0)}
       />
     </SafeAreaView>

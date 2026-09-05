@@ -180,6 +180,17 @@ describe('groupInvestmentsBySymbol', () => {
   it('returns an empty array for no investments', () => {
     expect(groupInvestmentsBySymbol([])).toEqual([]);
   });
+
+  it('marks hasLivePrice true only when an override actually exists for that symbol', () => {
+    const holdings = groupInvestmentsBySymbol(multi, { RELIANCE: 999 });
+    expect(holdings.find((h) => h.symbol === 'RELIANCE')!.hasLivePrice).toBe(true);
+    expect(holdings.find((h) => h.symbol === 'TCS')!.hasLivePrice).toBe(false);
+  });
+
+  it('marks hasLivePrice false for every symbol when no overrides are passed at all', () => {
+    const holdings = groupInvestmentsBySymbol(multi);
+    expect(holdings.every((h) => h.hasLivePrice === false)).toBe(true);
+  });
 });
 
 describe('summarizeHoldings / calculatePortfolioSummary', () => {
@@ -209,6 +220,8 @@ describe('summarizeHoldings / calculatePortfolioSummary', () => {
         invested: 1000,
         unrealisedPnl: 500,
         returnPct: 0.5,
+        lotCount: 1,
+        hasLivePrice: true,
       },
     ]);
     expect(summary.pnlPercentage).toBe(50);

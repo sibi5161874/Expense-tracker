@@ -16,11 +16,12 @@
  */
 
 export const APP_BRANDING = {
-  name: 'Money Manager',
-  tagline: 'Privacy-first net worth tracking, built for how Indians actually invest.',
+  name: "KashMap",
+  tagline:
+    "Privacy-first net worth tracking, built for how Indians actually invest.",
   /** Path under /public, or a full URL. */
-  logoUrl: '/logo.svg',
-  faviconUrl: '/favicon.ico',
+  logoUrl: "/logo.svg",
+  faviconUrl: "/icon.svg",
 } as const;
 
 /**
@@ -41,20 +42,20 @@ export const APP_BRANDING = {
 export const PAID_TIER_ENABLED = false;
 
 export const PRICING = {
-  currency: 'INR',
+  currency: "INR",
 
   trial: {
     enabled: true,
     days: 30,
     /** The refundable Razorpay charge used to start a trial, in paise (100 = ₹1). Collected via /api/payments/create-order + Razorpay Checkout, refunded automatically in applyPaymentCapture.ts. */
     verificationChargePaise: 100,
-    label: '30-Day Free Trial',
+    label: "30-Day Free Trial",
   },
 
   lifetime: {
     enabled: true,
     priceRupees: 850,
-    label: 'Lifetime',
+    label: "Lifetime",
   },
 
   /**
@@ -65,8 +66,8 @@ export const PRICING = {
    */
   subscription: {
     enabled: false,
-    monthly: { priceRupees: 99, label: 'Monthly' },
-    yearly: { priceRupees: 499, label: 'Yearly' },
+    monthly: { priceRupees: 99, label: "Monthly" },
+    yearly: { priceRupees: 499, label: "Yearly" },
   },
 } as const;
 
@@ -88,16 +89,19 @@ export const FREE_TIER_LIMITS = {
  * feature for everyone — the fastest way to A/B a paywall position without
  * touching the component that renders the upsell.
  */
-export type FeatureTier = 'free' | 'pro';
+export type FeatureTier = "free" | "pro";
 
 export const FEATURE_GATES: Record<string, FeatureTier> = {
-  bankStatementImport: 'pro',
-  brokerImport: 'pro',
-  livePriceRefresh: 'pro',
-  multiCurrency: 'pro',
-  recurringTransactions: 'free',
-  reportExport: 'pro',
-  fullEssentialsScore: 'free',
+  bankStatementImport: "pro",
+  brokerImport: "pro",
+  livePriceRefresh: "pro",
+  multiCurrency: "pro",
+  recurringTransactions: "free",
+  reportExport: "pro",
+  fullEssentialsScore: "free",
+  financialCalculators: "pro",
+  historicalCharts: "pro",
+  taxLossHarvesting: "pro",
 };
 
 export type FeatureKey = keyof typeof FEATURE_GATES;
@@ -112,10 +116,10 @@ export type FeatureKey = keyof typeof FEATURE_GATES;
 export const ALL_REPORTS_ENABLED = true;
 
 export const ENABLED_REPORT_SLUGS: string[] = [
-  'monthly-summary',
-  'budget-vs-actual',
-  'category-breakdown',
-  'net-worth',
-  'portfolio-summary',
-  'goal-progress',
+  "monthly-summary",
+  "budget-vs-actual",
+  "category-breakdown",
+  "net-worth",
+  "portfolio-summary",
+  "goal-progress",
 ];

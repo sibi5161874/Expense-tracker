@@ -1,19 +1,23 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Button } from '@/components/ui/button';
 import { ProLockedButton } from '@/components/shared/ProGate';
-import { exportReportToPdf } from '@/lib/exportToPdf';
-import { exportToExcel, type ExcelSheet } from '@/lib/exportToExcel';
+import type { ExcelSheet } from '@/lib/exportToExcel';
 
 interface ReportContainerProps {
   title: string;
   description?: string;
   excelSheets?: ExcelSheet[];
+  /** When set, the PDF export embeds this element's rendered chart (its first `<svg>`) above
+   * the data table instead of exporting the table alone — opt-in per report, since most
+   * reports have no single chart worth capturing. See `exportChartReportToPdf.ts` for why
+   * this rasterizes via the browser's native canvas pipeline rather than html2canvas. */
+  chartRef?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }
 
@@ -34,7 +38,7 @@ export interface ReportEmbedRegistry {
 
 export const ReportEmbedContext = createContext<ReportEmbedRegistry | null>(null);
 
-export function ReportContainer({ title, description, excelSheets, children }: ReportContainerProps) {
+export function ReportContainer({ title, description, excelSheets, chartRef, children }: ReportContainerProps) {
   const embed = useContext(ReportEmbedContext);
   const router = useRouter();
   const { hasFeature } = useEntitlements();
@@ -60,11 +64,21 @@ export function ReportContainer({ title, description, excelSheets, children }: R
   // PDF is built straight from the same tabular data as Excel (jsPDF + autoTable draws
   // vector text, no DOM screenshot). Nothing in this path reads computed styles, so the
   // modern-CSS-color parse failures that plague canvas-based exporters can't occur.
-  function handlePdfExport() {
+  //
+  // Both jsPDF and ExcelJS are dynamically imported here rather than at module top level —
+  // they're only ever needed once a user actually clicks Export, so shipping them in every
+  // report page's initial bundle regardless of whether export is ever used was pure waste.
+  async function handlePdfExport() {
     if (!excelSheets || excelSheets.length === 0) return;
     setIsExportingPdf(true);
     try {
-      exportReportToPdf(title, description ?? '', excelSheets, slugify(title));
+      if (chartRef?.current) {
+        const { exportChartReportToPdf } = await import('@/lib/exportChartReportToPdf');
+        await exportChartReportToPdf(title, description ?? '', chartRef.current, excelSheets, slugify(title));
+      } else {
+        const { exportReportToPdf } = await import('@/lib/exportToPdf');
+        exportReportToPdf(title, description ?? '', excelSheets, slugify(title));
+      }
     } finally {
       setIsExportingPdf(false);
     }
@@ -74,6 +88,7 @@ export function ReportContainer({ title, description, excelSheets, children }: R
     if (!excelSheets || excelSheets.length === 0) return;
     setIsExportingExcel(true);
     try {
+      const { exportToExcel } = await import('@/lib/exportToExcel');
       await exportToExcel(slugify(title), excelSheets);
     } finally {
       setIsExportingExcel(false);

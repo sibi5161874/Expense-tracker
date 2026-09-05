@@ -11,6 +11,11 @@ import {
   useSsyAccounts,
   useSgbHoldings,
   useUlipPolicies,
+  useRealEstate,
+  usePpfAccounts,
+  useRecurringDeposits,
+  useNscCertificates,
+  useVehicles,
 } from "@/hooks/useAssets";
 import {
   assetFixedDepositSchema,
@@ -21,6 +26,11 @@ import {
   assetSsySchema,
   assetSgbSchema,
   assetUlipSchema,
+  assetRealEstateSchema,
+  assetPpfSchema,
+  assetRecurringDepositSchema,
+  assetNscSchema,
+  assetVehicleSchema,
 } from "@repo/shared/schemas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/common/Button";
@@ -35,6 +45,11 @@ import { NpsCard } from "@/components/assets/NpsCard";
 import { SsyCard } from "@/components/assets/SsyCard";
 import { SgbCard } from "@/components/assets/SgbCard";
 import { UlipCard } from "@/components/assets/UlipCard";
+import { RealEstateCard } from "@/components/assets/RealEstateCard";
+import { PpfCard } from "@/components/assets/PpfCard";
+import { RecurringDepositCard } from "@/components/assets/RecurringDepositCard";
+import { NscCard } from "@/components/assets/NscCard";
+import { VehicleCard } from "@/components/assets/VehicleCard";
 import { ASSET_TABS, type AssetTabKey } from "@/components/assets/assetTabs";
 import {
   FD_FIELDS,
@@ -45,6 +60,11 @@ import {
   SSY_FIELDS,
   SGB_FIELDS,
   ULIP_FIELDS,
+  REAL_ESTATE_FIELDS,
+  PPF_FIELDS,
+  RECURRING_DEPOSIT_FIELDS,
+  NSC_FIELDS,
+  VEHICLE_FIELDS,
 } from "@/components/assets/assetFieldConfigs";
 import { confirmAssetDelete, findEditingRow, submitAssetForm, toFormDefaults } from "@/components/assets/assetFormHelpers";
 import { useThemeColor } from "@/lib/colors";
@@ -56,7 +76,7 @@ export default function AssetsScreen() {
   const primary = useThemeColor("primary");
 
   // Called unconditionally (Rules of Hooks) — each is a small config-table query, not one
-  // of the two lists RULES.md §15 flags for growth (Transactions/Investment Log).
+  // of the two lists RULES.md §14 flags for growth (Transactions/Investment Log).
   const fd = useFixedDeposits();
   const gold = useGoldAssets();
   const loans = useLoanLiabilities();
@@ -65,6 +85,11 @@ export default function AssetsScreen() {
   const ssy = useSsyAccounts();
   const sgb = useSgbHoldings();
   const ulip = useUlipPolicies();
+  const realEstate = useRealEstate();
+  const ppf = usePpfAccounts();
+  const recurringDeposits = useRecurringDeposits();
+  const nsc = useNscCertificates();
+  const vehicles = useVehicles();
 
   function closeSheet() {
     setSheetOpen(false);
@@ -79,7 +104,8 @@ export default function AssetsScreen() {
     setSheetOpen(true);
   }
 
-  const isLoading = { fd, gold, loans, epf, nps, ssy, sgb, ulip }[tab].isLoading;
+  const isLoading = { fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles }[tab]
+    .isLoading;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -116,8 +142,14 @@ export default function AssetsScreen() {
             {tab === "ssy" && ssy.data?.map((row) => <SsyCard key={row.id} ssy={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => ssy.deleteSsyAccount(id))} />)}
             {tab === "sgb" && sgb.data?.map((row) => <SgbCard key={row.id} sgb={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => sgb.deleteSgbHolding(id))} />)}
             {tab === "ulip" && ulip.data?.map((row) => <UlipCard key={row.id} ulip={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => ulip.deleteUlipPolicy(id))} />)}
+            {tab === "realEstate" && realEstate.data?.map((row) => <RealEstateCard key={row.id} property={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => realEstate.deleteRealEstate(id))} />)}
+            {tab === "ppf" && ppf.data?.map((row) => <PpfCard key={row.id} ppf={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => ppf.deletePpfAccount(id))} />)}
+            {tab === "recurringDeposits" && recurringDeposits.data?.map((row) => <RecurringDepositCard key={row.id} rd={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => recurringDeposits.deleteRecurringDeposit(id))} />)}
+            {tab === "nsc" && nsc.data?.map((row) => <NscCard key={row.id} nsc={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => nsc.deleteNscCertificate(id))} />)}
+            {tab === "vehicles" && vehicles.data?.map((row) => <VehicleCard key={row.id} vehicle={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => vehicles.deleteVehicle(id))} />)}
 
-            {({ fd, gold, loans, epf, nps, ssy, sgb, ulip }[tab].data?.length ?? 0) === 0 && (
+            {({ fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles }[tab].data
+              ?.length ?? 0) === 0 && (
               <AppText className="py-8 text-center text-sm text-muted-foreground">
                 No {ASSET_TABS.find((t) => t.key === tab)?.label.toLowerCase()} yet. Add your first one to get started.
               </AppText>
@@ -165,6 +197,31 @@ export default function AssetsScreen() {
         <AssetForm visible={sheetOpen} title={editingId ? "Edit ULIP" : "Add ULIP"} schema={assetUlipSchema} fields={ULIP_FIELDS}
           defaultValues={toFormDefaults(findEditingRow(ulip.data, editingId), ULIP_FIELDS, { insurer: "", policy_number: "", sum_assured: 0, current_fund_value: 0, premium_amount: 0, premium_frequency: "Yearly" as const, maturity_date: "" })}
           onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, ulip.createUlipPolicy, ulip.updateUlipPolicy, closeSheet)} />
+      )}
+      {tab === "realEstate" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit Real Estate" : "Add Real Estate"} schema={assetRealEstateSchema} fields={REAL_ESTATE_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(realEstate.data, editingId), REAL_ESTATE_FIELDS, { description: "", property_type: "Residential" as const, location: "", purchase_value: 0, current_value: 0, purchase_date: "" })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, realEstate.createRealEstate, realEstate.updateRealEstate, closeSheet)} />
+      )}
+      {tab === "ppf" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit PPF" : "Add PPF"} schema={assetPpfSchema} fields={PPF_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(ppf.data, editingId), PPF_FIELDS, { account_number: "", current_balance: 0, annual_contribution: 0, opening_date: "" })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, ppf.createPpfAccount, ppf.updatePpfAccount, closeSheet)} />
+      )}
+      {tab === "recurringDeposits" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit Recurring Deposit" : "Add Recurring Deposit"} schema={assetRecurringDepositSchema} fields={RECURRING_DEPOSIT_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(recurringDeposits.data, editingId), RECURRING_DEPOSIT_FIELDS, { bank: "", monthly_installment: 0, rate_pct: 0, start_date: "", maturity_date: "", maturity_value: 0 })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, recurringDeposits.createRecurringDeposit, recurringDeposits.updateRecurringDeposit, closeSheet)} />
+      )}
+      {tab === "nsc" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit NSC" : "Add NSC"} schema={assetNscSchema} fields={NSC_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(nsc.data, editingId), NSC_FIELDS, { certificate_number: "", purchase_value: 0, maturity_value: 0, rate_pct: 0, purchase_date: "", maturity_date: "" })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, nsc.createNscCertificate, nsc.updateNscCertificate, closeSheet)} />
+      )}
+      {tab === "vehicles" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit Vehicle" : "Add Vehicle"} schema={assetVehicleSchema} fields={VEHICLE_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(vehicles.data, editingId), VEHICLE_FIELDS, { description: "", vehicle_type: "Car" as const, registration_number: "", purchase_value: 0, current_value: 0, purchase_date: "" })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, vehicles.createVehicle, vehicles.updateVehicle, closeSheet)} />
       )}
     </SafeAreaView>
   );

@@ -4,12 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import {
   getTransactions,
+  getMonthlyTransactionSummary,
+  getMonthlyCategoryBreakdown,
   getAllTransactionsForMonth,
+  getRecentExpensesForInsight,
+  getTransactionsForDate,
   createTransaction,
   updateTransaction,
   deleteTransaction,
 } from '@repo/shared/queries/transactions';
 import type { TransactionInput } from '@repo/shared/schemas';
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Mirrors apps/web/src/hooks/useTransactions.ts. */
 export function useTransactions(opts: { month?: string; page?: number } = {}) {
@@ -69,14 +75,60 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
   };
 }
 
-/** Income/expense totals + category breakdown for one calendar month. Mirrors web's useMonthlyOverview. */
+/** Income/expense totals + category breakdown for one calendar month, computed in Postgres
+ * (RULES.md §14) — mirrors apps/web/src/hooks/useTransactions.ts's useMonthlyOverview. */
 export function useMonthlyOverview(month: string) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
 
-  const query = useQuery({
-    queryKey: ['monthlyOverview', userId, month],
+  const summaryQuery = useQuery({
+    queryKey: ['monthlyTransactionSummary', userId, month],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getMonthlyTransactionSummary(supabase, userId, month);
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const categoryQuery = useQuery({
+    queryKey: ['monthlyCategoryBreakdown', userId, month],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getMonthlyCategoryBreakdown(supabase, userId, month);
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const overview = useMemo(() => {
+    const income = summaryQuery.data?.income ?? 0;
+    const expense = summaryQuery.data?.expense ?? 0;
+    const netSavings = income - expense;
+    const savingsRate = income > 0 ? (netSavings / income) * 100 : 0;
+    const categoryBreakdown = (categoryQuery.data ?? []).map((c) => ({ name: c.category_name, value: c.amount }));
+
+    return { income, expense, netSavings, savingsRate, categoryBreakdown };
+  }, [summaryQuery.data, categoryQuery.data]);
+
+  return {
+    ...overview,
+    isLoading: summaryQuery.isLoading || categoryQuery.isLoading,
+    error: summaryQuery.error || categoryQuery.error,
+  };
+}
+
+/** Every transaction in one calendar month, row-level — for consumers that genuinely need
+ * individual rows (the calendar view's per-day type flags) rather than the pre-aggregated
+ * numbers useMonthlyOverview now returns. Mirrors apps/web's useTransactionsForMonth. */
+export function useTransactionsForMonth(month: string) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const supabase = useSupabaseClient();
+
+  return useQuery({
+    queryKey: ['transactionsForMonth', userId, month],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
       return getAllTransactionsForMonth(supabase, userId, month);
@@ -84,23 +136,44 @@ export function useMonthlyOverview(month: string) {
     enabled: !!userId,
     staleTime: 30_000,
   });
+}
 
-  const overview = useMemo(() => {
-    const income = query.data?.reduce((sum, t) => (t.type === 'Income' ? sum + t.amount : sum), 0) ?? 0;
-    const expense = query.data?.reduce((sum, t) => (t.type === 'Expense' ? sum + t.amount : sum), 0) ?? 0;
-    const netSavings = income - expense;
-    const savingsRate = income > 0 ? (netSavings / income) * 100 : 0;
+/** Mirrors apps/web/src/hooks/useTransactions.ts's useTransactionsForDate — all of a user's
+ * transactions on one exact date, with account/category joins, backing the calendar view's
+ * date-detail screen. */
+export function useTransactionsForDate(date: string) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const supabase = useSupabaseClient();
 
-    const byCategory = new Map<string, number>();
-    for (const t of query.data ?? []) {
-      if (t.type !== 'Expense') continue;
-      const name = t.category?.name ?? 'Uncategorized';
-      byCategory.set(name, (byCategory.get(name) ?? 0) + t.amount);
-    }
-    const categoryBreakdown = Array.from(byCategory, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  return useQuery({
+    queryKey: ['transactionsForDate', userId, date],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getTransactionsForDate(supabase, userId, date);
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+}
 
-    return { income, expense, netSavings, savingsRate, categoryBreakdown };
-  }, [query.data]);
+/** Mirrors apps/web/src/hooks/useTransactions.ts's useRecentExpensesForInsight. */
+export function useRecentExpensesForInsight() {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const supabase = useSupabaseClient();
+  // Same tradeoff as web's version — this only needs to be right as of whenever the hook
+  // next runs for an unrelated reason, not to tick live.
+  // eslint-disable-next-line react-hooks/purity -- see comment above
+  const sinceDate = new Date(Date.now() - THIRTY_DAYS_MS).toISOString().slice(0, 10);
 
-  return { ...query, ...overview };
+  return useQuery({
+    queryKey: ['recentExpensesForInsight', userId, sinceDate],
+    queryFn: () => {
+      if (!userId) throw new Error('User not authenticated');
+      return getRecentExpensesForInsight(supabase, userId, sinceDate);
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+  });
 }

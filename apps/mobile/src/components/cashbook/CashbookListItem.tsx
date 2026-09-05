@@ -41,7 +41,12 @@ export function CashbookListItem({ entry, onPress, onDelete }: CashbookListItemP
 
       <AmountText value={entry.amount} colorBySign={false} className="text-base font-semibold" />
 
-      <Pressable hitSlop={8} onPress={() => onDelete(entry.id)}>
+      <Pressable
+        hitSlop={14}
+        onPress={() => onDelete(entry.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Delete entry"
+      >
         <Trash2 size={16} color={mutedForeground} />
       </Pressable>
     </Pressable>

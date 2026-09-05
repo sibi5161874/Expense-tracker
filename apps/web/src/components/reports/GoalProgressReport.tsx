@@ -7,14 +7,15 @@ import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Progress } from '@/components/ui/progress';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { goalStatusTone } from '@/lib/badgeTones';
 import type { Goal } from '@repo/shared/types';
 
 export function GoalProgressReport() {
   const { data: goals, isLoading, error } = useGoals();
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const columns: DataTableColumn<Goal>[] = [

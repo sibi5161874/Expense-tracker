@@ -7,6 +7,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { budgetStatusTone } from '@/lib/badgeTones';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
 type BudgetLimit = NonNullable<Awaited<ReturnType<typeof getBudgetLimits>>>[number];
 
@@ -26,6 +27,7 @@ function BudgetLimitRowComponent({
   isDeleting,
 }: BudgetLimitRowProps) {
   const status = calculateBudgetStatus(actualThisMonth, budgetLimit.monthly_limit);
+  const { requestDelete, dialog } = useConfirmDelete(onDelete, 'Delete budget limit?', "This can't be undone.");
 
   return (
     <TableRow>
@@ -53,15 +55,14 @@ function BudgetLimitRowComponent({
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-destructive size-8"
-            onClick={() => {
-              if (confirm('Delete this budget limit?')) onDelete(budgetLimit.id);
-            }}
+            onClick={() => requestDelete(budgetLimit.id)}
             disabled={isDeleting}
           >
             <Trash2 className="size-4" />
           </Button>
         </div>
       </TableCell>
+      {dialog}
     </TableRow>
   );
 }

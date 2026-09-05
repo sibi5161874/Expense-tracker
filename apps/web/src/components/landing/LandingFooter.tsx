@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Wallet } from 'lucide-react';
+import Image from 'next/image';
 import { APP_BRANDING } from '@repo/shared/config';
 
 export function LandingFooter() {
@@ -9,9 +9,7 @@ export function LandingFooter() {
         <div className="flex flex-col items-start justify-between gap-8 sm:flex-row">
           <div>
             <Link href="/" className="flex items-center gap-2 font-semibold">
-              <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-xl">
-                <Wallet className="size-4.5" />
-              </span>
+              <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 rounded-xl" />
               {APP_BRANDING.name}
             </Link>
             <p className="text-muted-foreground mt-3 max-w-xs text-sm">{APP_BRANDING.tagline}</p>

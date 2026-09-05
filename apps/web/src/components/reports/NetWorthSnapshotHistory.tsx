@@ -18,6 +18,7 @@ import { formatINR } from '@repo/shared/utils/currency';
 import { Button } from '@/components/ui/button';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
 interface NetWorthSnapshotHistoryProps {
   currentBreakdown: NetWorthBreakdown;
@@ -29,6 +30,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
   const { data: snapshots, takeSnapshot, deleteSnapshot, isTakingSnapshot, isDeleting } = useNetWorthSnapshots();
   const { tier } = useEntitlements();
   const [error, setError] = useState<string | null>(null);
+  const { requestDelete, dialog } = useConfirmDelete(deleteSnapshot, 'Delete snapshot?', "This can't be undone.");
 
   const rows = useMemo(() => {
     const sorted = snapshots ?? [];
@@ -144,9 +146,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-destructive size-8"
-                  onClick={() => {
-                    if (confirm('Delete this snapshot?')) deleteSnapshot(r.id);
-                  }}
+                  onClick={() => requestDelete(r.id)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="size-4" />
@@ -157,6 +157,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
           </div>
         </>
       )}
+      {dialog}
     </div>
   );
 }

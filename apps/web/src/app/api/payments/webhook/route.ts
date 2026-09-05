@@ -4,6 +4,7 @@ import type { Database } from '@repo/shared/types';
 import { verifyWebhookSignature } from '@/lib/razorpay';
 import { applyPaymentCapture } from '@/lib/applyPaymentCapture';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
 
 /**
  * Razorpay's server calls this directly — there is no user session, so
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
   try {
     await applyPaymentCapture(admin, userId, orderId, paymentId);
   } catch (e) {
-    logError('payments.webhook.applyCapture', e, { userId, orderId, paymentId });
+    logError('payments.webhook.applyCapture', e, { userId, orderId, paymentId, requestId: getRequestId(req) });
     // Still 200 — Razorpay retries on non-2xx, and a capture error here needs
     // manual investigation via the log, not an automatic retry storm.
   }

@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { goalStatusTone } from '@/lib/badgeTones';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
 interface GoalCardProps {
   goal: Goal;
@@ -18,6 +19,7 @@ interface GoalCardProps {
 function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps) {
   const progressPct = calculateProgressPct(goal.saved_amount, goal.target_amount);
   const status = calculateGoalStatus(goal.saved_amount, goal.target_amount, goal.target_date);
+  const { requestDelete, dialog } = useConfirmDelete(onDelete, 'Delete goal?', "This can't be undone.");
 
   return (
     <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
@@ -71,16 +73,13 @@ function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps
           size="sm"
           className="text-muted-foreground hover:text-destructive"
           disabled={isDeleting}
-          onClick={() => {
-            if (confirm('Are you sure you want to delete this goal?')) {
-              onDelete(goal.id);
-            }
-          }}
+          onClick={() => requestDelete(goal.id)}
         >
           <Trash2 className="size-4" />
           Delete
         </Button>
       </div>
+      {dialog}
     </div>
   );
 }

@@ -10,9 +10,9 @@ import Razorpay from 'razorpay';
  * doesn't use. Everything here stays web-only, same reasoning as the
  * account-deletion route's use of the service_role admin client.
  *
- * NOT unit tested: apps/web has no test runner configured (only
- * packages/shared does). These two functions are pure and would be easy to
- * test if that changes — flagging the gap rather than silently skipping it.
+ * verifyCheckoutSignature/verifyWebhookSignature are unit tested in razorpay.test.ts.
+ * getRazorpayClient isn't — it just constructs the real Razorpay SDK client, nothing to
+ * meaningfully assert without hitting the network.
  */
 
 let client: Razorpay | null = null;

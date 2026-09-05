@@ -98,7 +98,7 @@ export function ImportSheet<T>({ visible, onClose, entityLabel, templateColumns,
               reset();
               onClose();
             }}
-            hitSlop={8}
+            hitSlop={14}
           >
             <X size={20} color={mutedForeground} />
           </Pressable>

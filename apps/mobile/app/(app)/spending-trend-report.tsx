@@ -6,7 +6,7 @@ import { formatMonth } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 const MONTHS_BACK = 6;
@@ -39,18 +39,24 @@ export default function SpendingTrendReportScreen() {
     });
   }, [transactions]);
 
+  const sheets = [
+    {
+      name: "Spending Trend",
+      rows: monthlyBreakdowns.flatMap(({ month, data }) => data.map((d) => ({ Month: month, Category: d.name, Amount: d.value }))),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Spending Trend" description={`Top expense categories over the last ${MONTHS_BACK} months.`} />
-        <ReportExportBar
-          title="Spending Trend"
-          description={`Top expense categories over the last ${MONTHS_BACK} months.`}
-          sheets={monthlyBreakdowns.map(({ month, data }) => ({
-            name: month,
-            rows: data.map((d) => ({ Category: d.name, Amount: d.value })),
-          }))}
-        />
+        {!isLoading && (
+          <ReportExportBar
+            title="Spending Trend"
+            description={`Top expense categories over the last ${MONTHS_BACK} months.`}
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

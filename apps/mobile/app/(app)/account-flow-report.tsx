@@ -6,7 +6,7 @@ import { formatMonth } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 const MONTHS_BACK = 3;
@@ -38,15 +38,21 @@ export default function AccountFlowReportScreen() {
       .sort((a, b) => b.in - a.in);
   }, [transactions]);
 
+  const sheets = [
+    { name: "Account Flow", rows: rows.map((r) => ({ Account: r.name, In: r.in, Out: r.out, Net: r.net })) },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
         <PageHeader title="Account-wise Flow" description={`Money in vs out per account over the last ${MONTHS_BACK} months.`} />
-        <ReportExportBar
-          title="Account-wise Flow"
-          description={`Money in vs out per account over the last ${MONTHS_BACK} months.`}
-          sheets={[{ name: "Account Flow", rows: rows.map((r) => ({ Account: r.name, In: r.in, Out: r.out, Net: r.net })) }]}
-        />
+        {!isLoading && rows.length > 0 && (
+          <ReportExportBar
+            title="Account-wise Flow"
+            description={`Money in vs out per account over the last ${MONTHS_BACK} months.`}
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

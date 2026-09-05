@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
+import { logError, logWarn } from '@/lib/logger';
 import { getDueRecurringTransactions, updateRecurringTransaction } from '@repo/shared/queries/recurringTransactions';
 import { createTransactionsBulk } from '@repo/shared/queries/transactions';
 import { getDueOccurrences } from '@repo/shared/logic';
@@ -67,7 +68,8 @@ export function useGenerateRecurringTransactions() {
       // so it's reported once as a quiet warning with the actual fix.
       const code = (error as { code?: string } | null)?.code;
       if (code === '42P01') {
-        console.warn(
+        logWarn(
+          'recurringTransactions.generate',
           'Recurring transactions are unavailable: the recurring_transactions table is missing. Run the pending Supabase migrations (supabase db push) to enable them.'
         );
         return;
@@ -76,7 +78,7 @@ export function useGenerateRecurringTransactions() {
       // Supabase errors are plain objects, so logging them directly prints "{}".
       // Pull the useful fields out explicitly.
       const details = error as { message?: string; code?: string; details?: string; hint?: string } | null;
-      console.error('Failed to generate recurring transactions:', {
+      logError('recurringTransactions.generate', error, {
         message: details?.message ?? String(error),
         code: details?.code,
         details: details?.details,

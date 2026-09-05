@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # pnpm workspace root — covers the root package.json's own devDependencies (turbo, etc).
+  # Dependabot understands pnpm workspaces natively as of a single "/" entry; it discovers
+  # apps/web, apps/mobile, and packages/shared automatically rather than needing one entry
+  # each.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Batch same-ecosystem patch/minor bumps into one PR instead of one-per-package —
+      # this repo's CI (typecheck/lint/test/build) already gates each PR, so grouping
+      # trades a little bisectability for far fewer PRs to triage weekly.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

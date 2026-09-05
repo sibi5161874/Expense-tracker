@@ -29,7 +29,7 @@ export function ConfigListItem({
       </View>
       <View className="flex-row items-center gap-3">
         <Pencil size={15} color={accentForeground} />
-        <Pressable hitSlop={8} onPress={onDelete}>
+        <Pressable hitSlop={14} onPress={onDelete} accessibilityRole="button" accessibilityLabel={`Delete ${title}`}>
           <Trash2 size={15} color={mutedForeground} />
         </Pressable>
       </View>

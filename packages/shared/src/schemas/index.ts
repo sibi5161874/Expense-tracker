@@ -24,3 +24,6 @@ export * from "./assetVehicle.schema";
 export * from "./userProfile.schema";
 export * from "./insurancePolicy.schema";
 export * from "./recurringTransaction.schema";
+export * from "./payment.schema";
+export * from "./importRequest.schema";
+export * from "./accountDeletion.schema";

@@ -7,10 +7,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
-
-const DESCRIPTION = "Income, expense, and savings for the current month.";
 
 export default function MonthlySummaryReportScreen() {
   const currentMonth = formatMonth(new Date());
@@ -24,25 +22,29 @@ export default function MonthlySummaryReportScreen() {
     { label: "Savings Rate", value: `${savingsRate.toFixed(1)}%`, icon: Percent, tone: "info" },
   ];
 
+  const sheets = [
+    {
+      name: "Monthly Summary",
+      rows: [
+        { Item: "Income", Amount: income },
+        { Item: "Expense", Amount: expense },
+        { Item: "Net Savings", Amount: netSavings },
+        { Item: "Savings Rate", Amount: `${savingsRate.toFixed(1)}%` },
+      ],
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Monthly Summary" description={`Income, expense, and savings for ${currentMonth}.`} />
-        <ReportExportBar
-          title="Monthly Summary"
-          description={DESCRIPTION}
-          sheets={[
-            {
-              name: "Monthly Summary",
-              rows: [
-                { Metric: "Income", Value: income },
-                { Metric: "Expense", Value: expense },
-                { Metric: "Net Savings", Value: netSavings },
-                { Metric: "Savings Rate (%)", Value: Number(savingsRate.toFixed(2)) },
-              ],
-            },
-          ]}
-        />
+        {!isLoading && (
+          <ReportExportBar
+            title="Monthly Summary"
+            description={`Income, expense, and savings for ${currentMonth}.`}
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

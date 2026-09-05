@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import type { Account } from '@repo/shared/types';
+import { BASE_CURRENCY } from '@repo/shared/logic';
 
 export function AccountsTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const { data: accounts, isLoading, error, deleteAccount, isDeleting } = useAccounts();
-  const { rates: fxRates } = useFxRates();
+  const { rates: fxRates, isStale: fxRatesStale, fetchedAt: fxRatesFetchedAt } = useFxRates();
+  const hasForeignAccount = (accounts ?? []).some((a) => a.currency !== BASE_CURRENCY);
 
   const handleDelete = useCallback((id: string) => deleteAccount(id), [deleteAccount]);
   const closeForm = useCallback(() => {
@@ -34,6 +36,19 @@ export function AccountsTab() {
           Add Account
         </Button>
       </div>
+
+      {fxRatesStale && fxRatesFetchedAt && hasForeignAccount && (
+        <p className="text-muted-foreground mb-3 text-xs">
+          Exchange rates as of{' '}
+          {new Date(fxRatesFetchedAt).toLocaleString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            hour: 'numeric',
+            minute: '2-digit',
+          })}{' '}
+          — the live rate provider is unreachable, so the ≈ conversions below use the last successful fetch.
+        </p>
+      )}
 
       <div className="bg-card border-border/60 overflow-hidden rounded-2xl border shadow-sm">
         <Table>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -38,12 +39,14 @@ import {
   ScrollText,
   Car,
   Crown,
+  Calculator,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { REPORTS } from "@/lib/reportsRegistry";
+import { REPORTS, type ReportMeta } from "@/lib/reportsRegistry";
 import { isReportEnabled } from "@repo/shared/logic";
+import { APP_BRANDING } from "@repo/shared/config";
 
 interface NavLeaf {
   href: string;
@@ -51,10 +54,21 @@ interface NavLeaf {
   icon?: typeof LayoutDashboard;
 }
 
+interface NavSubGroup {
+  label: string;
+  items: NavLeaf[];
+}
+
 interface NavGroup {
   label: string;
   icon: typeof LayoutDashboard;
+  /** Every child, flat — still needed for "is a route inside this group active" checks even
+   * when `subGroups` below is what actually renders. */
   children: NavLeaf[];
+  /** When set, renders `children` under these labeled sub-headers instead of one flat list —
+   * for a group whose child count makes a flat list hard to scan. Reuses the same category
+   * taxonomy the `/reports` hub page already groups by, rather than inventing a new one. */
+  subGroups?: NavSubGroup[];
 }
 
 type NavEntry = NavLeaf | NavGroup;
@@ -93,21 +107,29 @@ const SETTINGS_CHILDREN: NavLeaf[] = [
   { href: "/settings?tab=data", label: "Data & Privacy", icon: ShieldCheck },
 ];
 
-const REPORT_CHILDREN: NavLeaf[] = REPORTS.filter((r) => isReportEnabled(r.slug)).map((r) => ({
-  href: `/reports/${r.slug}`,
-  label: r.title,
-}));
+const ENABLED_REPORTS = REPORTS.filter((r) => isReportEnabled(r.slug));
+const REPORT_CHILDREN: NavLeaf[] = ENABLED_REPORTS.map((r) => ({ href: `/reports/${r.slug}`, label: r.title }));
+
+const REPORT_CATEGORIES: ReportMeta["category"][] = ["Expense", "Investment", "Combined"];
+const REPORT_SUBGROUPS: NavSubGroup[] = REPORT_CATEGORIES.map((category) => ({
+  label: category,
+  items: ENABLED_REPORTS.filter((r) => r.category === category).map((r) => ({
+    href: `/reports/${r.slug}`,
+    label: r.title,
+  })),
+})).filter((group) => group.items.length > 0);
 
 const NAV_ENTRIES: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/calculators", label: "Calculators", icon: Calculator },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cashbook", label: "Cashbook", icon: Users },
   { href: "/insurance", label: "Insurance", icon: ShieldCheck },
   { label: "Assets", icon: Landmark, children: ASSET_CHILDREN },
-  { label: "Reports", icon: FileBarChart, children: REPORT_CHILDREN },
+  { label: "Reports", icon: FileBarChart, children: REPORT_CHILDREN, subGroups: REPORT_SUBGROUPS },
   { label: "Config", icon: Cog, children: CONFIG_CHILDREN },
   { label: "Settings", icon: Settings, children: SETTINGS_CHILDREN },
 ];
@@ -182,6 +204,26 @@ export function Sidebar() {
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
 
+  function renderChildLink(child: NavLeaf) {
+    const active = isActive(child.href);
+    const ChildIcon = child.icon;
+    return (
+      <Link
+        key={child.href}
+        href={child.href}
+        className={cn(
+          "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+          active
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+        )}
+      >
+        {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
+        <span className="truncate">{child.label}</span>
+      </Link>
+    );
+  }
+
   return (
     <aside
       className={cn(
@@ -190,10 +232,8 @@ export function Sidebar() {
       )}
     >
       <div className={cn("flex items-center gap-2 py-5", collapsed ? "justify-center px-3" : "px-6")}>
-        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
-          <Wallet className="size-4.5" />
-        </div>
-        {!collapsed && <span className="flex-1 truncate text-lg font-semibold">Money Manager</span>}
+        <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 shrink-0 rounded-lg" />
+        {!collapsed && <span className="flex-1 truncate text-lg font-semibold">{APP_BRANDING.name}</span>}
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -258,25 +298,16 @@ export function Sidebar() {
 
               {isOpen && (
                 <div className="mt-1 ml-4 space-y-0.5 border-l border-sidebar-border pl-3">
-                  {entry.children.map((child) => {
-                    const active = isActive(child.href);
-                    const ChildIcon = child.icon;
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
-                          active
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                        )}
-                      >
-                        {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
-                        <span className="truncate">{child.label}</span>
-                      </Link>
-                    );
-                  })}
+                  {entry.subGroups
+                    ? entry.subGroups.map((sub) => (
+                        <div key={sub.label} className="mb-2 last:mb-0">
+                          <p className="text-sidebar-foreground/40 px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+                            {sub.label}
+                          </p>
+                          {sub.items.map((child) => renderChildLink(child))}
+                        </div>
+                      ))
+                    : entry.children.map((child) => renderChildLink(child))}
                 </div>
               )}
             </div>

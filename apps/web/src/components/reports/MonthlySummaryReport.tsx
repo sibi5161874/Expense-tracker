@@ -7,13 +7,14 @@ import { formatMonth } from '@repo/shared/utils';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatCard } from '@/components/shared/StatCard';
 import { CashFlowChart } from '@/components/shared/CashFlowChart';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 export function MonthlySummaryReport() {
   const currentMonth = formatMonth(new Date());
   const { income, expense, netSavings, savingsRate, isLoading, error } = useMonthlyOverview(currentMonth);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const chartData = [{ label: currentMonth, income, expense }];

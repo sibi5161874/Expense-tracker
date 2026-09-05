@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { StatusBadge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { goalStatusTone } from "@/lib/badgeTones";
 import { useThemeColor } from "@/lib/colors";
 
@@ -17,28 +17,25 @@ export default function GoalProgressReportScreen() {
   const { data: goals, isLoading, error } = useGoals();
   const primary = useThemeColor("primary");
 
+  const sheets = [
+    {
+      name: "Goal Progress",
+      rows: (goals ?? []).map((g) => ({
+        Goal: g.goal_name,
+        Saved: g.saved_amount,
+        Target: g.target_amount,
+        Status: calculateGoalStatus(g.saved_amount, g.target_amount, g.target_date),
+      })),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
         <PageHeader title="Goal Progress" description="Saved vs target for every goal." />
-        <ReportExportBar
-          title="Goal Progress"
-          description="Saved vs target for every goal."
-          sheets={[
-            {
-              name: "Goal Progress",
-              rows: (goals ?? []).map((g) => ({
-                Goal: g.goal_name,
-                Category: g.category,
-                Saved: g.saved_amount,
-                Target: g.target_amount,
-                "Progress %": Number((calculateProgressPct(g.saved_amount, g.target_amount) * 100).toFixed(1)),
-                "Target Date": g.target_date,
-                Status: calculateGoalStatus(g.saved_amount, g.target_amount, g.target_date),
-              })),
-            },
-          ]}
-        />
+        {!isLoading && goals && goals.length > 0 && (
+          <ReportExportBar title="Goal Progress" description="Saved vs target for every goal." sheets={sheets} />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

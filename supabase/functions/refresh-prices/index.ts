@@ -13,7 +13,7 @@
 // Finance's unofficial quote endpoint (no API key — the reason this runs server-side
 // is CORS, not secret-hiding: Yahoo's endpoint doesn't allow direct browser fetches).
 //
-// Rate limiting: RULES.md §7 doesn't actually specify a rate-limit number for this —
+// Rate limiting: RULES.md §6 doesn't actually specify a rate-limit number for this —
 // this is a reasonable default I'm applying, not a spec'd requirement. Adjust if needed.
 const RATE_LIMIT_SECONDS = 60;
 

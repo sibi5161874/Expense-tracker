@@ -6,7 +6,8 @@ import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { CashFlowChart } from '@/components/shared/CashFlowChart';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 interface DividendHoldingRow {
   symbol: string;
@@ -40,7 +41,7 @@ export function DividendIncomeReport() {
     return { byHolding, byMonth, total: dividends.reduce((sum, d) => sum + d.price, 0) };
   }, [investments]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const columns: DataTableColumn<DividendHoldingRow>[] = [

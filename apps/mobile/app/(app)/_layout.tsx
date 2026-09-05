@@ -1,10 +1,15 @@
+import type { ReactNode } from "react";
 import { Redirect, Tabs, router } from "expo-router";
-import { View, ActivityIndicator, Pressable } from "react-native";
+import { View, ActivityIndicator, Pressable, Animated, type GestureResponderEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LayoutDashboard, Receipt, PieChart, MoreHorizontal, Plus } from "lucide-react-native";
 import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
+import { usePressScale } from "@/theme/usePressScale";
+import { Fab } from "@/components/common/Fab";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useGenerateRecurringTransactions } from "@/hooks/useGenerateRecurringTransactions";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
@@ -31,20 +36,41 @@ const HIDDEN_ROUTES = [
   "cashbook-net-position-report",
   "asset-maturity-calendar-report",
   "goal-progress-report",
+  "overall-report",
+  "calculators",
+  "stock-detail",
+  "transactions-date",
   "config",
   "settings",
+  "billing",
 ] as const;
 
-/** Active-tab pill: purple-tinted rounded background behind the icon, not just tinted text. */
-function TabIcon({ Icon, focused, color }: { Icon: typeof LayoutDashboard; focused: boolean; color: string }) {
-  const accent2Subtle = useThemeColor("accent2");
+/** Active-tab pill: Primary Container behind the icon, not just tinted text — matches the
+ * brief's "Active state: background is Primary Container, icon/text is Primary" spec.
+ * Previously used the fixed decorative accent2 (purple) regardless of the user's chosen
+ * PRISM OPS accent; now tracks whichever accent is selected. */
+function TabIcon({ Icon, focused }: { Icon: typeof LayoutDashboard; focused: boolean }) {
+  const { theme } = useTheme();
   return (
     <View
       className="items-center justify-center rounded-full p-2"
-      style={{ backgroundColor: focused ? `${accent2Subtle}26` : "transparent" }}
+      style={{ backgroundColor: focused ? theme.primaryContainer : "transparent" }}
     >
-      <Icon color={color} size={20} />
+      <Icon color={focused ? theme.primary : theme.mutedForeground} size={20} />
     </View>
+  );
+}
+
+/** Wraps each tab bar button with the shared press-and-lift scale — React Navigation's
+ * bottom tabs let a screen override the touchable entirely via `tabBarButton`. */
+function TabBarButton({ children, onPress }: { children: ReactNode; onPress?: (e: GestureResponderEvent) => void }) {
+  const { animatedStyle, onPressIn, onPressOut } = usePressScale();
+  return (
+    <Animated.View style={[{ flex: 1, alignItems: "center", justifyContent: "center" }, animatedStyle]}>
+      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} className="items-center justify-center">
+        {children}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -53,11 +79,12 @@ function TabIcon({ Icon, focused, color }: { Icon: typeof LayoutDashboard; focus
 export default function AppLayout() {
   const { user, loading } = useAuth();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useUserProfile();
+  useGenerateRecurringTransactions();
   const insets = useSafeAreaInsets();
   const primary = useThemeColor("primary");
-  const accent2 = useThemeColor("accent2");
   const mutedForeground = useThemeColor("mutedForeground");
   const card = useThemeColor("card");
+  const { theme } = useTheme();
 
   if (loading) {
     return (
@@ -79,10 +106,12 @@ export default function AppLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          // Floating glass pill per design spec §5C, not a solid heavy bar — active tab in the
-          // secondary (purple) accent, matching the web MobileNav.
-          tabBarActiveTintColor: accent2,
+          // Active tab now tracks the user's chosen PRISM OPS accent (via TabIcon/theme),
+          // not the fixed decorative accent2 — these two tint props still drive the label
+          // text color for whichever tabs show a label.
+          tabBarActiveTintColor: primary,
           tabBarInactiveTintColor: mutedForeground,
+          tabBarButton: (props) => <TabBarButton {...props} />,
           tabBarStyle: {
             position: "absolute",
             left: 8,
@@ -92,7 +121,9 @@ export default function AppLayout() {
             // at a plain 8px on those.
             bottom: 8 + insets.bottom,
             height: 64,
-            borderRadius: 16,
+            // True pill (radius >= height/2), not a rounded rectangle — matches the brief's
+            // "Floating Segmented Pill Navigation" literally, not just a bar with soft corners.
+            borderRadius: 32,
             borderTopWidth: 0,
             backgroundColor: card,
             opacity: 0.96,
@@ -103,32 +134,28 @@ export default function AppLayout() {
           name="dashboard"
           options={{
             title: "Dashboard",
-            tabBarIcon: ({ color, focused }) => (
-              <TabIcon Icon={LayoutDashboard} focused={focused} color={String(color)} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon Icon={LayoutDashboard} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="transactions"
           options={{
             title: "Transactions",
-            tabBarIcon: ({ color, focused }) => <TabIcon Icon={Receipt} focused={focused} color={String(color)} />,
+            tabBarIcon: ({ focused }) => <TabIcon Icon={Receipt} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="portfolio"
           options={{
             title: "Portfolio",
-            tabBarIcon: ({ color, focused }) => <TabIcon Icon={PieChart} focused={focused} color={String(color)} />,
+            tabBarIcon: ({ focused }) => <TabIcon Icon={PieChart} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="more"
           options={{
             title: "More",
-            tabBarIcon: ({ color, focused }) => (
-              <TabIcon Icon={MoreHorizontal} focused={focused} color={String(color)} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon Icon={MoreHorizontal} focused={focused} />,
           }}
         />
         {HIDDEN_ROUTES.map((name) => (
@@ -142,21 +169,11 @@ export default function AppLayout() {
 
       {/* Primary action — quick add. Navigates to Transactions rather than deep-linking
           straight into its Add sheet, which would need cross-screen state wiring. */}
-      <Pressable
+      <Fab
+        icon={<Plus color={theme.onPrimary} size={26} />}
         onPress={() => router.push("/(app)/transactions")}
-        className="absolute right-6 size-14 items-center justify-center rounded-2xl"
-        style={{
-          bottom: fabBottom,
-          backgroundColor: primary,
-          shadowColor: primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.35,
-          shadowRadius: 12,
-          elevation: 6,
-        }}
-      >
-        <Plus color="white" size={26} />
-      </Pressable>
+        style={{ position: "absolute", right: 24, bottom: fabBottom }}
+      />
 
       {!profileLoading && (!profile || !profile.onboarding_completed) && (
         <OnboardingWizard onDone={() => refetchProfile()} />

@@ -1,6 +1,6 @@
 -- Savings goals (DATA_MODEL.md §4). progress_pct, sip_needed_per_month, and
 -- status are derived per-goal formulas — computed in packages/shared/logic,
--- not stored (RULES.md §14).
+-- not stored (RULES.md §13).
 
 create table public.goals (
   id uuid primary key default gen_random_uuid(),

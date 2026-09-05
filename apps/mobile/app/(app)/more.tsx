@@ -10,6 +10,8 @@ import {
   FileBarChart,
   Cog,
   Settings,
+  CreditCard,
+  Calculator,
   LogOut,
   type LucideIcon,
 } from "lucide-react-native";
@@ -27,7 +29,9 @@ interface MoreMenuItem {
     | "/(app)/assets"
     | "/(app)/reports"
     | "/(app)/config"
-    | "/(app)/settings";
+    | "/(app)/settings"
+    | "/(app)/billing"
+    | "/(app)/calculators";
   label: string;
   icon: LucideIcon;
 }
@@ -39,7 +43,9 @@ const MENU_ITEMS: MoreMenuItem[] = [
   { href: "/(app)/insurance", label: "Insurance", icon: ShieldCheck },
   { href: "/(app)/reports", label: "Reports", icon: FileBarChart },
   { href: "/(app)/assets", label: "Assets", icon: Landmark },
+  { href: "/(app)/calculators", label: "Calculators", icon: Calculator },
   { href: "/(app)/config", label: "Config", icon: Cog },
+  { href: "/(app)/billing", label: "Billing", icon: CreditCard },
   { href: "/(app)/settings", label: "Settings", icon: Settings },
 ];
 
