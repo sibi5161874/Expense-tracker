@@ -5,7 +5,8 @@ import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { groupInvestmentsBySymbol } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { ExpenseBreakdownChart } from '@/components/shared/ExpenseBreakdownChart';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 export function AssetAllocationReport() {
   const { data: investments, isLoading, error } = useAllInvestmentLog();
@@ -25,7 +26,7 @@ export function AssetAllocationReport() {
     [holdings]
   );
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   return (

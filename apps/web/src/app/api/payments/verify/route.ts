@@ -4,6 +4,8 @@ import { verifyCheckoutSignature } from '@/lib/razorpay';
 import { applyPaymentCapture } from '@/lib/applyPaymentCapture';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
+import { verifyPaymentSchema } from '@repo/shared/schemas';
 
 /**
  * The client's immediate callback after Razorpay Checkout succeeds. This is
@@ -19,18 +21,15 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`payments:verify:${user.id}`, 20, 10 * 60_000);
+  const limited = await enforceRateLimit(`payments:verify:${user.id}`, 20, 10 * 60_000);
   if (limited) return limited;
 
   const body = await req.json().catch(() => null);
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body ?? {};
-  if (
-    typeof razorpay_order_id !== 'string' ||
-    typeof razorpay_payment_id !== 'string' ||
-    typeof razorpay_signature !== 'string'
-  ) {
+  const parsed = verifyPaymentSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Missing payment confirmation fields' }, { status: 400 });
   }
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = parsed.data;
 
   if (!verifyCheckoutSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
     return NextResponse.json({ error: 'Payment could not be verified.' }, { status: 400 });
@@ -40,7 +39,12 @@ export async function POST(req: Request) {
     const { applied } = await applyPaymentCapture(supabase, user.id, razorpay_order_id, razorpay_payment_id);
     return NextResponse.json({ success: true, applied });
   } catch (e) {
-    logError('payments.verify.applyCapture', e, { userId: user.id, razorpay_order_id, razorpay_payment_id });
+    logError('payments.verify.applyCapture', e, {
+      userId: user.id,
+      razorpay_order_id,
+      razorpay_payment_id,
+      requestId: getRequestId(req),
+    });
     return NextResponse.json({ error: 'Payment verification failed, please contact support.' }, { status: 500 });
   }
 }

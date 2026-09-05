@@ -1,10 +1,16 @@
+import { useMemo } from "react";
 import { ScrollView, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TrendingUp, TrendingDown, PiggyBank, Percent, Sparkles } from "lucide-react-native";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { useMonthlyTrend } from "@/hooks/useMonthlyTrend";
 import { useNetWorth } from "@/hooks/useNetWorth";
+import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
+import { useHoldings } from "@/hooks/useHoldings";
+import { useGoals } from "@/hooks/useGoals";
+import { useCashbook } from "@/hooks/useCashbook";
 import { formatMonth } from "@repo/shared/utils";
+import { groupInvestmentsBySymbol } from "@repo/shared/logic";
 import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -13,6 +19,14 @@ import { NetWorthHero } from "@/components/dashboard/NetWorthHero";
 import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
+import { DashboardInsightCard } from "@/components/dashboard/DashboardInsightCard";
+import { HistoricalNetWorthChart } from "@/components/dashboard/HistoricalNetWorthChart";
+import { PortfolioBenchmarkChart } from "@/components/dashboard/PortfolioBenchmarkChart";
+import { PassiveIncomeWidget } from "@/components/dashboard/PassiveIncomeWidget";
+import { BudgetHealthCard } from "@/components/dashboard/BudgetHealthCard";
+import { GoalsProgressCard } from "@/components/dashboard/GoalsProgressCard";
+import { QuickStatsCard } from "@/components/dashboard/QuickStatsCard";
+import { FinancialEssentialsCard } from "@/components/dashboard/FinancialEssentialsCard";
 import { useThemeColor } from "@/lib/colors";
 
 export default function DashboardScreen() {
@@ -28,7 +42,23 @@ export default function DashboardScreen() {
   } = useMonthlyOverview(currentMonth);
   const { data: trend, isLoading: trendLoading } = useMonthlyTrend(6);
   const { data: netWorth, isLoading: netWorthLoading, error: netWorthError } = useNetWorth();
+  const { data: allInvestments } = useAllInvestmentLog();
+  const { data: holdingRows } = useHoldings();
+  const { data: goals } = useGoals();
+  const { summary: cashbookSummary } = useCashbook();
   const primary = useThemeColor("primary");
+
+  const livePriceOverrides = useMemo(
+    () => Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price])),
+    [holdingRows]
+  );
+  const holdings = useMemo(
+    () => (allInvestments ? groupInvestmentsBySymbol(allInvestments, livePriceOverrides) : []),
+    [allInvestments, livePriceOverrides]
+  );
+  const totalGoals = goals?.length ?? 0;
+  const achievedGoals = goals?.filter((g) => g.saved_amount >= g.target_amount).length ?? 0;
+  const totalCounterparties = cashbookSummary ? Object.keys(cashbookSummary).length : 0;
 
   const isLoading = overviewLoading || trendLoading || netWorthLoading;
   const error = overviewError || netWorthError;
@@ -64,7 +94,11 @@ export default function DashboardScreen() {
         ) : (
           <>
             {netWorth && <NetWorthHero breakdown={netWorth} />}
+            <DashboardInsightCard />
             <KpiGrid items={kpis} />
+            <HistoricalNetWorthChart />
+            <PortfolioBenchmarkChart />
+            {holdings.length > 0 && <PassiveIncomeWidget holdings={holdings} />}
 
             <Card>
               <AppText className="mb-4 text-sm font-semibold">Cash flow — last 6 months</AppText>
@@ -75,6 +109,18 @@ export default function DashboardScreen() {
               <AppText className="mb-4 text-sm font-semibold">Expenses by category — this month</AppText>
               <CategoryBarList data={categoryBreakdown} />
             </Card>
+
+            <BudgetHealthCard />
+            <GoalsProgressCard goals={goals ?? []} />
+            <QuickStatsCard
+              stats={[
+                { label: "Total Goals", value: totalGoals },
+                { label: "Achieved Goals", value: achievedGoals },
+                { label: "Holdings", value: holdings.length },
+                { label: "Cashbook Counterparties", value: totalCounterparties },
+              ]}
+            />
+            <FinancialEssentialsCard />
           </>
         )}
       </ScrollView>

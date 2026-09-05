@@ -7,7 +7,8 @@ import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatCard } from '@/components/shared/StatCard';
 import { CashFlowChart } from '@/components/shared/CashFlowChart';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -53,7 +54,7 @@ export function YearInReviewReport() {
     };
   }, [transactions]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   return (

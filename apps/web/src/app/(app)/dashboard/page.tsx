@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { TrendingUp, TrendingDown, PiggyBank, Percent, Wallet, LineChart, FileStack } from 'lucide-react';
 import { useMonthlyOverview } from '@/hooks/useTransactions';
 import { useMonthlyTrend } from '@/hooks/useMonthlyTrend';
@@ -23,9 +24,31 @@ import { NetWorthHero } from '@/components/dashboard/NetWorthHero';
 import { KpiStrip } from '@/components/dashboard/KpiStrip';
 import { BudgetHealthCard } from '@/components/dashboard/BudgetHealthCard';
 import { FinancialEssentialsCard } from '@/components/dashboard/FinancialEssentialsCard';
+import { PassiveIncomeWidget } from '@/components/dashboard/PassiveIncomeWidget';
+import { DashboardInsightCard } from '@/components/dashboard/DashboardInsightCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { ErrorState } from '@/components/shared/QueryState';
+import { Skeleton } from '@/components/ui/skeleton';
+
+/**
+ * recharts is a genuinely heavy dependency — these two charts render well below the fold
+ * (after the KPI strip and the always-visible cash-flow/expense-breakdown row), so deferring
+ * them costs nothing a scrolling user would notice but keeps recharts out of the JS that has
+ * to parse and execute before the dashboard's first paint. `ssr:false` because
+ * ResponsiveContainer needs a real measured container width, which doesn't exist server-side.
+ * The other recharts consumers (CashFlowChart, ExpenseBreakdownChart) stay eager on purpose —
+ * they're the first thing rendered above the fold, where a loading flash would actually be
+ * seen.
+ */
+const PortfolioBenchmarkChart = dynamic(
+  () => import('@/components/dashboard/PortfolioBenchmarkChart').then((m) => m.PortfolioBenchmarkChart),
+  { ssr: false, loading: () => <Skeleton className="h-72 w-full rounded-2xl" /> }
+);
+const HistoricalNetWorthChart = dynamic(
+  () => import('@/components/dashboard/HistoricalNetWorthChart').then((m) => m.HistoricalNetWorthChart),
+  { ssr: false, loading: () => <Skeleton className="h-72 w-full rounded-2xl" /> }
+);
 
 export default function DashboardPage() {
   const currentMonth = formatMonth(new Date());
@@ -43,7 +66,13 @@ export default function DashboardPage() {
   const { data: holdingRows } = useHoldings();
   const { data: goals } = useGoals();
   const { summary: cashbookSummary } = useCashbook();
-  const { data: netWorth, isLoading: netWorthLoading, error: netWorthError } = useNetWorth();
+  const {
+    data: netWorth,
+    isLoading: netWorthLoading,
+    error: netWorthError,
+    fxRatesStale,
+    fxRatesFetchedAt,
+  } = useNetWorth();
 
   const livePriceOverrides = useMemo(
     () => Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price])),
@@ -90,7 +119,11 @@ export default function DashboardPage() {
         <DashboardEmptyState />
       ) : (
         <>
-          {netWorth && <NetWorthHero breakdown={netWorth} />}
+          {netWorth && (
+            <NetWorthHero breakdown={netWorth} fxRatesStale={fxRatesStale} fxRatesFetchedAt={fxRatesFetchedAt} />
+          )}
+
+          <DashboardInsightCard />
 
           <KpiStrip
             items={[
@@ -141,6 +174,15 @@ export default function DashboardPage() {
               ]}
             />
           )}
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <PortfolioBenchmarkChart />
+            </div>
+            <PassiveIncomeWidget holdings={holdings} />
+          </div>
+
+          <HistoricalNetWorthChart />
 
           <div className="grid gap-4 lg:grid-cols-3">
             <BudgetHealthCard />

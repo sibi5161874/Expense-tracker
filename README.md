@@ -4,23 +4,31 @@ A comprehensive personal finance and investment tracking application built with 
 
 ## Features
 
-- **Transaction Management**: Track income and expenses with categories
-- **Investment Portfolio**: Log and monitor stock/mutual fund investments
+- **Transaction Management**: Income/expense/transfer tracking, categories, budgets, recurring transactions, calendar view (web)
+- **Investment Portfolio**: Log and monitor stock/mutual fund investments, live price refresh, weighted-average-cost, stock fundamentals (P/E, margins, market cap, beta, dividend yield), portfolio-vs-Nifty-50 benchmark, passive income tracker, tax-loss harvesting (web)
+- **13 asset classes**: Fixed Deposits, Recurring Deposits, PPF, NPS, SSY, SGB, NSC, Gold, ULIP, Real Estate, Vehicles, EPF, Loans/Liabilities
+- **14 reports** (+ a combined Overall Report), exported as PDF/Excel — table-driven via `jspdf-autotable`, never a DOM screenshot
 - **Goal Tracking**: Set and track financial goals with progress visualization
 - **Cashbook**: Manage personal loans and informal lending/borrowing
-- **Asset Management**: Track fixed deposits, gold holdings, and loans
-- **Portfolio Dashboard**: View investment holdings with P&L calculations
-- **Analytics Dashboard**: KPIs for income, expenses, savings rate, and portfolio performance
+- **Bank/broker CSV import**: confidence-tiered institution registry with balance self-reconciliation
+- **Multi-currency**: FX-converted account balances, INR base
+- **Financial calculator suite**: Basic, SIP, Stock Averaging, Lumpsum, P&L
+- **Monetization**: Free / 30-day trial / lifetime tiers via Razorpay, gated through a single feature-flag config
 - **Authentication**: Email/password and Google OAuth authentication
+
+Mobile trails web significantly — see [`MOBILE_ROADMAP.md`](./MOBILE_ROADMAP.md) for the gap
+and a phased plan to close it.
 
 ## Tech Stack
 
 - **Web**: Next.js 16 (App Router), React, TypeScript
 - **Mobile**: Expo (React Native) + Expo Router — feature screens are being ported over from the web app module by module
-- **UI**: TailwindCSS, shadcn/ui components
+- **UI**: TailwindCSS, shadcn/ui components, Recharts
 - **Backend**: Supabase (PostgreSQL, Auth via `@supabase/ssr`, RLS)
 - **State Management**: TanStack Query
 - **Forms**: React Hook Form with Zod validation
+- **Payments**: Razorpay
+- **Email**: Resend
 - **Monorepo**: Turborepo + pnpm workspaces, shared package at `packages/shared`
 
 ## Project Structure
@@ -45,7 +53,7 @@ expense_tracker/
 │       │   ├── types/       # Database types (regenerate via supabase gen types)
 │       │   ├── queries/     # Database query functions (take a Supabase client param)
 │       │   ├── schemas/     # Zod validation schemas
-│       │   ├── logic/       # Business logic calculations, matches DATA_MODEL.md
+│       │   ├── logic/       # Business logic calculations (no DATA_MODEL.md exists yet — known gap)
 │       │   └── utils/       # Utility functions (formatINR, date helpers)
 │       └── package.json
 ├── supabase/
@@ -168,23 +176,21 @@ over module by module, matching the web app's design system and feature set.
 
 ## Database Schema
 
-The application uses the following main tables (every table has RLS enabled with
-select/insert/update/delete policies scoped to `auth.uid() = user_id`):
+27 tables across 23 migrations. Every table has RLS enabled with select/insert/update/delete
+policies scoped to `auth.uid() = user_id` (see `RULES.md` §1) — audit-only tables like
+`payment_events`/`monthly_email_logs` omit update/delete since they're never user-editable.
 
-- `accounts` - Bank/cash/trading accounts register
-- `categories` - Income/Expense/Transfer categories
-- `budget_limits` - Monthly ₹ limit per expense category
-- `transactions` - Income and expense records
-- `investment_log` - Stock/mutual fund transactions (`total_cashflow` is a generated column)
-- `holdings` - Manual live-price override per symbol (Portfolio view lands in Phase 3)
-- `goals` - Financial goals with targets
-- `cashbook` - Personal lending/borrowing records
-- `assets_fixed_deposits` - Fixed deposit holdings
-- `assets_gold` - Gold holdings
-- `assets_loans_liabilities` - Loan/liability records
+- `accounts`, `categories`, `budget_limits` — core config
+- `transactions`, `recurring_transactions`, `cashbook` — cash flow
+- `investment_log`, `holdings` — portfolio (`total_cashflow` on `investment_log` is a generated column; `holdings.live_price` is the manual/refreshed price override per symbol)
+- `goals`, `insurance_policies`, `net_worth_snapshots`
+- 13 asset tables — `assets_fixed_deposits`, `assets_recurring_deposits`, `assets_ppf`, `assets_nps`, `assets_ssy`, `assets_sgb`, `assets_nsc`, `assets_gold`, `assets_ulip`, `assets_real_estate`, `assets_vehicles`, `assets_epf`, `assets_loans_liabilities`
+- `user_profiles` — onboarding + subscription tier fields
+- `payment_events`, `monthly_email_logs` — payment idempotency and email-cron audit logs
 
 `supabase/migrations/` is the only source of schema truth — apply changes via a new
-migration file, never a manual dashboard edit.
+migration file, never a manual dashboard edit. See `RULES.md` §1 for the migration-drift
+check to run before every `db push`.
 
 ## Environment Variables
 
@@ -251,15 +257,15 @@ Protected routes automatically redirect to `/auth/login` if user is not authenti
 - View receivables and payables summary
 
 ### Assets
-- **Fixed Deposits**: Bank FDs with maturity tracking
-- **Gold**: Gold holdings with purity and weight
-- **Loans**: Personal loans with EMI tracking
+13 classes: Fixed Deposits, Recurring Deposits, PPF, NPS, SSY, SGB, NSC, Gold, ULIP, Real
+Estate, Vehicles, EPF, and Loans/Liabilities — each with its own maturity/valuation tracking.
 
 ### Portfolio
-- Group investments by symbol
-- Calculate average cost basis
-- Show current value and P&L
-- Display recent transactions
+- Group investments by symbol, weighted-average cost basis
+- Live price refresh (AMFI for mutual funds, Yahoo Finance for stocks/ETFs)
+- Stock fundamentals (P/E, 52-week range, margins, market cap, beta, dividend yield)
+- Portfolio-vs-Nifty-50 benchmark chart, passive income projection, tax-loss harvesting
+- Show current value and P&L, display recent transactions
 
 ### Dashboard
 - Monthly income/expense summary

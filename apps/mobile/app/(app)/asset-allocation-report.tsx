@@ -6,7 +6,7 @@ import { groupInvestmentsBySymbol } from "@repo/shared/logic";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 export default function AssetAllocationReportScreen() {
@@ -24,18 +24,22 @@ export default function AssetAllocationReportScreen() {
     [holdings]
   );
 
+  const sheets = [
+    { name: "By Asset Type", rows: byAssetType.map((a) => ({ "Asset Type": a.name, Value: a.value })) },
+    { name: "By Holding", rows: byHolding.map((h) => ({ Holding: h.name, Value: h.value })) },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Asset Allocation" description="Portfolio split by asset type and by individual holding." />
-        <ReportExportBar
-          title="Asset Allocation"
-          description="Portfolio split by asset type and by individual holding."
-          sheets={[
-            { name: "By Asset Type", rows: byAssetType.map((a) => ({ "Asset Type": a.name, "Current Value": a.value })) },
-            { name: "By Holding", rows: byHolding.map((h) => ({ Symbol: h.name, "Current Value": h.value })) },
-          ]}
-        />
+        {!isLoading && (
+          <ReportExportBar
+            title="Asset Allocation"
+            description="Portfolio split by asset type and by individual holding."
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

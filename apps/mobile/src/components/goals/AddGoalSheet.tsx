@@ -37,7 +37,7 @@ export function AddGoalSheet({ visible, onClose, onSubmit, editing }: AddGoalShe
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-row items-center justify-between bg-card px-4 py-3">
           <AppText className="text-base font-semibold">{editing ? "Edit Goal" : "Add Goal"}</AppText>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable onPress={onClose} hitSlop={14}>
             <X size={20} color={mutedForeground} />
           </Pressable>
         </View>

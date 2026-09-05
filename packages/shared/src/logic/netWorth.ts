@@ -185,6 +185,28 @@ export function calculateSnapshotGrowthPct(currentNetWorth: number, previousNetW
   return Math.round(((currentNetWorth - previousNetWorth) / Math.abs(previousNetWorth)) * 1000) / 10;
 }
 
+export type NetWorthHistoryRange = '1M' | '3M' | '6M' | '1Y' | 'All';
+
+const RANGE_DAYS: Record<Exclude<NetWorthHistoryRange, 'All'>, number> = {
+  '1M': 30,
+  '3M': 90,
+  '6M': 180,
+  '1Y': 365,
+};
+
+/** Filters snapshots to the trailing N days for every range except 'All' (no filtering — the full history). `now` is injectable for tests; snapshots are assumed already sorted ascending by date, so this only needs to find the cutoff, not re-sort. */
+export function filterSnapshotsByRange<T extends { snapshot_date: string }>(
+  snapshots: T[],
+  range: NetWorthHistoryRange,
+  now: Date = new Date()
+): T[] {
+  if (range === 'All') return snapshots;
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - RANGE_DAYS[range]);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return snapshots.filter((s) => s.snapshot_date >= cutoffStr);
+}
+
 export interface AccountBalanceConversion {
   /** Ready to sum straight into calculateNetWorth's accountBalances param. */
   convertedBalances: number[];

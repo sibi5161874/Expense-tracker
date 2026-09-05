@@ -4,6 +4,7 @@ import { Lock } from 'lucide-react';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Button } from '@/components/ui/button';
 import type { FeatureKey } from '@repo/shared/config';
+import { cn } from '@/lib/utils';
 
 interface ProGateProps {
   feature: FeatureKey;
@@ -41,5 +42,47 @@ export function ProLockedButton({ label, icon, onUpgradeClick }: ProLockedButton
         Pro
       </span>
     </Button>
+  );
+}
+
+interface ProBlurredPreviewProps {
+  feature: FeatureKey;
+  /** The real content — a chart, a table, whatever's being teased. Still mounted (and still fetching its own data) behind the blur, just visually obscured, so this must not assume it's ever hidden outright. */
+  children: React.ReactNode;
+  title: string;
+  description: string;
+  onUpgradeClick: () => void;
+  className?: string;
+}
+
+/**
+ * A softer upsell than ProGate's hide-entirely default: shows the real content blurred
+ * behind a CTA card, so a free-tier user can see there's something worth upgrading for
+ * instead of an unexplained gap in the layout. Used for visual features (charts, graphs)
+ * where "this exists and looks good" is itself the pitch — ProGate/ProLockedButton stay
+ * right for actions (buttons, exports) where a blurred button makes no sense.
+ */
+export function ProBlurredPreview({ feature, children, title, description, onUpgradeClick, className }: ProBlurredPreviewProps) {
+  const { hasFeature } = useEntitlements();
+  if (hasFeature(feature)) return <>{children}</>;
+
+  return (
+    <div className={cn('relative overflow-hidden rounded-2xl', className)}>
+      <div className="pointer-events-none blur-sm select-none" aria-hidden>
+        {children}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center bg-background/40 p-4">
+        <div className="bg-card border-border/60 flex max-w-xs flex-col items-center gap-2 rounded-2xl border p-5 text-center shadow-sm">
+          <span className="bg-warning-subtle text-warning-foreground rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+            Pro
+          </span>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-muted-foreground text-xs">{description}</p>
+          <Button size="sm" className="mt-1" onClick={onUpgradeClick}>
+            Upgrade to Pro
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

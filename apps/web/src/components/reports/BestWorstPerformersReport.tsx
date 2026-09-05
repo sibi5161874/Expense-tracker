@@ -6,7 +6,8 @@ import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { groupInvestmentsBySymbol } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 interface PerformerRow {
   symbol: string;
@@ -23,7 +24,7 @@ export function BestWorstPerformersReport() {
       .map((h) => ({ symbol: h.symbol, returnPct: Number((h.returnPct * 100).toFixed(2)) }));
   }, [investments]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const columns: DataTableColumn<PerformerRow>[] = [

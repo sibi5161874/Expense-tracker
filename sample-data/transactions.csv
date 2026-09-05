@@ -1,0 +1,61 @@
+Date,Type,Category,Sub-Category,Amount,From Account,To Account,Notes
+2026-02-19,Income,Salary,Monthly Salary,75000,,HDFC Bank,Salary credit
+2026-02-22,Expense,Rent,Monthly Rent,285,ICICI Bank,,Rent expense #2
+2026-02-25,Expense,Transport,Fuel,370,Cash,,Transport expense #3
+2026-02-28,Expense,Transport,Cab,455,HDFC Bank,,Transport expense #4
+2026-03-03,Expense,Utilities,Electricity,540,ICICI Bank,,Utilities expense #5
+2026-03-06,Expense,Utilities,Internet,625,Cash,,Utilities expense #6
+2026-03-09,Expense,Dining,Restaurant,710,HDFC Bank,,Dining expense #7
+2026-03-12,Income,Salary,Monthly Salary,77000,,ICICI Bank,Salary credit
+2026-03-15,Expense,Healthcare,Pharmacy,880,Cash,,Healthcare expense #9
+2026-03-18,Expense,Entertainment,Streaming,965,HDFC Bank,,Entertainment expense #10
+2026-03-21,Expense,Groceries,Supermarket,1050,ICICI Bank,,Groceries expense #11
+2026-03-24,Transfer,,,6500,Cash,HDFC Bank,Self transfer
+2026-03-27,Expense,Transport,Fuel,1220,HDFC Bank,,Transport expense #13
+2026-03-30,Expense,Transport,Cab,1305,ICICI Bank,,Transport expense #14
+2026-04-02,Income,Salary,Monthly Salary,79000,,Cash,Salary credit
+2026-04-05,Expense,Utilities,Internet,1475,HDFC Bank,,Utilities expense #16
+2026-04-08,Expense,Dining,Restaurant,1560,ICICI Bank,,Dining expense #17
+2026-04-11,Expense,Shopping,Clothing,1645,Cash,,Shopping expense #18
+2026-04-14,Expense,Healthcare,Pharmacy,1730,HDFC Bank,,Healthcare expense #19
+2026-04-17,Expense,Entertainment,Streaming,1815,ICICI Bank,,Entertainment expense #20
+2026-04-20,Expense,Groceries,Supermarket,200,Cash,,Groceries expense #21
+2026-04-23,Income,Salary,Monthly Salary,76000,,HDFC Bank,Salary credit
+2026-04-26,Transfer,,,6000,ICICI Bank,Cash,Self transfer
+2026-04-29,Expense,Transport,Cab,455,Cash,,Transport expense #24
+2026-05-02,Expense,Utilities,Electricity,540,HDFC Bank,,Utilities expense #25
+2026-05-05,Expense,Utilities,Internet,625,ICICI Bank,,Utilities expense #26
+2026-05-08,Expense,Dining,Restaurant,710,Cash,,Dining expense #27
+2026-05-11,Expense,Shopping,Clothing,795,HDFC Bank,,Shopping expense #28
+2026-05-14,Income,Salary,Monthly Salary,78000,,ICICI Bank,Salary credit
+2026-05-17,Expense,Entertainment,Streaming,965,Cash,,Entertainment expense #30
+2026-05-20,Expense,Groceries,Supermarket,1050,HDFC Bank,,Groceries expense #31
+2026-05-23,Expense,Rent,Monthly Rent,1135,ICICI Bank,,Rent expense #32
+2026-05-26,Expense,Transport,Fuel,1220,Cash,,Transport expense #33
+2026-05-29,Transfer,,,5500,HDFC Bank,ICICI Bank,Self transfer
+2026-06-01,Expense,Utilities,Electricity,1390,ICICI Bank,,Utilities expense #35
+2026-06-04,Income,Salary,Monthly Salary,75000,,Cash,Salary credit
+2026-06-07,Expense,Dining,Restaurant,1560,HDFC Bank,,Dining expense #37
+2026-06-10,Expense,Shopping,Clothing,1645,ICICI Bank,,Shopping expense #38
+2026-06-13,Expense,Healthcare,Pharmacy,1730,Cash,,Healthcare expense #39
+2026-06-16,Expense,Entertainment,Streaming,1815,HDFC Bank,,Entertainment expense #40
+2026-06-19,Expense,Groceries,Supermarket,200,ICICI Bank,,Groceries expense #41
+2026-06-22,Expense,Rent,Monthly Rent,285,Cash,,Rent expense #42
+2026-06-25,Income,Salary,Monthly Salary,77000,,HDFC Bank,Salary credit
+2026-06-28,Expense,Transport,Cab,455,ICICI Bank,,Transport expense #44
+2026-07-01,Transfer,,,5000,Cash,HDFC Bank,Self transfer
+2026-07-04,Expense,Utilities,Internet,625,HDFC Bank,,Utilities expense #46
+2026-07-07,Expense,Dining,Restaurant,710,ICICI Bank,,Dining expense #47
+2026-07-10,Expense,Shopping,Clothing,795,Cash,,Shopping expense #48
+2026-07-13,Expense,Healthcare,Pharmacy,880,HDFC Bank,,Healthcare expense #49
+2026-07-16,Income,Salary,Monthly Salary,79000,,ICICI Bank,Salary credit
+2026-07-19,Expense,Groceries,Supermarket,1050,Cash,,Groceries expense #51
+2026-07-22,Expense,Rent,Monthly Rent,1135,HDFC Bank,,Rent expense #52
+2026-07-25,Expense,Transport,Fuel,1220,ICICI Bank,,Transport expense #53
+2026-07-28,Expense,Transport,Cab,1305,Cash,,Transport expense #54
+2026-07-31,Expense,Utilities,Electricity,1390,HDFC Bank,,Utilities expense #55
+2026-08-03,Transfer,,,6500,ICICI Bank,Cash,Self transfer
+2026-08-06,Income,Salary,Monthly Salary,76000,,Cash,Salary credit
+2026-08-09,Expense,Shopping,Clothing,1645,HDFC Bank,,Shopping expense #58
+2026-08-12,Expense,Healthcare,Pharmacy,1730,ICICI Bank,,Healthcare expense #59
+2026-08-15,Expense,Entertainment,Streaming,1815,Cash,,Entertainment expense #60

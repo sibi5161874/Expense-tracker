@@ -91,6 +91,28 @@ export async function getAllTransactionsForMonth(
 }
 
 /**
+ * Every transaction on one exact date, with the full account/category joins — for the
+ * calendar view's date-detail page. Deliberately not `getTransactions({ month })` filtered
+ * client-side to one day: that's paginated at 50/page ordered by date, so a month with more
+ * than 50 transactions could silently drop the requested day's rows off the end of page 0.
+ */
+export async function getTransactionsForDate(supabase: SupabaseClient<Database>, userId: string, date: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      from_account:accounts!transactions_from_account_id_fkey(id, name, type),
+      to_account:accounts!transactions_to_account_id_fkey(id, name, type),
+      category:categories(id, name, type)
+    `)
+    .eq('user_id', userId)
+    .eq('date', date);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Unpaginated fetch for report/aggregate calculations (net worth, year in review,
  * spending trend, account-wise flow) — never for list rendering. Omit `from`/`to`
  * to fetch all-time (capped at 20,000 rows as a safety limit).
@@ -111,6 +133,24 @@ export async function getAllTransactionsForReports(
   if (opts.to) query = query.lt('date', opts.to);
 
   const { data, error } = await query.order('date', { ascending: true }).limit(20000);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Rolling-window Expense fetch for the dashboard's coffee-spend insight — deliberately its
+ * own minimal query (type/amount/notes/sub_category/category name only) rather than widening
+ * getAllTransactionsForReports' select, which several reports already depend on the exact
+ * shape of.
+ */
+export async function getRecentExpensesForInsight(supabase: SupabaseClient<Database>, userId: string, sinceDate: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('type, amount, notes, sub_category, category:categories(name)')
+    .eq('user_id', userId)
+    .eq('type', 'Expense')
+    .gte('date', sinceDate);
 
   if (error) throw error;
   return data;

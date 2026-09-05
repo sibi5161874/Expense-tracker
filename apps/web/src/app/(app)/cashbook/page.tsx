@@ -1,12 +1,15 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import { Plus, Download, UploadCloud, Pencil, Trash2 } from 'lucide-react';
 import { useCashbook } from '@/hooks/useCashbook';
 import { CashbookForm } from '@/components/CashbookForm';
 import { CounterpartySummaryCard } from '@/components/cashbook/CounterpartySummaryCard';
 import { ImportDialog } from '@/components/shared/ImportDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
 import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -24,10 +27,63 @@ export default function CashbookPage() {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CashbookEntry | null>(null);
-  const { data: cashbook, summary, isLoading, error, deleteCashbook, isDeleting } = useCashbook({ page });
+  const {
+    data: cashbook,
+    summary,
+    isLoading,
+    error,
+    createCashbook,
+    createCashbookBulk,
+    deleteCashbook,
+    deleteCashbookBulk,
+    isDeleting,
+  } = useCashbook({ page });
 
+  const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
   const handleEdit = useCallback((entry: CashbookEntry) => setEditingEntry(entry), []);
-  const handleDelete = useCallback((id: string) => deleteCashbook(id), [deleteCashbook]);
+
+  /** Every field `createCashbook`/`createCashbookBulk` need to reconstruct a deleted entry —
+   * shared by the single- and bulk-delete undo paths below. */
+  const toCashbookInput = useCallback(
+    (entry: CashbookEntry) => ({
+      date: entry.date,
+      counterparty: entry.counterparty,
+      flow: entry.flow,
+      amount: entry.amount,
+      due_date: entry.due_date ?? undefined,
+      account_used_id: entry.account_used_id ?? undefined,
+      loan_id: entry.loan_id ?? undefined,
+      notes: entry.notes ?? undefined,
+    }),
+    []
+  );
+
+  /** Deletes one entry and offers a 6-second "Undo" that re-creates it from its own fields —
+   * a real recreate, not a soft-delete, matching the same pattern on the transactions page. */
+  const handleDeleteWithUndo = useCallback(
+    (entry: CashbookEntry) => {
+      deleteCashbook(entry.id);
+      toast('Entry deleted.', {
+        duration: 6000,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            createCashbook(toCashbookInput(entry)).catch(() => toast.error("Couldn't restore that entry."));
+          },
+        },
+      });
+    },
+    [deleteCashbook, createCashbook, toCashbookInput]
+  );
+
+  const { requestDelete, dialog } = useConfirmDelete(
+    (id: string) => {
+      const entry = cashbook?.find((c) => c.id === id);
+      if (entry) handleDeleteWithUndo(entry);
+    },
+    'Delete entry?',
+    "You can undo this for a few seconds after deleting."
+  );
   const closeForm = useCallback(() => {
     setShowForm(false);
     setEditingEntry(null);
@@ -114,12 +170,7 @@ export default function CashbookPage() {
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm(`Delete ${ids.length} entr${ids.length === 1 ? 'y' : 'ies'}?`)) {
-                    ids.forEach((id) => handleDelete(id));
-                    clear();
-                  }
-                }}
+                onClick={() => setPendingBulkDelete({ ids, clear })}
               >
                 <Trash2 className="size-3.5" />
                 Delete selected
@@ -139,9 +190,7 @@ export default function CashbookPage() {
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-destructive size-8"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this entry?')) handleDelete(c.id);
-                  }}
+                  onClick={() => requestDelete(c.id)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="size-4" />
@@ -186,6 +235,35 @@ export default function CashbookPage() {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {dialog}
+      <ConfirmDialog
+        open={pendingBulkDelete !== null}
+        onOpenChange={(open) => !open && setPendingBulkDelete(null)}
+        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} entr${pendingBulkDelete?.ids.length === 1 ? 'y' : 'ies'}?`}
+        description="This can't be undone."
+        isConfirming={isDeleting}
+        onConfirm={async () => {
+          if (pendingBulkDelete) {
+            const { ids, clear } = pendingBulkDelete;
+            const deletedRows = (cashbook ?? []).filter((c) => ids.includes(c.id));
+            await deleteCashbookBulk(ids);
+            clear();
+            toast(`${deletedRows.length} entr${deletedRows.length === 1 ? 'y' : 'ies'} deleted.`, {
+              duration: 6000,
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  createCashbookBulk(deletedRows.map(toCashbookInput)).catch(() =>
+                    toast.error("Couldn't restore those entries.")
+                  );
+                },
+              },
+            });
+          }
+          setPendingBulkDelete(null);
+        }}
+      />
     </div>
   );
 }

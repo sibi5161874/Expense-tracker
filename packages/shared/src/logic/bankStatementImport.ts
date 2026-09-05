@@ -179,6 +179,12 @@ export interface BalanceReconciliation {
   mismatches: number;
   /** The first row number that failed, for pointing the user at where to look. */
   firstMismatchRow: number | null;
+  /** The last successfully-parsed balance seen in this call's records, or the seed balance
+   * unchanged if nothing parsed — pass this back in as `previousBalance` on the next call to
+   * keep the running-balance chain unbroken across a chunked commit (see chunkCsv.ts). Without
+   * this, every chunk boundary would silently lose one comparison instead of just the first row
+   * of the whole file, which is the only gap a single-request import already tolerates. */
+  lastBalance: number | null;
 }
 
 /**
@@ -196,31 +202,37 @@ export interface BalanceReconciliation {
  * A gap where the balance column doesn't parse (a subtotal row, a blank line)
  * breaks the chain for one comparison and resumes from the next valid balance,
  * rather than treating everything after it as one giant mismatch.
+ *
+ * `previousBalance` seeds the chain from outside this call — a chunked commit calls this once
+ * per chunk of records, not once for the whole file, so without a seed every chunk boundary
+ * would silently lose a comparison the same way a real gap does. Pass the previous chunk's
+ * returned `lastBalance` back in as this chunk's `previousBalance` to keep the chain continuous.
  */
 export function checkBalanceReconciliation(
   mapping: BankColumnMapping,
-  records: ImportRecord[]
+  records: ImportRecord[],
+  previousBalance: number | null = null
 ): BalanceReconciliation {
   if (!mapping.balance) {
-    return { checkable: false, totalChecked: 0, mismatches: 0, firstMismatchRow: null };
+    return { checkable: false, totalChecked: 0, mismatches: 0, firstMismatchRow: null, lastBalance: previousBalance };
   }
 
   let totalChecked = 0;
   let mismatches = 0;
   let firstMismatchRow: number | null = null;
-  let previousBalance: number | null = null;
+  let running = previousBalance;
 
   for (const { row, record } of records) {
     const balance = parseAmount(readField(record, mapping.balance));
     if (balance === null) {
-      previousBalance = null; // resync from the next row with a usable balance
+      running = null; // resync from the next row with a usable balance
       continue;
     }
 
-    if (previousBalance !== null) {
+    if (running !== null) {
       const { debit, credit } = readAmounts(record, mapping);
       const expectedDelta = credit - debit;
-      const actualDelta = balance - previousBalance;
+      const actualDelta = balance - running;
       totalChecked++;
       if (Math.abs(actualDelta - expectedDelta) > RECONCILIATION_TOLERANCE) {
         mismatches++;
@@ -228,10 +240,10 @@ export function checkBalanceReconciliation(
       }
     }
 
-    previousBalance = balance;
+    running = balance;
   }
 
-  return { checkable: true, totalChecked, mismatches, firstMismatchRow };
+  return { checkable: true, totalChecked, mismatches, firstMismatchRow, lastBalance: running };
 }
 
 /**

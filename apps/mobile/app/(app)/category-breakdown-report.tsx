@@ -6,7 +6,7 @@ import { formatINR } from "@repo/shared/utils/currency";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 export default function CategoryBreakdownReportScreen() {
@@ -14,25 +14,24 @@ export default function CategoryBreakdownReportScreen() {
   const { categoryBreakdown, expense, isLoading, error } = useMonthlyOverview(currentMonth);
   const primary = useThemeColor("primary");
 
+  const sheets = [
+    {
+      name: "Category Breakdown",
+      rows: categoryBreakdown.map((c) => ({
+        Category: c.name,
+        Amount: c.value,
+        "% of Total": expense > 0 ? `${((c.value / expense) * 100).toFixed(1)}%` : "-",
+      })),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Category Breakdown" description={`Where your money went in ${currentMonth}.`} />
-        <ReportExportBar
-          title="Category Breakdown"
-          description={`Where your money went in ${currentMonth}.`}
-          sheets={[
-            {
-              name: "Category Breakdown",
-              rows: categoryBreakdown.map((c) => ({
-                Category: c.name,
-                Amount: c.value,
-                "Share (%)": expense > 0 ? Number(((c.value / expense) * 100).toFixed(1)) : 0,
-              })),
-            },
-          ]}
-        />
-
+        {!isLoading && (
+          <ReportExportBar title="Category Breakdown" description={`Where your money went in ${currentMonth}.`} sheets={sheets} />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

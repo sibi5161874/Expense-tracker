@@ -47,3 +47,6 @@ RULES.md
 DATA_MODEL.md
 CLAUDE_CODE_PROMPT.md
 .claude
+.vercel
+.env*
+.playwright-mcp

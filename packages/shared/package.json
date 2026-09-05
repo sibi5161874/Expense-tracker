@@ -2,6 +2,7 @@
   "name": "@repo/shared",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -15,7 +16,9 @@
     "./config": "./src/config/index.ts",
     "./config/*": "./src/config/*.ts",
     "./utils": "./src/utils/index.ts",
-    "./utils/*": "./src/utils/*.ts"
+    "./utils/*": "./src/utils/*.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -25,7 +28,14 @@
     "@supabase/supabase-js": "^2.110.2",
     "zod": "^4.4.3"
   },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.101.2",
+    "react": "^19"
+  },
   "devDependencies": {
+    "@tanstack/react-query": "^5.101.2",
+    "@types/react": "^19",
+    "react": "^19",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"
   }

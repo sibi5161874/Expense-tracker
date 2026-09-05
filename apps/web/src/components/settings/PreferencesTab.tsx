@@ -23,18 +23,22 @@ const LANGUAGE_STORAGE_KEY = 'preferred-language';
 
 export function PreferencesTab() {
   const { resolvedTheme, setTheme } = useTheme();
-  // next-themes leaves resolvedTheme undefined until its client-side script has resolved the
-  // actual theme (unknowable during SSR) — that doubles as the mount signal, no separate
-  // mounted-state-plus-effect needed for it.
-  const mounted = resolvedTheme !== undefined;
+  const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState('en');
 
-  // localStorage only exists client-side, so reading the saved preference has to happen in
-  // an effect (this is React's own documented use for one — synchronizing with an external
-  // system) rather than during render.
+  // Whether resolvedTheme is defined yet on the client's first render depends on the
+  // installed next-themes version's internal timing — in this project it's already defined
+  // by then, which doesn't match the server's render and causes a hydration mismatch. An
+  // explicit mounted flag is guaranteed false on both the server and the client's first pass
+  // regardless of any hook's internals, so it's the only version-safe way to gate this.
+  //
+  // localStorage also only exists client-side, so reading the saved language preference has
+  // to happen here too (React's own documented use for an effect — synchronizing with an
+  // external system) rather than during render.
   useEffect(() => {
-    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
+    setMounted(true);
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (stored) setLanguage(stored);
   }, []);
 

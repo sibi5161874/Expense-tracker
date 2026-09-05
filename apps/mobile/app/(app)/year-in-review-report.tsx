@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -57,15 +57,20 @@ export default function YearInReviewReportScreen() {
     { label: "Top Category", value: topCategory?.[0] ?? "-", icon: Tag, tone: "warning" },
   ];
 
+  const sheets = [
+    {
+      name: "Year in Review",
+      rows: chartData.map((m) => ({ Month: m.label, Income: m.income, Expense: m.expense })),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
         <PageHeader title="Year in Review" description={`${year} totals, biggest month, and top category.`} />
-        <ReportExportBar
-          title="Year in Review"
-          description={`${year} totals, biggest month, and top category.`}
-          sheets={[{ name: "Monthly Totals", rows: chartData.map((m) => ({ Month: m.label, Income: m.income, Expense: m.expense })) }]}
-        />
+        {!isLoading && (
+          <ReportExportBar title="Year in Review" description={`${year} totals, biggest month, and top category.`} sheets={sheets} />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

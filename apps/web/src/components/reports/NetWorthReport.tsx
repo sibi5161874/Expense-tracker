@@ -31,7 +31,8 @@ import {
 import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { NetWorthSnapshotHistory } from '@/components/reports/NetWorthSnapshotHistory';
 
 interface NetWorthRow {
@@ -43,7 +44,7 @@ interface NetWorthRow {
 export function NetWorthReport() {
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: transactions, isLoading: txnsLoading, error: txnsError } = useAllTimeTransactions();
-  const { rates: fxRates } = useFxRates();
+  const { rates: fxRates, isStale: fxRatesStale, fetchedAt: fxRatesFetchedAt } = useFxRates();
   const { data: fds, isLoading: fdsLoading } = useFixedDeposits();
   const { data: gold, isLoading: goldLoading } = useGoldAssets();
   const { data: liabilities, isLoading: liabilitiesLoading } = useLoanLiabilities();
@@ -124,7 +125,7 @@ export function NetWorthReport() {
     vehicles,
   ]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
   if (!breakdown) return null;
 
@@ -178,6 +179,14 @@ export function NetWorthReport() {
           ⚠ Couldn&apos;t fetch a live rate for {conversion.unconvertedCurrencies.join(', ')} — accounts in{' '}
           {conversion.unconvertedCurrencies.length === 1 ? 'that currency are' : 'those currencies are'} excluded
           from the totals below until rates are available.
+        </div>
+      )}
+
+      {fxRatesStale && fxRatesFetchedAt && (
+        <div className="text-muted-foreground text-xs">
+          Exchange rates as of{' '}
+          {new Date(fxRatesFetchedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{' '}
+          — the live rate provider is unreachable, so foreign-currency conversions below use the last successful fetch.
         </div>
       )}
 

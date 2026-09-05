@@ -636,6 +636,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["net_worth_snapshots"]["Insert"]>;
         Relationships: [];
       };
+      monthly_email_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          month: string;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          month: string;
+          sent_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["monthly_email_logs"]["Insert"]>;
+        Relationships: [];
+      };
       payment_events: {
         Row: {
           id: string;
@@ -778,7 +794,24 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_monthly_category_breakdown: {
+        Args: { p_month: string; p_user_id: string };
+        Returns: { amount: number; category_name: string }[];
+      };
+      get_monthly_transaction_summary: {
+        Args: { p_month: string; p_user_id: string };
+        Returns: { expense: number; income: number }[];
+      };
+      get_monthly_trend: {
+        Args: { p_months_back: number; p_user_id: string };
+        Returns: { expense: number; income: number; month: string }[];
+      };
+      reserve_payment_order: {
+        Args: { p_purpose: string; p_amount_paise: number; p_placeholder_order_id: string };
+        Returns: { id: string; razorpay_order_id: string; amount_paise: number; reserved_by_me: boolean }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

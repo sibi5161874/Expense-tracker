@@ -133,14 +133,18 @@
 
   --radius: 0.75rem;
 
-  --sidebar: #1A1A1A;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #2196F3;
+  /* Sidebar deliberately shares the page's own background/foreground/border tokens rather
+     than a separate dark palette — UI_SPEC.md §1 explicitly bans "a sidebar background color
+     that's visually a separate panel from the content area." Dark mode's sidebar tokens
+     below already happen to equal its background/foreground; light mode previously didn't. */
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: #1976D2;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #262626;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: #2196F3;
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {

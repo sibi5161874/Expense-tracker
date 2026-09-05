@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
+import { importFileTooLarge } from '@/lib/importLimits';
 import {
   parseCsv,
   CASHBOOK_TEMPLATE_COLUMNS,
@@ -12,6 +14,7 @@ import {
 } from '@repo/shared';
 import { getAccounts } from '@repo/shared/queries/config';
 import { getCashbookForDedup, createCashbookBulk } from '@repo/shared/queries/cashbook';
+import { importCsvSchema } from '@repo/shared/schemas';
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -20,12 +23,18 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`import:cashbook:${user.id}`, 20, 60 * 60_000);
+  // 500, not 20 — a single large import now commits as many ~200-row chunked requests (see
+  // chunkCsv.ts), so this has to bound "how many imports per hour", not "how many requests".
+  const limited = await enforceRateLimit(`import:cashbook:${user.id}`, 500, 60 * 60_000);
   if (limited) return limited;
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body.csv !== 'string') {
+  const parsed = importCsvSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Missing csv text' }, { status: 400 });
+  }
+  const body = parsed.data;
+  if (importFileTooLarge(Buffer.byteLength(body.csv, 'utf8'))) {
+    return NextResponse.json({ error: 'File is too large — the max import size is 10MB.' }, { status: 413 });
   }
   const commit: boolean = body.commit === true;
 
@@ -70,7 +79,7 @@ export async function POST(req: Request) {
       committed,
     });
   } catch (e) {
-    logError('import.cashbook', e, { userId: user.id });
+    logError('import.cashbook', e, { userId: user.id, requestId: getRequestId(req) });
     return NextResponse.json({ error: 'Import failed, please try again.' }, { status: 500 });
   }
 }

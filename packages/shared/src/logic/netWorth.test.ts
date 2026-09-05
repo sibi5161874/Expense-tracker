@@ -5,6 +5,7 @@ import {
   buildSnapshotFromBreakdown,
   calculateSnapshotGrowthPct,
   convertAccountBalancesToBase,
+  filterSnapshotsByRange,
 } from './netWorth';
 
 describe('calculateAccountBalances', () => {
@@ -160,6 +161,30 @@ describe('calculateSnapshotGrowthPct', () => {
 
   it('handles growth off a negative baseline using absolute value as the base', () => {
     expect(calculateSnapshotGrowthPct(-50_000, -100_000)).toBe(50);
+  });
+});
+
+describe('filterSnapshotsByRange', () => {
+  const NOW = new Date('2026-08-18T00:00:00Z');
+  const snapshots = [
+    { snapshot_date: '2025-01-01', net_worth: 1 },
+    { snapshot_date: '2026-03-01', net_worth: 2 }, // ~170 days ago — inside 6M/1Y, outside 1M/3M
+    { snapshot_date: '2026-06-01', net_worth: 3 }, // ~78 days ago — inside 3M/6M/1Y, outside 1M
+    { snapshot_date: '2026-08-10', net_worth: 4 }, // 8 days ago — inside every range
+  ];
+
+  it('1M keeps only the trailing 30 days', () => {
+    const result = filterSnapshotsByRange(snapshots, '1M', NOW);
+    expect(result.map((s) => s.snapshot_date)).toEqual(['2026-08-10']);
+  });
+
+  it('3M keeps the trailing 90 days', () => {
+    const result = filterSnapshotsByRange(snapshots, '3M', NOW);
+    expect(result.map((s) => s.snapshot_date)).toEqual(['2026-06-01', '2026-08-10']);
+  });
+
+  it('All returns everything unfiltered', () => {
+    expect(filterSnapshotsByRange(snapshots, 'All', NOW)).toHaveLength(4);
   });
 });
 

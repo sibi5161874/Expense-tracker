@@ -5,6 +5,9 @@ import {
   lookupMutualFundNav,
   toYahooTicker,
   extractYahooPrice,
+  extractYahooQuote,
+  extractYahooHistory,
+  buildBenchmarkSeries,
   isMutualFund,
   buildRefreshSummary,
 } from './priceRefresh';
@@ -185,5 +188,111 @@ describe('buildRefreshSummary', () => {
       { RELIANCE: 2905.5 }
     );
     expect(updated[0]).toMatchObject({ price: 2905.5, source: 'yahoo' });
+  });
+});
+
+describe('extractYahooQuote', () => {
+  it('extracts price and currency together', () => {
+    const payload = { chart: { result: [{ meta: { regularMarketPrice: 2905.5, currency: 'INR' } }] } };
+    expect(extractYahooQuote(payload)).toEqual({ price: 2905.5, currency: 'INR' });
+  });
+
+  it('is null when price is missing, zero, or non-finite', () => {
+    expect(extractYahooQuote({ chart: { result: [{ meta: { currency: 'INR' } }] } })).toBeNull();
+    expect(extractYahooQuote({ chart: { result: [{ meta: { regularMarketPrice: 0, currency: 'INR' } }] } })).toBeNull();
+    expect(
+      extractYahooQuote({ chart: { result: [{ meta: { regularMarketPrice: Infinity, currency: 'INR' } }] } })
+    ).toBeNull();
+  });
+
+  it('is null when currency is missing — a bare number is useless without knowing what it means', () => {
+    expect(extractYahooQuote({ chart: { result: [{ meta: { regularMarketPrice: 100 } }] } })).toBeNull();
+  });
+
+  it('is null for a malformed payload', () => {
+    expect(extractYahooQuote({})).toBeNull();
+    expect(extractYahooQuote(null)).toBeNull();
+  });
+});
+
+describe('extractYahooHistory', () => {
+  it('pairs timestamps with closes into dated points', () => {
+    const payload = {
+      chart: {
+        result: [
+          {
+            timestamp: [1700000000, 1700086400],
+            indicators: { quote: [{ close: [100.5, 102.25] }] },
+          },
+        ],
+      },
+    };
+    const points = extractYahooHistory(payload);
+    expect(points).toHaveLength(2);
+    expect(points[0]!.close).toBe(100.5);
+    expect(points[0]!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('skips indices where either the timestamp or the close is a gap', () => {
+    const payload = {
+      chart: {
+        result: [
+          {
+            timestamp: [1700000000, 1700086400, 1700172800],
+            indicators: { quote: [{ close: [100, null, 103] }] },
+          },
+        ],
+      },
+    };
+    expect(extractYahooHistory(payload)).toHaveLength(2);
+  });
+
+  it('is an empty array for a malformed payload, never a throw', () => {
+    expect(extractYahooHistory({})).toEqual([]);
+    expect(extractYahooHistory(null)).toEqual([]);
+  });
+});
+
+describe('buildBenchmarkSeries', () => {
+  const snapshots = [
+    { snapshot_date: '2026-01-01', net_worth: 1_000_000 },
+    { snapshot_date: '2026-02-01', net_worth: 1_100_000 },
+  ];
+  const history = [
+    { date: '2025-12-15', close: 20000 }, // before the first snapshot — must be excluded
+    { date: '2026-01-01', close: 20000 },
+    { date: '2026-01-15', close: 21000 },
+    { date: '2026-02-01', close: 22000 },
+    { date: '2026-02-15', close: 23000 },
+  ];
+
+  it('scales the benchmark so it starts at the same value as the first snapshot', () => {
+    const series = buildBenchmarkSeries(snapshots, history);
+    expect(series[0]).toMatchObject({ date: '2026-01-01', netWorth: 1_000_000, benchmark: 1_000_000 });
+  });
+
+  it('scales every later point by the same factor, not just the first', () => {
+    const series = buildBenchmarkSeries(snapshots, history);
+    // 21000 / 20000 * 1,000,000
+    const jan15 = series.find((p) => p.date === '2026-01-15');
+    expect(jan15!.benchmark).toBeCloseTo(1_050_000, 5);
+  });
+
+  it('forward-fills net worth across benchmark trading days between snapshots', () => {
+    const series = buildBenchmarkSeries(snapshots, history);
+    const jan15 = series.find((p) => p.date === '2026-01-15');
+    expect(jan15!.netWorth).toBe(1_000_000); // still the Jan 1 snapshot, no Feb snapshot yet
+    const feb15 = series.find((p) => p.date === '2026-02-15');
+    expect(feb15!.netWorth).toBe(1_100_000); // rolled forward to the Feb 1 snapshot
+  });
+
+  it('excludes benchmark history before the first snapshot date', () => {
+    const series = buildBenchmarkSeries(snapshots, history);
+    expect(series.some((p) => p.date < '2026-01-01')).toBe(false);
+  });
+
+  it('is empty when either input is empty', () => {
+    expect(buildBenchmarkSeries([], history)).toEqual([]);
+    expect(buildBenchmarkSeries(snapshots, [])).toEqual([]);
   });
 });

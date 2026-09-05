@@ -10,7 +10,8 @@ import { formatMonth } from '@repo/shared/utils';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { budgetStatusTone } from '@/lib/badgeTones';
 
 interface BudgetRow {
@@ -38,7 +39,7 @@ export function BudgetVsActualReport() {
     });
   }, [budgetLimits, categoryBreakdown]);
 
-  if (budgetsLoading || overviewLoading) return <LoadingState label="Loading report..." />;
+  if (budgetsLoading || overviewLoading) return <ReportSkeleton />;
   if (budgetsError) return <ErrorState error={budgetsError} />;
   if (overviewError) return <ErrorState error={overviewError} />;
 

@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Wallet } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { APP_BRANDING } from '@repo/shared/config';
 
@@ -20,9 +21,7 @@ export function LandingNavbar() {
     <header className="border-border/60 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-xl">
-            <Wallet className="size-4.5" />
-          </span>
+          <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 rounded-xl" />
           {APP_BRANDING.name}
         </Link>
 

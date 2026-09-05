@@ -34,7 +34,7 @@ interface AssetFormProps<S extends z.ZodType<FieldValues>> {
  * ULIP) instead of 8 near-identical hand-written forms — each type's Zod schema (already
  * shared with web) drives both validation and which fields render. `T` is derived from the
  * schema itself (`z.infer<S>`) rather than passed independently, so the schema and the
- * fields/defaultValues/onSubmit types can never drift out of sync. See RULES.md §1.2 (DRY).
+ * fields/defaultValues/onSubmit types can never drift out of sync. See RULES.md §11 (DRY).
  */
 export function AssetForm<S extends z.ZodType<FieldValues>>({
   visible,
@@ -64,7 +64,7 @@ export function AssetForm<S extends z.ZodType<FieldValues>>({
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-row items-center justify-between bg-card px-4 py-3">
           <AppText className="text-base font-semibold">{title}</AppText>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable onPress={onClose} hitSlop={14}>
             <X size={20} color={mutedForeground} />
           </Pressable>
         </View>

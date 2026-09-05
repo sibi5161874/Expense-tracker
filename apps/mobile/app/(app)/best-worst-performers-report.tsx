@@ -5,7 +5,7 @@ import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { groupInvestmentsBySymbol } from "@repo/shared/logic";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
 export default function BestWorstPerformersReportScreen() {
@@ -21,15 +21,21 @@ export default function BestWorstPerformersReportScreen() {
 
   const maxAbs = Math.max(...holdings.map((h) => Math.abs(h.returnPct)), 1);
 
+  const sheets = [
+    { name: "Best-Worst Performers", rows: holdings.map((h) => ({ Symbol: h.symbol, "Return %": h.returnPct })) },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
         <PageHeader title="Best/Worst Performing Holdings" description="Holdings ranked by unrealised return %." />
-        <ReportExportBar
-          title="Best-Worst Performers"
-          description="Holdings ranked by unrealised return %."
-          sheets={[{ name: "Performance", rows: holdings.map((h) => ({ Symbol: h.symbol, "Return %": h.returnPct })) }]}
-        />
+        {!isLoading && holdings.length > 0 && (
+          <ReportExportBar
+            title="Best-Worst Performers"
+            description="Holdings ranked by unrealised return %."
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

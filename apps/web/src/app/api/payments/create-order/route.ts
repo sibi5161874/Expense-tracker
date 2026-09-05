@@ -1,17 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getRazorpayClient } from '@/lib/razorpay';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
 import { PAID_TIER_ENABLED, PRICING } from '@repo/shared/config';
 import { resolveEffectiveTier, hasUsedTrial } from '@repo/shared/logic';
 import { getUserProfile } from '@repo/shared/queries/profile';
+import { createOrderSchema, type CreateOrderInput } from '@repo/shared/schemas';
 
-type Purpose = 'trial_verification' | 'lifetime_purchase';
-
-function isPurpose(value: unknown): value is Purpose {
-  return value === 'trial_verification' || value === 'lifetime_purchase';
-}
+type Purpose = CreateOrderInput['purpose'];
 
 /** Amount in paise for a purpose, per tierConfig.ts — never hardcoded here. */
 function amountForPurpose(purpose: Purpose): number {
@@ -29,14 +28,15 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`payments:create-order:${user.id}`, 10, 10 * 60_000);
+  const limited = await enforceRateLimit(`payments:create-order:${user.id}`, 10, 10 * 60_000);
   if (limited) return limited;
 
   const body = await req.json().catch(() => null);
-  if (!isPurpose(body?.purpose)) {
+  const parsed = createOrderSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid purpose' }, { status: 400 });
   }
-  const purpose: Purpose = body.purpose;
+  const { purpose } = parsed.data;
 
   const profile = await getUserProfile(supabase, user.id);
   const tier = resolveEffectiveTier(profile);
@@ -48,28 +48,47 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "You're already on Pro." }, { status: 409 });
   }
 
-  // Reuse an already-created, not-yet-paid order for this (user, purpose)
-  // instead of minting a duplicate — matches the DB's partial unique index,
-  // and means re-clicking "Start Trial" after an abandoned checkout just
-  // reopens the same order rather than erroring.
-  const { data: pending } = await supabase
-    .from('payment_events')
-    .select('razorpay_order_id, amount_paise')
-    .eq('user_id', user.id)
-    .eq('purpose', purpose)
-    .eq('status', 'created')
-    .maybeSingle();
+  const amount = amountForPurpose(purpose);
 
-  if (pending) {
+  // Atomically reserves the one order-in-flight slot for this (user, purpose) — guarded by
+  // the DB's partial unique index — *before* calling Razorpay, not after. Without this, two
+  // overlapping requests (a double-click, or a client retry firing while the first attempt
+  // is still awaiting Razorpay) could both mint a real Razorpay order and only one would ever
+  // get recorded locally. See reserve_payment_order in the payment_order_reservation
+  // migration for the mechanics.
+  const placeholderOrderId = `pending:${randomUUID()}`;
+  const { data: reservation, error: reserveError } = await supabase
+    .rpc('reserve_payment_order', {
+      p_purpose: purpose,
+      p_amount_paise: amount,
+      p_placeholder_order_id: placeholderOrderId,
+    })
+    .single();
+
+  if (reserveError || !reservation) {
+    logError('payments.create-order.reserve', reserveError, { userId: user.id, purpose, requestId: getRequestId(req) });
+    return NextResponse.json({ error: "Couldn't start checkout, try again." }, { status: 500 });
+  }
+
+  if (!reservation.reserved_by_me) {
+    // Someone else holds the slot. If it's still a placeholder, that request is mid-flight
+    // (calling Razorpay right now) — tell this caller to back off instead of handing back an
+    // order id nothing can actually check out with.
+    if (reservation.razorpay_order_id.startsWith('pending:')) {
+      return NextResponse.json(
+        { error: 'A checkout for this is already starting — please wait a moment and try again.' },
+        { status: 409 }
+      );
+    }
+    // A real, already-created order for this (user, purpose) — reuse it instead of minting a
+    // duplicate, same as re-clicking "Start Trial" after an abandoned checkout.
     return NextResponse.json({
-      orderId: pending.razorpay_order_id,
-      amount: pending.amount_paise,
+      orderId: reservation.razorpay_order_id,
+      amount: reservation.amount_paise,
       currency: PRICING.currency,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
   }
-
-  const amount = amountForPurpose(purpose);
 
   let order;
   try {
@@ -81,22 +100,22 @@ export async function POST(req: Request) {
       notes: { user_id: user.id, purpose },
     });
   } catch (e) {
-    logError('payments.create-order.razorpay', e, { userId: user.id, purpose });
+    logError('payments.create-order.razorpay', e, { userId: user.id, purpose, requestId: getRequestId(req) });
+    // Free the reservation — otherwise this (user, purpose) is permanently stuck behind a
+    // 'created' row that never got a real order id, and no retry could ever get past it.
+    await supabase.from('payment_events').update({ status: 'failed' }).eq('id', reservation.id);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Couldn't start checkout, try again." },
       { status: 502 }
     );
   }
 
-  const { error: insertError } = await supabase.from('payment_events').insert({
-    user_id: user.id,
-    purpose,
-    amount_paise: amount,
-    razorpay_order_id: order.id,
-    status: 'created',
-  });
-  if (insertError) {
-    logError('payments.create-order.insert', insertError, { userId: user.id, purpose });
+  const { error: updateError } = await supabase
+    .from('payment_events')
+    .update({ razorpay_order_id: order.id })
+    .eq('id', reservation.id);
+  if (updateError) {
+    logError('payments.create-order.update', updateError, { userId: user.id, purpose, requestId: getRequestId(req) });
     return NextResponse.json({ error: "Couldn't start checkout, try again." }, { status: 500 });
   }
 

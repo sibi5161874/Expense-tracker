@@ -13,7 +13,8 @@ import { formatINR } from '@repo/shared/utils/currency';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { fixedDepositStatusTone, premiumStatusTone } from '@/lib/badgeTones';
 import type { FixedDeposit, InsurancePolicy, LoanLiability } from '@repo/shared/types';
 
@@ -31,7 +32,7 @@ export function AssetMaturityCalendarReport() {
     [policies]
   );
 
-  if (fdsLoading || liabilitiesLoading || policiesLoading) return <LoadingState label="Loading report..." />;
+  if (fdsLoading || liabilitiesLoading || policiesLoading) return <ReportSkeleton />;
   if (fdsError) return <ErrorState error={fdsError} />;
   if (liabilitiesError) return <ErrorState error={liabilitiesError} />;
   if (policiesError) return <ErrorState error={policiesError} />;

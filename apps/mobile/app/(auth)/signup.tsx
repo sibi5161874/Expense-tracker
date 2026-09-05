@@ -6,17 +6,30 @@ import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
 
-/** Mirrors apps/web/src/app/signup/page.tsx — was previously web-only (RULES.md §13
- * flagged it as out of scope), filling that gap now that mobile has its own auth entry
- * points (anonymous sign-in, this) instead of assuming every user signed up on web. */
+/** Mirrors apps/web/src/app/signup/page.tsx — mobile now has its own sign-up rather than
+ * assuming every user signed up on web, alongside anonymous sign-in as an entry point. */
 export default function SignupScreen() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    setGoogleLoading(true);
+    const { error, cancelled } = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (cancelled) return;
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    router.replace("/(app)/dashboard");
+  }
 
   async function handleSubmit() {
     setError(null);
@@ -29,12 +42,26 @@ export default function SignupScreen() {
       return;
     }
     setSubmitting(true);
-    const { error } = await signUp(email, password);
+    const { user, session, error } = await signUp(email, password);
     setSubmitting(false);
     if (error) {
       setError(error.message);
       return;
     }
+
+    // Supabase never errors on a duplicate email at signUp (that would let an attacker probe
+    // which emails are registered) — instead it returns a user with no identities.
+    if (user && user.identities?.length === 0) {
+      setError("An account with this email already exists — try logging in instead.");
+      return;
+    }
+
+    if (session) {
+      // Email confirmation isn't required on this project — the account is already active.
+      router.replace("/(app)/dashboard");
+      return;
+    }
+
     setDone(true);
   }
 
@@ -67,6 +94,16 @@ export default function SignupScreen() {
 
         <Button onPress={handleSubmit} disabled={submitting || !email || !password || !confirmPassword}>
           {submitting ? "Creating account..." : "Sign up"}
+        </Button>
+
+        <View className="flex-row items-center gap-3">
+          <View className="h-px flex-1 bg-border" />
+          <AppText className="text-xs uppercase text-muted-foreground">Or continue with</AppText>
+          <View className="h-px flex-1 bg-border" />
+        </View>
+
+        <Button variant="outline" onPress={handleGoogleSignIn} disabled={googleLoading}>
+          {googleLoading ? "Signing in..." : "Google"}
         </Button>
 
         <Button variant="ghost" onPress={() => router.replace("/(auth)/login")}>

@@ -1,16 +1,18 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTransactionsInRange, monthsAgo } from '@/hooks/useReportsData';
 import { formatMonth } from '@repo/shared/utils';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StackedAreaChart } from '@/components/shared/StackedAreaChart';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 const MONTHS_BACK = 6;
 const TOP_N_CATEGORIES = 5;
 
 export function SpendingTrendReport() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const from = monthsAgo(MONTHS_BACK - 1);
   const to = formatMonth(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)) + '-01';
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
@@ -53,7 +55,7 @@ export function SpendingTrendReport() {
     return { chartData, topCategories };
   }, [transactions]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   return (
@@ -61,8 +63,9 @@ export function SpendingTrendReport() {
       title="Spending Trend"
       description={`Top ${TOP_N_CATEGORIES} expense categories over the last ${MONTHS_BACK} months.`}
       excelSheets={[{ name: 'Spending Trend', rows: chartData.map((r) => r as Record<string, string | number>) }]}
+      chartRef={chartRef}
     >
-      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+      <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Spending Trend</h2>
         <StackedAreaChart data={chartData} xKey="label" series={[...topCategories, 'Other']} />
       </div>

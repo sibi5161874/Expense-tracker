@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useInsurancePolicies } from '@/hooks/useInsurancePolicies';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { InsuranceForm } from '@/components/InsuranceForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,12 +25,7 @@ export default function InsurancePage() {
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<InsurancePolicy | null>(null);
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      if (confirm('Are you sure you want to delete this policy?')) deleteInsurancePolicy(id);
-    },
-    [deleteInsurancePolicy]
-  );
+  const { requestDelete, dialog } = useConfirmDelete(deleteInsurancePolicy, 'Delete policy?', "This can't be undone.");
 
   function closeForm() {
     setShowForm(false);
@@ -104,7 +100,7 @@ export default function InsurancePage() {
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(policy.id)}
+                          onClick={() => requestDelete(policy.id)}
                         >
                           Delete
                         </Button>
@@ -145,6 +141,7 @@ export default function InsurancePage() {
           }
         />
       )}
+      {dialog}
     </div>
   );
 }

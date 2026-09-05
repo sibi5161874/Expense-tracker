@@ -8,7 +8,8 @@ import { formatMonth } from '@repo/shared/utils';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { AmountText } from '@/components/shared/AmountText';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
-import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ErrorState } from '@/components/shared/QueryState';
+import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 
 interface AccountFlowRow {
   name: string;
@@ -49,7 +50,7 @@ export function AccountFlowReport() {
       .sort((a, b) => b.in - a.in);
   }, [transactions]);
 
-  if (isLoading) return <LoadingState label="Loading report..." />;
+  if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   const columns: DataTableColumn<AccountFlowRow>[] = [

@@ -25,6 +25,7 @@ export type RealEstateAsset = Database["public"]["Tables"]["assets_real_estate"]
 export type PpfAsset = Database["public"]["Tables"]["assets_ppf"]["Row"];
 export type NetWorthSnapshot = Database["public"]["Tables"]["net_worth_snapshots"]["Row"];
 export type PaymentEvent = Database["public"]["Tables"]["payment_events"]["Row"];
+export type MonthlyEmailLog = Database["public"]["Tables"]["monthly_email_logs"]["Row"];
 export type RecurringDepositAsset = Database["public"]["Tables"]["assets_recurring_deposits"]["Row"];
 export type NscAsset = Database["public"]["Tables"]["assets_nsc"]["Row"];
 export type VehicleAsset = Database["public"]["Tables"]["assets_vehicles"]["Row"];

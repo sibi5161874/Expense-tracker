@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { StatusBadge } from "@/components/common/Badge";
 import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/reports/ReportExportBar";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { fixedDepositStatusTone, premiumStatusTone } from "@/lib/badgeTones";
 import { useThemeColor } from "@/lib/colors";
 
@@ -30,6 +30,21 @@ export default function AssetMaturityCalendarReportScreen() {
   const isLoading = fdsLoading || liabilitiesLoading || policiesLoading;
   const error = fdsError || liabilitiesError || policiesError;
 
+  const sheets = [
+    {
+      name: "FD Maturities",
+      rows: sortedFds.map((fd) => ({ Bank: fd.bank, "Maturity Date": fd.maturity_date, Value: fd.maturity_value })),
+    },
+    {
+      name: "Insurance Premiums",
+      rows: sortedPolicies.map((p) => ({ Insurer: p.insurer, "Due Date": p.premium_due_date, Premium: p.premium_amount })),
+    },
+    {
+      name: "Open Liabilities",
+      rows: (liabilities ?? []).map((l) => ({ Lender: l.lender, Outstanding: l.outstanding, "Months Left": l.months_left ?? "-" })),
+    },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
@@ -37,39 +52,13 @@ export default function AssetMaturityCalendarReportScreen() {
           title="Asset Maturity Calendar"
           description="FDs and insurance premiums by date. Loans show months remaining, not a specific due date."
         />
-        <ReportExportBar
-          title="Asset Maturity Calendar"
-          description="FDs and insurance premiums by date. Loans show months remaining, not a specific due date."
-          sheets={[
-            {
-              name: "FD Maturities",
-              rows: sortedFds.map((fd) => ({
-                Bank: fd.bank,
-                "Maturity Date": fd.maturity_date,
-                "Days Left": calculateDaysLeft(fd.maturity_date),
-                "Maturity Value": fd.maturity_value,
-              })),
-            },
-            {
-              name: "Insurance Premiums",
-              rows: sortedPolicies.map((p) => ({
-                Insurer: p.insurer,
-                "Policy Type": p.policy_type,
-                "Premium Due Date": p.premium_due_date,
-                "Days Until Due": calculateDaysUntilDue(p.premium_due_date),
-                "Premium Amount": p.premium_amount,
-              })),
-            },
-            {
-              name: "Open Liabilities",
-              rows: (liabilities ?? []).map((l) => ({
-                Lender: l.lender,
-                Outstanding: l.outstanding,
-                "Months Left": l.months_left ?? "",
-              })),
-            },
-          ]}
-        />
+        {!isLoading && (
+          <ReportExportBar
+            title="Asset Maturity Calendar"
+            description="FDs and insurance premiums by date. Loans show months remaining, not a specific due date."
+            sheets={sheets}
+          />
+        )}
         {isLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={primary} />

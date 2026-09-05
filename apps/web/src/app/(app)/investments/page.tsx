@@ -10,7 +10,9 @@ import { InvestmentForm } from '@/components/InvestmentForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
 import { BrokerImportDialog } from '@/components/shared/BrokerImportDialog';
 import { ProLockedButton } from '@/components/shared/ProGate';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
 import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -32,7 +34,16 @@ export default function InvestmentsPage() {
   const [showImport, setShowImport] = useState(false);
   const [showBrokerImport, setShowBrokerImport] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<InvestmentLogEntry | null>(null);
-  const { data: investments, isLoading, error, deleteInvestmentLog, isDeleting } = useInvestmentLog({ page });
+  const {
+    data: investments,
+    isLoading,
+    error,
+    createInvestmentLog,
+    createInvestmentLogsBulk,
+    deleteInvestmentLog,
+    deleteInvestmentLogBulk,
+    isDeleting,
+  } = useInvestmentLog({ page });
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
@@ -40,8 +51,56 @@ export default function InvestmentsPage() {
     router.push('/settings?tab=billing');
   }
 
+  const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
   const handleEdit = useCallback((investment: InvestmentLogEntry) => setEditingInvestment(investment), []);
-  const handleDelete = useCallback((id: string) => deleteInvestmentLog(id), [deleteInvestmentLog]);
+
+  /** Every field `createInvestmentLog`/`createInvestmentLogsBulk` need to reconstruct a
+   * deleted row — shared by the single- and bulk-delete undo paths below. */
+  const toInvestmentLogInput = useCallback(
+    (investment: InvestmentLogEntry) => ({
+      date: investment.date,
+      symbol: investment.symbol,
+      exchange: investment.exchange,
+      action: investment.action,
+      quantity: investment.quantity,
+      price: investment.price,
+      fees: investment.fees,
+      bonus_split_extra_units: investment.bonus_split_extra_units ?? undefined,
+      linked_account_id: investment.linked_account_id,
+      asset_type: investment.asset_type,
+      notes: investment.notes ?? undefined,
+    }),
+    []
+  );
+
+  /** Deletes one investment and offers a 6-second "Undo" that re-creates it from its own
+   * fields — a real recreate, not a soft-delete, matching the transactions page pattern. */
+  const handleDeleteWithUndo = useCallback(
+    (investment: InvestmentLogEntry) => {
+      deleteInvestmentLog(investment.id);
+      toast('Investment deleted.', {
+        duration: 6000,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            createInvestmentLog(toInvestmentLogInput(investment)).catch(() =>
+              toast.error("Couldn't restore that investment.")
+            );
+          },
+        },
+      });
+    },
+    [deleteInvestmentLog, createInvestmentLog, toInvestmentLogInput]
+  );
+
+  const { requestDelete, dialog } = useConfirmDelete(
+    (id: string) => {
+      const investment = investments?.find((i) => i.id === id);
+      if (investment) handleDeleteWithUndo(investment);
+    },
+    'Delete investment?',
+    'You can undo this for a few seconds after deleting.'
+  );
   const closeForm = useCallback(() => {
     setShowForm(false);
     setEditingInvestment(null);
@@ -140,12 +199,7 @@ export default function InvestmentsPage() {
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm(`Delete ${ids.length} investment${ids.length === 1 ? '' : 's'}?`)) {
-                  ids.forEach((id) => handleDelete(id));
-                  clear();
-                }
-              }}
+              onClick={() => setPendingBulkDelete({ ids, clear })}
             >
               <Trash2 className="size-3.5" />
               Delete selected
@@ -165,9 +219,7 @@ export default function InvestmentsPage() {
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-destructive size-8"
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete this investment?')) handleDelete(i.id);
-                }}
+                onClick={() => requestDelete(i.id)}
                 disabled={isDeleting}
               >
                 <Trash2 className="size-4" />
@@ -216,6 +268,35 @@ export default function InvestmentsPage() {
       )}
 
       {showBrokerImport && <BrokerImportDialog onClose={() => setShowBrokerImport(false)} />}
+
+      {dialog}
+      <ConfirmDialog
+        open={pendingBulkDelete !== null}
+        onOpenChange={(open) => !open && setPendingBulkDelete(null)}
+        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} investment${pendingBulkDelete?.ids.length === 1 ? '' : 's'}?`}
+        description="This can't be undone."
+        isConfirming={isDeleting}
+        onConfirm={async () => {
+          if (pendingBulkDelete) {
+            const { ids, clear } = pendingBulkDelete;
+            const deletedRows = (investments ?? []).filter((i) => ids.includes(i.id));
+            await deleteInvestmentLogBulk(ids);
+            clear();
+            toast(`${deletedRows.length} investment${deletedRows.length === 1 ? '' : 's'} deleted.`, {
+              duration: 6000,
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  createInvestmentLogsBulk(deletedRows.map(toInvestmentLogInput)).catch(() =>
+                    toast.error("Couldn't restore those investments.")
+                  );
+                },
+              },
+            });
+          }
+          setPendingBulkDelete(null);
+        }}
+      />
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
+import { enforceRateLimit } from '@/lib/rateLimit';
+import { fetchYahooChart } from '@/lib/yahooFinance';
+import { createResilientFetcher } from '@/lib/fetchWithRetry';
 import {
   parseAmfiNavFile,
   buildAmfiIndex,
@@ -11,7 +15,7 @@ import {
   type PriceRefreshTarget,
 } from '@repo/shared/logic';
 import { getAllInvestmentLog } from '@repo/shared/queries/investmentLog';
-import { getHoldings, upsertHoldingPrices } from '@repo/shared/queries/holdings';
+import { upsertHoldingPrices } from '@repo/shared/queries/holdings';
 
 /**
  * Live price refresh for the caller's holdings.
@@ -34,14 +38,9 @@ import { getHoldings, upsertHoldingPrices } from '@repo/shared/queries/holdings'
 // Live host as of Aug 2026. www.amfiindia.com now 302s here; using the final URL
 // directly avoids relying on redirect-following.
 const AMFI_NAV_URL = 'https://portal.amfiindia.com/spages/NAVAll.txt';
-const YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
-const FETCH_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
 
-const REQUEST_TIMEOUT_MS = 10_000;
 /** Cap concurrent quote requests so a large portfolio doesn't hammer Yahoo. */
 const QUOTE_CONCURRENCY = 5;
-/** Carried over from the Edge Function it replaces. */
-const RATE_LIMIT_SECONDS = 60;
 
 /** Response shape is unchanged from the Edge Function so existing callers keep working. */
 interface RefreshResult {
@@ -51,38 +50,20 @@ interface RefreshResult {
   message?: string;
 }
 
-async function fetchWithTimeout(url: string): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    return await fetch(url, { headers: FETCH_HEADERS, signal: controller.signal, cache: 'no-store' });
-  } finally {
-    clearTimeout(timer);
-  }
-}
+/** Same retry/circuit-breaker mechanics as yahooFinance.ts, own independent instance — AMFI
+ * is a single once-per-refresh request, so a transient timeout used to fail every mutual fund
+ * in the batch immediately with no retry at all. */
+const fetchAmfiResilient = createResilientFetcher({ label: 'AMFI', maxRetries: 3 });
 
-export async function POST() {
+export async function POST(req: Request) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  // Rate limit off the most recent holdings write, same rule as the Edge Function.
-  const existingHoldings = await getHoldings(supabase, user.id);
-  const mostRecent = (existingHoldings ?? []).reduce<string | null>(
-    (latest, h) => (latest === null || h.updated_at > latest ? h.updated_at : latest),
-    null
-  );
-  if (mostRecent) {
-    const secondsSince = (Date.now() - new Date(mostRecent).getTime()) / 1000;
-    if (secondsSince < RATE_LIMIT_SECONDS) {
-      return NextResponse.json(
-        { error: `Please wait ${Math.ceil(RATE_LIMIT_SECONDS - secondsSince)}s before refreshing again.` },
-        { status: 429 }
-      );
-    }
-  }
+  const limited = await enforceRateLimit(`prices:refresh:${user.id}`, 1, 60_000);
+  if (limited) return limited;
 
   const investments = await getAllInvestmentLog(supabase, user.id);
 
@@ -110,8 +91,7 @@ export async function POST() {
   // --- Mutual funds: one AMFI request covers every fund ---
   if (funds.length > 0) {
     try {
-      const res = await fetchWithTimeout(AMFI_NAV_URL);
-      if (!res.ok) throw new Error(`AMFI returned HTTP ${res.status}`);
+      const res = await fetchAmfiResilient(AMFI_NAV_URL, 'NAV file');
       const index = buildAmfiIndex(parseAmfiNavFile(await res.text()));
 
       for (const fund of funds) {
@@ -126,7 +106,7 @@ export async function POST() {
       }
     } catch (e) {
       // AMFI being down must not stop listed prices from refreshing.
-      logError('prices.refresh.amfi', e, { userId: user.id });
+      logError('prices.refresh.amfi', e, { userId: user.id, requestId: getRequestId(req) });
       const message = e instanceof Error ? e.message : String(e);
       for (const fund of funds) {
         failed.push(fund.symbol);
@@ -142,10 +122,7 @@ export async function POST() {
       batch.map(async (target) => {
         const ticker = toYahooTicker(target.symbol, target.exchange);
         try {
-          const res = await fetchWithTimeout(`${YAHOO_CHART_URL}/${encodeURIComponent(ticker)}?interval=1d&range=1d`);
-          if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${ticker}`);
-
-          const body = await res.json();
+          const body = await fetchYahooChart(ticker, 'interval=1d&range=1d');
           const price = extractYahooPrice(body);
           if (price === null) throw new Error(`No usable price in the response for ${ticker}`);
 
@@ -163,7 +140,7 @@ export async function POST() {
   try {
     await upsertHoldingPrices(supabase, user.id, priced);
   } catch (e) {
-    logError('prices.refresh.upsert', e, { userId: user.id });
+    logError('prices.refresh.upsert', e, { userId: user.id, requestId: getRequestId(req) });
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Failed to save refreshed prices.' },
       { status: 500 }

@@ -129,6 +129,111 @@ export function extractYahooPrice(payload: unknown): number | null {
   return typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null;
 }
 
+export interface YahooQuote {
+  price: number;
+  currency: string;
+}
+
+/**
+ * Extracts price + currency for the "any ticker" live price lookup (packages/shared has no
+ * portfolio context here, unlike extractYahooPrice above which is matched against a known
+ * holding) — a bare quote, so currency has to travel with it since the caller has no other
+ * way to know what it's looking at.
+ */
+export function extractYahooQuote(payload: unknown): YahooQuote | null {
+  const result = (
+    payload as { chart?: { result?: Array<{ meta?: { regularMarketPrice?: unknown; currency?: unknown } }> } }
+  )?.chart?.result?.[0];
+  const price = result?.meta?.regularMarketPrice;
+  const currency = result?.meta?.currency;
+  if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null;
+  if (typeof currency !== 'string' || !currency) return null;
+  return { price, currency };
+}
+
+export interface YahooHistoryPoint {
+  /** YYYY-MM-DD, in UTC — trading-day granularity is all this needs, so timezone precision within a day doesn't matter. */
+  date: string;
+  close: number;
+}
+
+/**
+ * Extracts a daily closing-price series from Yahoo's chart response for a `range`/`interval`
+ * query. Yahoo returns parallel `timestamp` and `indicators.quote[0].close` arrays that can
+ * both contain gaps (nulls) for partial trading days — any index missing either value is
+ * skipped rather than plotted as a fabricated zero.
+ */
+export function extractYahooHistory(payload: unknown): YahooHistoryPoint[] {
+  const result = (
+    payload as {
+      chart?: { result?: Array<{ timestamp?: unknown; indicators?: { quote?: Array<{ close?: unknown }> } }> };
+    }
+  )?.chart?.result?.[0];
+  const timestamps = result?.timestamp;
+  const closes = result?.indicators?.quote?.[0]?.close;
+  if (!Array.isArray(timestamps) || !Array.isArray(closes)) return [];
+
+  const points: YahooHistoryPoint[] = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    const ts = timestamps[i];
+    const close = closes[i];
+    if (typeof ts !== 'number' || typeof close !== 'number' || !Number.isFinite(close)) continue;
+    points.push({ date: new Date(ts * 1000).toISOString().slice(0, 10), close });
+  }
+  return points;
+}
+
+export interface BenchmarkSeriesSnapshot {
+  snapshot_date: string;
+  net_worth: number;
+}
+
+export interface BenchmarkPoint {
+  date: string;
+  netWorth: number;
+  benchmark: number;
+}
+
+/**
+ * Merges net worth snapshots with a benchmark index's daily closes into one date-aligned
+ * series for charting. The benchmark is scaled so its value on the first plotted date equals
+ * the user's net worth then — otherwise a portfolio in lakhs plotted against a Nifty index
+ * value in the thousands would render as two unrelated flat lines on any sane Y axis.
+ *
+ * Net worth is forward-filled across every benchmark trading day: snapshots are typically
+ * one a month (free tier caps them at 2), far sparser than daily index closes, so without
+ * forward-filling the net worth line would be almost all gaps. history is filtered to dates
+ * on/after the first snapshot — there's nothing meaningful to plot for the user before their
+ * first snapshot exists.
+ */
+export function buildBenchmarkSeries(
+  snapshots: BenchmarkSeriesSnapshot[],
+  history: YahooHistoryPoint[]
+): BenchmarkPoint[] {
+  if (snapshots.length === 0 || history.length === 0) return [];
+
+  const sortedSnapshots = [...snapshots].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date));
+  const sortedHistory = [...history].sort((a, b) => a.date.localeCompare(b.date));
+
+  const firstDate = sortedSnapshots[0]!.snapshot_date;
+  const firstNetWorth = sortedSnapshots[0]!.net_worth;
+  const relevantHistory = sortedHistory.filter((h) => h.date >= firstDate);
+  if (relevantHistory.length === 0) return [];
+
+  const scale = relevantHistory[0]!.close !== 0 ? firstNetWorth / relevantHistory[0]!.close : 0;
+
+  let snapshotIndex = -1;
+  let lastNetWorth = firstNetWorth;
+
+  return relevantHistory.map((h) => {
+    while (snapshotIndex + 1 < sortedSnapshots.length && sortedSnapshots[snapshotIndex + 1]!.snapshot_date <= h.date) {
+      snapshotIndex++;
+      lastNetWorth = sortedSnapshots[snapshotIndex]!.net_worth;
+    }
+    return { date: h.date, netWorth: lastNetWorth, benchmark: h.close * scale };
+  });
+}
+
 export interface PriceRefreshTarget {
   symbol: string;
   exchange: string;

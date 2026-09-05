@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { resolveRequestUser } from '@/lib/supabase/bearer';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
 
 /**
  * Full data export — every row this user owns, across every table, as one JSON
@@ -37,14 +38,11 @@ const EXPORTED_TABLES = [
   'assets_vehicles',
 ] as const;
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function GET(req: Request) {
+  const { supabase, user } = await resolveRequestUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`account:export:${user.id}`, 5, 60 * 60_000);
+  const limited = await enforceRateLimit(`account:export:${user.id}`, 5, 60 * 60_000);
   if (limited) return limited;
 
   try {
@@ -71,7 +69,7 @@ export async function GET() {
       },
     });
   } catch (e) {
-    logError('account.export', e, { userId: user.id });
+    logError('account.export', e, { userId: user.id, requestId: getRequestId(req) });
     return NextResponse.json({ error: "Couldn't export your data, try again." }, { status: 500 });
   }
 }

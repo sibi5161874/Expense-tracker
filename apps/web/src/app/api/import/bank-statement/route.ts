@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
+import { getRequestId } from '@/lib/requestId';
+import { importFileTooLarge } from '@/lib/importLimits';
 import { parseCsv } from '@repo/shared';
 import {
   resolveBankMapping,
@@ -14,6 +16,7 @@ import {
 } from '@repo/shared/logic';
 import { getAccounts, getCategories } from '@repo/shared/queries/config';
 import { getTransactionsForDedup, createTransactionsBulk } from '@repo/shared/queries/transactions';
+import { bankStatementImportSchema } from '@repo/shared/schemas';
 
 /** A client-supplied mapping is trusted only after checking every column it names exists in the file. */
 function validateManualMapping(mapping: unknown, headers: string[]): BankColumnMapping | null {
@@ -44,15 +47,21 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const limited = enforceRateLimit(`import:bank-statement:${user.id}`, 20, 60 * 60_000);
+  // 500, not 20 — a single large import now commits as many ~200-row chunked requests (see
+  // chunkCsv.ts), so this has to bound "how many imports per hour", not "how many requests".
+  const limited = await enforceRateLimit(`import:bank-statement:${user.id}`, 500, 60 * 60_000);
   if (limited) return limited;
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body.csv !== 'string' || typeof body.account_id !== 'string') {
+  const parsed = bankStatementImportSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Missing csv text or account_id' }, { status: 400 });
   }
+  const body = parsed.data;
+  if (importFileTooLarge(Buffer.byteLength(body.csv, 'utf8'))) {
+    return NextResponse.json({ error: 'File is too large — the max import size is 10MB.' }, { status: 413 });
+  }
   const commit: boolean = body.commit === true;
-  const bankId: string | undefined = typeof body.bank === 'string' ? body.bank : undefined;
+  const bankId: string | undefined = body.bank;
 
   try {
     const rows = parseCsv(body.csv);
@@ -105,7 +114,7 @@ export async function POST(req: Request) {
     // catches a mapping that "parses fine" but produced wrong numbers (a swapped
     // debit/credit column, a broken amount parse) for THIS specific file, without
     // needing a verified reference format for the institution.
-    const reconciliation = checkBalanceReconciliation(mapping, records);
+    const reconciliation = checkBalanceReconciliation(mapping, records, body.previous_balance ?? null);
 
     let committed = 0;
     if (commit && validRows.length > 0) {
@@ -133,7 +142,7 @@ export async function POST(req: Request) {
       committed,
     });
   } catch (e) {
-    logError('import.bank-statement', e, { userId: user.id });
+    logError('import.bank-statement', e, { userId: user.id, requestId: getRequestId(req) });
     return NextResponse.json({ error: 'Import failed, please try again.' }, { status: 500 });
   }
 }

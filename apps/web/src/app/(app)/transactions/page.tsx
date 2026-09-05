@@ -9,8 +9,11 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { TransactionForm } from '@/components/TransactionForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
 import { BankStatementImportDialog } from '@/components/shared/BankStatementImportDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { TransactionsCalendarView } from '@/components/transactions/TransactionsCalendarView';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Button } from '@/components/ui/button';
 import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -27,11 +30,23 @@ type Transaction = NonNullable<Awaited<ReturnType<typeof getTransactions>>>[numb
 export default function TransactionsPage() {
   const router = useRouter();
   const [page, setPage] = useState(0);
+  const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showBankImport, setShowBankImport] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const { data: transactions, isLoading, error, deleteTransaction, isDeleting } = useTransactions({ page });
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
+  const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
+  const {
+    data: transactions,
+    isLoading,
+    error,
+    createTransaction,
+    createTransactionsBulk,
+    deleteTransaction,
+    deleteTransactionsBulk,
+    isDeleting,
+  } = useTransactions({ page });
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
@@ -51,7 +66,42 @@ export default function TransactionsPage() {
   }
 
   const handleEdit = useCallback((transaction: Transaction) => setEditingTransaction(transaction), []);
-  const handleDelete = useCallback((id: string) => deleteTransaction(id), [deleteTransaction]);
+
+  /** Every field `create`/`createTransactionsBulk` need to reconstruct a deleted row — shared
+   * by the single- and bulk-delete undo paths below. */
+  const toTransactionInput = useCallback(
+    (t: Transaction) => ({
+      date: t.date,
+      type: t.type,
+      amount: t.amount,
+      from_account_id: t.from_account_id,
+      category_id: t.category_id ?? undefined,
+      sub_category: t.sub_category ?? undefined,
+      to_account_id: t.to_account_id ?? undefined,
+      notes: t.notes ?? undefined,
+    }),
+    []
+  );
+
+  /** Deletes one transaction and offers a 6-second "Undo" that re-creates it from the row's
+   * own fields — a real recreate, not a soft-delete, since there's no `deleted_at` column to
+   * restore from. */
+  const handleDeleteWithUndo = useCallback(
+    (t: Transaction) => {
+      deleteTransaction(t.id);
+      toast('Transaction deleted.', {
+        duration: 6000,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            createTransaction(toTransactionInput(t)).catch(() => toast.error("Couldn't restore that transaction."));
+          },
+        },
+      });
+    },
+    [deleteTransaction, createTransaction, toTransactionInput]
+  );
+
   const closeForm = useCallback(() => {
     setShowForm(false);
     setEditingTransaction(null);
@@ -144,7 +194,20 @@ export default function TransactionsPage() {
         }
       />
 
-      {error ? (
+      <div className="mb-4 flex justify-end">
+        <SegmentedControl
+          options={[
+            { value: 'table', label: 'Table' },
+            { value: 'calendar', label: 'Calendar' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+      </div>
+
+      {view === 'calendar' ? (
+        <TransactionsCalendarView />
+      ) : error ? (
         <ErrorState error={error} />
       ) : !isLoading && transactions?.length === 0 && page === 0 ? (
         <EmptyState
@@ -173,12 +236,7 @@ export default function TransactionsPage() {
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm(`Delete ${ids.length} transaction${ids.length === 1 ? '' : 's'}?`)) {
-                  ids.forEach((id) => handleDelete(id));
-                  clear();
-                }
-              }}
+              onClick={() => setPendingBulkDelete({ ids, clear })}
             >
               <Trash2 className="size-3.5" />
               Delete selected
@@ -191,6 +249,7 @@ export default function TransactionsPage() {
                 size="icon"
                 className="text-muted-foreground hover:text-foreground size-8"
                 onClick={() => handleEdit(t)}
+                aria-label="Edit transaction"
               >
                 <Pencil className="size-4" />
               </Button>
@@ -198,10 +257,9 @@ export default function TransactionsPage() {
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-destructive size-8"
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete this transaction?')) handleDelete(t.id);
-                }}
+                onClick={() => setPendingDelete(t)}
                 disabled={isDeleting}
+                aria-label="Delete transaction"
               >
                 <Trash2 className="size-4" />
               </Button>
@@ -247,6 +305,49 @@ export default function TransactionsPage() {
       )}
 
       {showBankImport && <BankStatementImportDialog onClose={() => setShowBankImport(false)} />}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        title="Delete transaction?"
+        description="You can undo this for a few seconds after deleting."
+        isConfirming={isDeleting}
+        onConfirm={() => {
+          if (pendingDelete) handleDeleteWithUndo(pendingDelete);
+          setPendingDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingBulkDelete !== null}
+        onOpenChange={(open) => !open && setPendingBulkDelete(null)}
+        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} transaction${pendingBulkDelete?.ids.length === 1 ? '' : 's'}?`}
+        description="This can't be undone."
+        isConfirming={isDeleting}
+        onConfirm={async () => {
+          if (pendingBulkDelete) {
+            const { ids, clear } = pendingBulkDelete;
+            // Snapshot the full rows before they're gone — deleteTransactionsBulk only takes
+            // ids, and by the time "Undo" is clicked the optimistic removal has already
+            // dropped them from the cache.
+            const deletedRows = (transactions ?? []).filter((t) => ids.includes(t.id));
+            await deleteTransactionsBulk(ids);
+            clear();
+            toast(`${deletedRows.length} transaction${deletedRows.length === 1 ? '' : 's'} deleted.`, {
+              duration: 6000,
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  createTransactionsBulk(deletedRows.map(toTransactionInput)).catch(() =>
+                    toast.error("Couldn't restore those transactions.")
+                  );
+                },
+              },
+            });
+          }
+          setPendingBulkDelete(null);
+        }}
+      />
     </div>
   );
 }

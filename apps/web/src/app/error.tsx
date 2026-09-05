@@ -3,10 +3,11 @@
 import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { logError } from '@/lib/logger';
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error('[GlobalError]', error);
+    logError('app.globalErrorBoundary', error, { digest: error.digest });
   }, [error]);
 
   return (

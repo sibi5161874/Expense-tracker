@@ -1,10 +1,12 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { router } from "expo-router";
 import type { SymbolHolding } from "@repo/shared/logic";
 import { AppText } from "@/components/common/AppText";
 import { AmountText } from "@/components/common/AmountText";
 
 /** Mobile equivalent of HoldingsTable.tsx. A 9-column table doesn't fit a phone width, so
- * each holding is a stacked card row instead: symbol/qty on top, cost/value/P&L below. */
+ * each holding is a stacked card row instead: symbol/qty on top, cost/value/P&L below. Each
+ * row navigates to stock-detail.tsx for fundamentals, mirroring web's per-holding link. */
 export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
   if (holdings.length === 0) {
     return (
@@ -19,7 +21,11 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
   return (
     <View className="gap-3">
       {holdings.map((holding) => (
-        <View key={`${holding.symbol}-${holding.exchange}`} className="gap-2 rounded-2xl bg-card p-4">
+        <Pressable
+          key={`${holding.symbol}-${holding.exchange}`}
+          onPress={() => router.push({ pathname: "/(app)/stock-detail", params: { symbol: holding.symbol } })}
+          className="gap-2 rounded-2xl bg-card p-4 active:opacity-70"
+        >
           <View className="flex-row items-center justify-between">
             <AppText className="text-sm font-medium">{holding.symbol}</AppText>
             <AppText className="text-xs text-muted-foreground">{holding.exchange}</AppText>
@@ -28,7 +34,14 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
             <AppText className="text-xs text-muted-foreground">
               {holding.unitsHeld} units @ avg <AmountText value={holding.avgBuyPrice} colorBySign={false} className="text-xs" />
             </AppText>
-            <AmountText value={holding.currentValue} colorBySign={false} className="text-sm font-semibold" />
+            <View className="flex-row items-center gap-1.5">
+              {!holding.hasLivePrice && (
+                <AppText className="rounded bg-warning-subtle px-1 py-0.5 text-[10px] font-semibold uppercase text-warning-foreground">
+                  Est.
+                </AppText>
+              )}
+              <AmountText value={holding.currentValue} colorBySign={false} className="text-sm font-semibold" />
+            </View>
           </View>
           <View className="flex-row items-center justify-between">
             <AppText className="text-xs text-muted-foreground">Unrealised P&L</AppText>
@@ -39,7 +52,7 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
               </AppText>
             </View>
           </View>
-        </View>
+        </Pressable>
       ))}
     </View>
   );

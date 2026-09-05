@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronRight, Layers } from "lucide-react-native";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
 import { useThemeColor } from "@/lib/colors";
@@ -10,11 +10,28 @@ import { REPORT_SECTIONS } from "@/components/reports/reportRegistry";
 export default function ReportsScreen() {
   const mutedForeground = useThemeColor("mutedForeground");
   const accentForeground = useThemeColor("accentForeground");
+  const primaryForeground = useThemeColor("primary");
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView contentContainerClassName="gap-6 p-4 pb-32">
         <PageHeader title="Reports" description="Read-only summaries computed from your data." />
+
+        <Pressable
+          onPress={() => router.push("/(app)/overall-report")}
+          className="flex-row items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 active:opacity-70"
+        >
+          <View className="size-10 items-center justify-center rounded-xl bg-primary">
+            <Layers size={18} color="white" />
+          </View>
+          <View className="flex-1">
+            <AppText className="text-sm font-semibold">Overall Report</AppText>
+            <AppText className="text-xs text-muted-foreground">
+              All 14 reports combined into a single document. PDF download only.
+            </AppText>
+          </View>
+          <ChevronRight size={18} color={primaryForeground} />
+        </Pressable>
 
         {REPORT_SECTIONS.map((section) => (
           <View key={section.title} className="gap-3">

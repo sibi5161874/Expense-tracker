@@ -4,11 +4,19 @@ import { View } from "react-native";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/lib/QueryProvider";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { loadThemePreference } from "@/lib/themePreference";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 
 /** Root-level catch-all — expo-router wraps the whole app in this when any screen throws. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -30,14 +38,27 @@ export default function RootLayout() {
     loadThemePreference();
   }, []);
 
+  // Gated on fontError too, not just fontsLoaded — a failed font fetch (offline first
+  // launch, CDN hiccup) must fall through to the OS default font, never leave the app
+  // stuck on a blank screen forever waiting for Inter.
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <SafeAreaProvider>
-      <QueryProvider>
-        <AuthProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-          <StatusBar style="auto" />
-        </AuthProvider>
-      </QueryProvider>
+      <ThemeProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </QueryProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

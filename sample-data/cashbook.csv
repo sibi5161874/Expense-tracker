@@ -1,0 +1,31 @@
+Date,Counterparty,Flow,Amount,Due Date,Account Used,Loan ID,Notes
+2026-03-21,Rahul Sharma,Gave,1000,2026-05-20,HDFC Bank,,Lent for personal expense
+2026-03-25,Priya Nair,Received,1500,,ICICI Bank,,Repayment received
+2026-03-29,Amit Verma,Gave,2000,,Cash,,Lent for personal expense
+2026-04-02,Sneha Iyer,Received,2500,2026-06-01,HDFC Bank,,Repayment received
+2026-04-06,Office Colleague,Gave,3000,,ICICI Bank,,Lent for personal expense
+2026-04-10,Rohan Gupta,Received,3500,,Cash,,Repayment received
+2026-04-14,Neha Kapoor,Gave,4000,2026-06-13,HDFC Bank,,Lent for personal expense
+2026-04-18,Rahul Sharma,Received,4500,,ICICI Bank,,Repayment received
+2026-04-22,Priya Nair,Gave,5000,,Cash,,Lent for personal expense
+2026-04-26,Amit Verma,Received,5500,2026-06-25,HDFC Bank,,Repayment received
+2026-04-30,Sneha Iyer,Gave,1000,,ICICI Bank,,Lent for personal expense
+2026-05-04,Office Colleague,Received,1500,,Cash,,Repayment received
+2026-05-08,Rohan Gupta,Gave,2000,2026-07-07,HDFC Bank,,Lent for personal expense
+2026-05-12,Neha Kapoor,Received,2500,,ICICI Bank,,Repayment received
+2026-05-16,Rahul Sharma,Gave,3000,,Cash,,Lent for personal expense
+2026-05-20,Priya Nair,Received,3500,2026-07-19,HDFC Bank,,Repayment received
+2026-05-24,Amit Verma,Gave,4000,,ICICI Bank,,Lent for personal expense
+2026-05-28,Sneha Iyer,Received,4500,,Cash,,Repayment received
+2026-06-01,Office Colleague,Gave,5000,2026-07-31,HDFC Bank,,Lent for personal expense
+2026-06-05,Rohan Gupta,Received,5500,,ICICI Bank,,Repayment received
+2026-06-09,Neha Kapoor,Gave,1000,,Cash,,Lent for personal expense
+2026-06-13,Rahul Sharma,Received,1500,2026-08-12,HDFC Bank,,Repayment received
+2026-06-17,Priya Nair,Gave,2000,,ICICI Bank,,Lent for personal expense
+2026-06-21,Amit Verma,Received,2500,,Cash,,Repayment received
+2026-06-25,Sneha Iyer,Gave,3000,2026-08-24,HDFC Bank,,Lent for personal expense
+2026-06-29,Office Colleague,Received,3500,,ICICI Bank,,Repayment received
+2026-07-03,Rohan Gupta,Gave,4000,,Cash,,Lent for personal expense
+2026-07-07,Neha Kapoor,Received,4500,2026-09-05,HDFC Bank,,Repayment received
+2026-07-11,Rahul Sharma,Gave,5000,,ICICI Bank,,Lent for personal expense
+2026-07-15,Priya Nair,Received,5500,,Cash,,Repayment received

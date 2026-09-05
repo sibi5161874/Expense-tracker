@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { APP_BRANDING } from "@repo/shared/config";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Money Manager",
-  description: "Personal finance & investment tracker",
+  title: APP_BRANDING.name,
+  description: APP_BRANDING.tagline,
 };
 
 export default function RootLayout({

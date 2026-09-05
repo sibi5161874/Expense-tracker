@@ -341,4 +341,34 @@ describe('checkBalanceReconciliation', () => {
     expect(result.totalChecked).toBe(0);
     expect(result.mismatches).toBe(0);
   });
+
+  it('returns the last parsed balance so a caller can seed the next call — the chunking use case', () => {
+    const records = statement([{ balance: '1000' }, { withdrawal: '200', balance: '800' }]);
+    const result = checkBalanceReconciliation(mapping, records);
+    expect(result.lastBalance).toBe(800);
+  });
+
+  it('checks the first row of a call against a seeded previousBalance instead of skipping it', () => {
+    // Simulates two chunks of the same statement: chunk 1 ends at 800, chunk 2 starts at the
+    // next row and must be checked against 800, not treated as a fresh, uncomparable start.
+    const chunk2 = statement([{ deposit: '500', balance: '1300' }]);
+    const result = checkBalanceReconciliation(mapping, chunk2, 800);
+    expect(result.totalChecked).toBe(1);
+    expect(result.mismatches).toBe(0);
+    expect(result.lastBalance).toBe(1300);
+  });
+
+  it('still catches a mismatch at a chunk boundary when seeded with the wrong previous balance', () => {
+    const chunk2 = statement([{ deposit: '500', balance: '1300' }]);
+    // Seeding with the wrong balance (750 instead of the real 800) must surface as a mismatch,
+    // not be silently swallowed the way an unseeded chunk boundary used to be.
+    const result = checkBalanceReconciliation(mapping, chunk2, 750);
+    expect(result.mismatches).toBe(1);
+  });
+
+  it('passes through a null seed unchanged as lastBalance when no rows parse at all', () => {
+    const noBalanceMapping: BankColumnMapping = { date: 'Date', description: 'Narration', debit: 'D', credit: 'C' };
+    const result = checkBalanceReconciliation(noBalanceMapping, statement([{ balance: '1000' }]), 800);
+    expect(result.lastBalance).toBe(800);
+  });
 });
