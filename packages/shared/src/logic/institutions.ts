@@ -28,6 +28,11 @@ export interface Institution {
   columns?: readonly string[];
   /** Grouping shown in the picker. */
   region?: string;
+  /** Institution's own web domain, when confidently known — the import picker renders its
+   * favicon next to the name for quick visual recognition (via Google's public favicon
+   * service, so no logo assets are bundled/hosted here). Left undefined rather than guessed
+   * for anything not confidently identified; the picker falls back to a generic icon. */
+  domain?: string;
 }
 
 export const BANKS: readonly Institution[] = [
@@ -37,6 +42,7 @@ export const BANKS: readonly Institution[] = [
     region: 'India',
     confidence: 'verified',
     columns: ['Date', 'Narration', 'Chq./Ref.No.', 'Value Dt', 'Withdrawal Amt.', 'Deposit Amt.', 'Closing Balance'],
+    domain: 'hdfcbank.com',
   },
   {
     id: 'SBI',
@@ -44,6 +50,7 @@ export const BANKS: readonly Institution[] = [
     region: 'India',
     confidence: 'verified',
     columns: ['Txn Date', 'Value Date', 'Description', 'Ref No./Cheque No.', 'Debit', 'Credit', 'Balance'],
+    domain: 'sbi.co.in',
   },
   {
     id: 'ICICI',
@@ -59,6 +66,7 @@ export const BANKS: readonly Institution[] = [
       'Deposit Amount (INR )',
       'Balance (INR )',
     ],
+    domain: 'icicibank.com',
   },
   {
     id: 'AXIS',
@@ -66,6 +74,7 @@ export const BANKS: readonly Institution[] = [
     region: 'India',
     confidence: 'partial',
     columns: ['Tran Date', 'Chq No', 'Particulars', 'Debit', 'Credit', 'Balance'],
+    domain: 'axisbank.com',
   },
   {
     id: 'KOTAK',
@@ -73,6 +82,7 @@ export const BANKS: readonly Institution[] = [
     region: 'India',
     confidence: 'partial',
     columns: ['Date', 'Description', 'Chq / Ref No', 'Debit', 'Credit', 'Balance'],
+    domain: 'kotak.com',
   },
   {
     id: 'IDFC',
@@ -80,11 +90,12 @@ export const BANKS: readonly Institution[] = [
     region: 'India',
     confidence: 'partial',
     columns: ['Transaction Date', 'Value Date', 'Narration', 'Debit', 'Credit', 'Balance'],
+    domain: 'idfcfirstbank.com',
   },
   // Qatar — no published CSV column spec found for either; both rely on
   // heuristic detection plus manual mapping.
-  { id: 'DOHA', label: 'Doha Bank', region: 'Qatar', confidence: 'heuristic' },
-  { id: 'CBQ', label: 'Commercial Bank of Qatar', region: 'Qatar', confidence: 'heuristic' },
+  { id: 'DOHA', label: 'Doha Bank', region: 'Qatar', confidence: 'heuristic', domain: 'dohabank.com' },
+  { id: 'CBQ', label: 'Commercial Bank of Qatar', region: 'Qatar', confidence: 'heuristic', domain: 'cbq.qa' },
   { id: 'OTHER_BANK', label: 'Other / not listed', region: 'Any', confidence: 'heuristic' },
 ];
 
@@ -108,6 +119,7 @@ export const BROKERS: readonly Institution[] = [
       'order_id',
       'order_execution_time',
     ],
+    domain: 'zerodha.com',
   },
   {
     id: 'UPSTOX',
@@ -126,24 +138,25 @@ export const BROKERS: readonly Institution[] = [
       'trade_date',
       'order_timestamp',
     ],
+    domain: 'upstox.com',
   },
   // No published column spec found for any of the following — all heuristic.
-  { id: 'GROWW', label: 'Groww', confidence: 'heuristic' },
-  { id: 'INDMONEY', label: 'INDmoney', confidence: 'heuristic' },
-  { id: 'ICICI_DIRECT', label: 'ICICI Direct', confidence: 'heuristic' },
-  { id: 'CDSL', label: 'CDSL', confidence: 'heuristic' },
-  { id: 'ANGEL_ONE', label: 'Angel One', confidence: 'heuristic' },
+  { id: 'GROWW', label: 'Groww', confidence: 'heuristic', domain: 'groww.in' },
+  { id: 'INDMONEY', label: 'INDmoney', confidence: 'heuristic', domain: 'indmoney.com' },
+  { id: 'ICICI_DIRECT', label: 'ICICI Direct', confidence: 'heuristic', domain: 'icicidirect.com' },
+  { id: 'CDSL', label: 'CDSL', confidence: 'heuristic', domain: 'cdslindia.com' },
+  { id: 'ANGEL_ONE', label: 'Angel One', confidence: 'heuristic', domain: 'angelone.in' },
   { id: 'AIONION', label: 'Aionion', confidence: 'heuristic' },
   { id: 'CHOLA', label: 'Chola Securities', confidence: 'heuristic' },
-  { id: 'MSTOCK', label: 'mstock', confidence: 'heuristic' },
-  { id: 'FIVEPAISA', label: '5paisa', confidence: 'heuristic' },
-  { id: 'VESTED', label: 'Vested', confidence: 'heuristic' },
-  { id: 'TICKERTAPE', label: 'Tickertape', confidence: 'heuristic' },
-  { id: 'STOCKAL', label: 'Stockal', confidence: 'heuristic' },
-  { id: 'IBKR', label: 'Interactive Brokers', confidence: 'heuristic' },
-  { id: 'KUVERA', label: 'Kuvera', confidence: 'heuristic' },
-  { id: 'MFCENTRAL', label: 'MFCentral CAS', confidence: 'heuristic' },
-  { id: 'KOTAK_NEO', label: 'Kotak Neo', confidence: 'heuristic' },
+  { id: 'MSTOCK', label: 'mstock', confidence: 'heuristic', domain: 'mstock.com' },
+  { id: 'FIVEPAISA', label: '5paisa', confidence: 'heuristic', domain: '5paisa.com' },
+  { id: 'VESTED', label: 'Vested', confidence: 'heuristic', domain: 'vestedfinance.com' },
+  { id: 'TICKERTAPE', label: 'Tickertape', confidence: 'heuristic', domain: 'tickertape.in' },
+  { id: 'STOCKAL', label: 'Stockal', confidence: 'heuristic', domain: 'stockal.com' },
+  { id: 'IBKR', label: 'Interactive Brokers', confidence: 'heuristic', domain: 'interactivebrokers.com' },
+  { id: 'KUVERA', label: 'Kuvera', confidence: 'heuristic', domain: 'kuvera.in' },
+  { id: 'MFCENTRAL', label: 'MFCentral CAS', confidence: 'heuristic', domain: 'mfcentral.com' },
+  { id: 'KOTAK_NEO', label: 'Kotak Neo', confidence: 'heuristic', domain: 'kotak.com' },
   { id: 'OTHER_BROKER', label: 'Other / not listed', confidence: 'heuristic' },
 ];
 

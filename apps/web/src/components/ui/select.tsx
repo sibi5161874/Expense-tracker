@@ -64,11 +64,20 @@ function SelectContent({
   align = "center",
   alignOffset = 0,
   alignItemWithTrigger = false,
+  // "none" keeps every Select opening on its preferred side even when a selected item's
+  // alignment would otherwise want to flip it — the fix for the "Select opening flipped
+  // upward and anchored to the selected item" regression from earlier in this project. But
+  // a trigger with little room on its preferred side (e.g. a "Rows per page" control in a
+  // pagination footer sitting at the very bottom of the viewport) then has nowhere to
+  // grow — the popup gets squeezed into a sliver only tall enough for one item, with
+  // scroll-up/down arrows for the rest. Call sites in exactly that position should pass
+  // `collisionAvoidance={{ side: "flip" }}` to opt back into normal flip-to-fit behavior.
+  collisionAvoidance = { side: "none" },
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
     SelectPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
+    "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger" | "collisionAvoidance"
   >) {
   return (
     <SelectPrimitive.Portal>
@@ -78,7 +87,7 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        collisionAvoidance={{ side: "none" }}
+        collisionAvoidance={collisionAvoidance}
         className="isolate z-50"
       >
         <SelectPrimitive.Popup

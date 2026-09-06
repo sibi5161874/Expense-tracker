@@ -9,6 +9,7 @@ import {
   resolveEffectiveTier,
   hasFeatureAccess,
   extractStockFundamentals,
+  toYahooTicker,
   type StockFundamentals,
 } from '@repo/shared/logic';
 import { getUserProfile } from '@repo/shared/queries/profile';
@@ -39,19 +40,25 @@ export async function GET(req: Request) {
   const limited = await enforceRateLimit(`stock:fundamentals:${user.id}`, 60, 10 * 60_000);
   if (limited) return limited;
 
-  const ticker = new URL(req.url).searchParams.get('ticker')?.trim().toUpperCase();
+  const { searchParams } = new URL(req.url);
+  const ticker = searchParams.get('ticker')?.trim().toUpperCase();
   if (!ticker) {
     return NextResponse.json({ error: 'Missing ticker' }, { status: 400 });
   }
+  // Indian listings need the .NS/.BO suffix or Yahoo can't resolve them at all — same
+  // symbol->Yahoo-ticker mapping /api/prices/refresh already uses, so a bare "SBIN" and a
+  // properly-suffixed "SBIN.NS" don't silently diverge into two different code paths.
+  const exchange = searchParams.get('exchange')?.trim() ?? '';
+  const yahooTicker = toYahooTicker(ticker, exchange);
 
-  const cacheKey = `fundamentals:${ticker}`;
+  const cacheKey = `fundamentals:${yahooTicker}`;
   const cached = await getCachedQuote<StockFundamentals>(cacheKey);
   if (cached) {
     return NextResponse.json({ ticker, ...cached });
   }
 
   try {
-    const payload = await fetchYahooQuoteSummary(ticker, MODULES);
+    const payload = await fetchYahooQuoteSummary(yahooTicker, MODULES);
     const fundamentals = extractStockFundamentals(payload);
     if (!fundamentals) {
       return NextResponse.json({ error: `No fundamentals available for "${ticker}".` }, { status: 404 });
@@ -60,7 +67,7 @@ export async function GET(req: Request) {
     await setCachedQuote(cacheKey, fundamentals);
     return NextResponse.json({ ticker, ...fundamentals });
   } catch (e) {
-    logError('stock.fundamentals', e, { userId: user.id, ticker, requestId: getRequestId(req) });
+    logError('stock.fundamentals', e, { userId: user.id, ticker: yahooTicker, requestId: getRequestId(req) });
     return NextResponse.json({ error: "Couldn't fetch fundamentals right now, try again." }, { status: 502 });
   }
 }

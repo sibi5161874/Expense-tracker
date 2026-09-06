@@ -65,6 +65,7 @@ export function BestWorstPerformersReport() {
                   tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                 />
                 <Tooltip
+                  cursor={{ fill: 'var(--muted)' }}
                   contentStyle={{
                     background: 'var(--popover)',
                     color: 'var(--popover-foreground)',

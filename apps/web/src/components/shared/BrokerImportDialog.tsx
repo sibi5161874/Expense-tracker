@@ -9,6 +9,7 @@ import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogDes
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
+import { InstitutionLogo } from '@/components/shared/InstitutionLogo';
 import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { ColumnMapper, BROKER_MAPPABLE_FIELDS } from '@/components/shared/ColumnMapper';
@@ -209,6 +210,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
                   <SelectContent>
                     {BROKERS.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
+                        <InstitutionLogo domain={b.domain} />
                         {b.label}
                       </SelectItem>
                     ))}

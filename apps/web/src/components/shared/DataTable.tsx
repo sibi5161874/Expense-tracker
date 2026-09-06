@@ -331,7 +331,12 @@ export function DataTable<T>({
                     <SelectTrigger size="sm" className="w-[70px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    {/* This control sits in the pagination footer, often right at the bottom of the
+                        viewport — with no room to open downward, the shared default (`side: "none"`,
+                        see select.tsx) squeezes the popup into a one-item sliver instead of showing
+                        every page-size option. Flipping upward here fixes that without changing the
+                        default every other Select in the app relies on. */}
+                    <SelectContent collisionAvoidance={{ side: 'flip' }}>
                       {pageSizeOptions.map((size) => (
                         <SelectItem key={size} value={String(size)}>
                           {size}

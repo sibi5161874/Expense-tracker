@@ -687,6 +687,7 @@ export interface Database {
           number_of_dependents: number;
           onboarding_completed: boolean;
           monthly_report_email_enabled: boolean;
+          avatar_url: string | null;
           tier: SubscriptionTier;
           trial_started_at: string | null;
           trial_ends_at: string | null;
@@ -702,6 +703,7 @@ export interface Database {
           number_of_dependents?: number;
           onboarding_completed?: boolean;
           monthly_report_email_enabled?: boolean;
+          avatar_url?: string | null;
           tier?: SubscriptionTier;
           trial_started_at?: string | null;
           trial_ends_at?: string | null;

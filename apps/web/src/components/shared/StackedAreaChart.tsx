@@ -25,6 +25,7 @@ export function StackedAreaChart({ data, xKey, series }: StackedAreaChartProps) 
           width={40}
         />
         <Tooltip
+          cursor={{ stroke: 'var(--border)' }}
           contentStyle={{
             background: 'var(--popover)',
             color: 'var(--popover-foreground)',
