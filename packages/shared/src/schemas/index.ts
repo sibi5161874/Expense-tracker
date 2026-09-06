@@ -27,3 +27,4 @@ export * from "./recurringTransaction.schema";
 export * from "./payment.schema";
 export * from "./importRequest.schema";
 export * from "./accountDeletion.schema";
+export * from "./feedback.schema";

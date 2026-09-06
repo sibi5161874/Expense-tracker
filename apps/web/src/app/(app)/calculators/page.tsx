@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calculator, Sparkles } from 'lucide-react';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -16,14 +16,11 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { ProLockedButton } from '@/components/shared/ProGate';
 
-type CalcTab = 'basic' | 'sip' | 'averaging' | 'lumpsum' | 'pnl';
+type CalcTab = 'sip' | 'averaging' | 'lumpsum' | 'pnl';
 
 const TAB_OPTIONS: { value: CalcTab; label: string }[] = [
-  { value: 'basic', label: 'Basic' },
   { value: 'sip', label: 'SIP' },
   { value: 'averaging', label: 'Stock Averaging' },
   { value: 'lumpsum', label: 'Lumpsum' },
@@ -69,235 +66,6 @@ function ResultCard({ label, value, tone = 'default' }: { label: string; value: 
       >
         {value}
       </p>
-    </div>
-  );
-}
-
-type CalcOperator = '+' | '-' | '×' | '÷';
-
-const MAX_DISPLAY_DIGITS = 15;
-
-/** Applies one pending operator between two operands — shared by the "=" button, chaining a
- * new operator mid-expression (Windows Calculator computes the pending op first), and the
- * keyboard handler, so all three paths can't drift out of sync with each other. */
-function applyOperator(a: number, b: number, operator: CalcOperator): number {
-  switch (operator) {
-    case '+':
-      return a + b;
-    case '-':
-      return a - b;
-    case '×':
-      return a * b;
-    case '÷':
-      return b === 0 ? NaN : a / b;
-  }
-}
-
-function formatCalcResult(n: number): string {
-  if (!Number.isFinite(n)) return 'Error';
-  // Avoid float noise (0.1 + 0.2) without truncating a genuinely long integer result.
-  const rounded = Math.round(n * 1e10) / 1e10;
-  return rounded.toLocaleString('en-US', { maximumFractionDigits: 10, useGrouping: false });
-}
-
-/**
- * A real calculator — display + keypad, same interaction model as Windows Calculator:
- * digits/operators build an expression left to right, an operator commits whatever's pending,
- * and typing on the physical keyboard works identically to clicking the on-screen buttons.
- * Replaces the earlier "two fields and a dropdown" version, which wasn't a calculator so much
- * as a single binary-operation form.
- */
-function BasicCalculator() {
-  const [display, setDisplay] = useState('0');
-  const [previousValue, setPreviousValue] = useState<number | null>(null);
-  const [pendingOperator, setPendingOperator] = useState<CalcOperator | null>(null);
-  const [waitingForOperand, setWaitingForOperand] = useState(false);
-  const [justEvaluated, setJustEvaluated] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const inputDigit = useCallback(
-    (digit: string) => {
-      if (waitingForOperand || justEvaluated) {
-        setDisplay(digit);
-        setWaitingForOperand(false);
-        setJustEvaluated(false);
-        return;
-      }
-      setDisplay((prev) => {
-        if (prev === '0') return digit;
-        if (prev.replace('-', '').replace('.', '').length >= MAX_DISPLAY_DIGITS) return prev;
-        return prev + digit;
-      });
-    },
-    [waitingForOperand, justEvaluated]
-  );
-
-  const inputDecimal = useCallback(() => {
-    if (waitingForOperand || justEvaluated) {
-      setDisplay('0.');
-      setWaitingForOperand(false);
-      setJustEvaluated(false);
-      return;
-    }
-    setDisplay((prev) => (prev.includes('.') ? prev : `${prev}.`));
-  }, [waitingForOperand, justEvaluated]);
-
-  const clearAll = useCallback(() => {
-    setDisplay('0');
-    setPreviousValue(null);
-    setPendingOperator(null);
-    setWaitingForOperand(false);
-    setJustEvaluated(false);
-  }, []);
-
-  const clearEntry = useCallback(() => {
-    setDisplay('0');
-    setWaitingForOperand(false);
-  }, []);
-
-  const backspace = useCallback(() => {
-    if (waitingForOperand || justEvaluated) return;
-    setDisplay((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
-  }, [waitingForOperand, justEvaluated]);
-
-  const toggleSign = useCallback(() => {
-    setDisplay((prev) => (prev === '0' ? prev : prev.startsWith('-') ? prev.slice(1) : `-${prev}`));
-  }, []);
-
-  const chooseOperator = useCallback(
-    (operator: CalcOperator) => {
-      const current = num(display);
-      setJustEvaluated(false);
-      if (previousValue !== null && pendingOperator && !waitingForOperand) {
-        const result = applyOperator(previousValue, current, pendingOperator);
-        setPreviousValue(result);
-        setDisplay(formatCalcResult(result));
-      } else {
-        setPreviousValue(current);
-      }
-      setPendingOperator(operator);
-      setWaitingForOperand(true);
-    },
-    [display, previousValue, pendingOperator, waitingForOperand]
-  );
-
-  const equals = useCallback(() => {
-    if (previousValue === null || !pendingOperator) return;
-    const current = num(display);
-    const result = applyOperator(previousValue, current, pendingOperator);
-    setDisplay(formatCalcResult(result));
-    setPreviousValue(null);
-    setPendingOperator(null);
-    setWaitingForOperand(false);
-    setJustEvaluated(true);
-  }, [display, previousValue, pendingOperator]);
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      if (/^[0-9]$/.test(e.key)) {
-        inputDigit(e.key);
-        return;
-      }
-      switch (e.key) {
-        case '.':
-          inputDecimal();
-          break;
-        case '+':
-          chooseOperator('+');
-          break;
-        case '-':
-          chooseOperator('-');
-          break;
-        case '*':
-          chooseOperator('×');
-          break;
-        case '/':
-          e.preventDefault(); // browser default is quick-find in some contexts
-          chooseOperator('÷');
-          break;
-        case 'Enter':
-        case '=':
-          e.preventDefault();
-          equals();
-          break;
-        case 'Backspace':
-          backspace();
-          break;
-        case 'Escape':
-          clearAll();
-          break;
-        case 'Delete':
-          clearEntry();
-          break;
-        default:
-          return;
-      }
-    },
-    [inputDigit, inputDecimal, chooseOperator, equals, backspace, clearAll, clearEntry]
-  );
-
-  const expression =
-    previousValue !== null && pendingOperator
-      ? `${formatCalcResult(previousValue)} ${pendingOperator}${waitingForOperand ? '' : ` ${display}`}`
-      : ' ';
-
-  const KEYS: { label: string; onPress: () => void; variant?: 'op' | 'muted' | 'equals' }[] = [
-    { label: 'CE', onPress: clearEntry, variant: 'muted' },
-    { label: 'C', onPress: clearAll, variant: 'muted' },
-    { label: '⌫', onPress: backspace, variant: 'muted' },
-    { label: '÷', onPress: () => chooseOperator('÷'), variant: 'op' },
-    { label: '7', onPress: () => inputDigit('7') },
-    { label: '8', onPress: () => inputDigit('8') },
-    { label: '9', onPress: () => inputDigit('9') },
-    { label: '×', onPress: () => chooseOperator('×'), variant: 'op' },
-    { label: '4', onPress: () => inputDigit('4') },
-    { label: '5', onPress: () => inputDigit('5') },
-    { label: '6', onPress: () => inputDigit('6') },
-    { label: '−', onPress: () => chooseOperator('-'), variant: 'op' },
-    { label: '1', onPress: () => inputDigit('1') },
-    { label: '2', onPress: () => inputDigit('2') },
-    { label: '3', onPress: () => inputDigit('3') },
-    { label: '+', onPress: () => chooseOperator('+'), variant: 'op' },
-    { label: '+/-', onPress: toggleSign },
-    { label: '0', onPress: () => inputDigit('0') },
-    { label: '.', onPress: inputDecimal },
-    { label: '=', onPress: equals, variant: 'equals' },
-  ];
-
-  return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      className="focus-visible:ring-ring/50 mx-auto max-w-xs space-y-3 rounded-2xl outline-none focus-visible:ring-3"
-    >
-      <div
-        role="textbox"
-        aria-label="Calculator display"
-        aria-readonly="true"
-        onClick={() => containerRef.current?.focus()}
-        className="bg-muted/60 cursor-text space-y-1 rounded-2xl p-4 text-right"
-      >
-        <p className="text-muted-foreground h-4 truncate font-mono text-xs tabular-nums">{expression}</p>
-        <p className="truncate font-mono text-3xl font-semibold tabular-nums">{display}</p>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        {KEYS.map((key) => (
-          <Button
-            key={key.label}
-            type="button"
-            variant={key.variant === 'muted' ? 'outline' : key.variant === 'op' ? 'secondary' : 'outline'}
-            className={cn(
-              'h-12 font-mono text-base',
-              key.variant === 'equals' && 'bg-primary text-primary-foreground hover:bg-primary/90 col-span-1'
-            )}
-            onClick={key.onPress}
-          >
-            {key.label}
-          </Button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -401,7 +169,7 @@ function PnlCalculator() {
 export default function CalculatorsPage() {
   const router = useRouter();
   const { hasFeature } = useEntitlements();
-  const [tab, setTab] = useState<CalcTab>('basic');
+  const [tab, setTab] = useState<CalcTab>('sip');
 
   if (!hasFeature('financialCalculators')) {
     return (
@@ -439,7 +207,6 @@ export default function CalculatorsPage() {
         <CardContent className="space-y-6">
           <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
 
-          {tab === 'basic' && <BasicCalculator />}
           {tab === 'sip' && <SipCalculator />}
           {tab === 'averaging' && <AveragingCalculator />}
           {tab === 'lumpsum' && <LumpsumCalculator />}

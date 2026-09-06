@@ -12,18 +12,24 @@ const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
  */
 export function usePassiveIncome(holdings: SymbolHolding[]) {
   const uniqueSymbols = [...new Set(holdings.map((h) => h.symbol))];
+  // Same symbol always carries the same exchange for a given user, so the first match is fine.
+  const exchangeBySymbol = new Map(holdings.map((h) => [h.symbol, h.exchange]));
 
   const results = useQueries({
-    queries: uniqueSymbols.map((symbol) => ({
-      queryKey: ['stock-fundamentals', symbol],
-      queryFn: async (): Promise<StockFundamentals & { ticker: string }> => {
-        const res = await fetch(`/api/stock/fundamentals?ticker=${encodeURIComponent(symbol)}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Failed to fetch fundamentals');
-        return data;
-      },
-      staleTime: SIX_HOURS_MS,
-    })),
+    queries: uniqueSymbols.map((symbol) => {
+      const exchange = exchangeBySymbol.get(symbol) ?? '';
+      return {
+        queryKey: ['stock-fundamentals', symbol, exchange],
+        queryFn: async (): Promise<StockFundamentals & { ticker: string }> => {
+          const params = new URLSearchParams({ ticker: symbol, exchange });
+          const res = await fetch(`/api/stock/fundamentals?${params.toString()}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error ?? 'Failed to fetch fundamentals');
+          return data;
+        },
+        staleTime: SIX_HOURS_MS,
+      };
+    }),
   });
 
   const isLoading = results.some((r) => r.isLoading);

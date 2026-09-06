@@ -40,9 +40,13 @@ import {
   Car,
   Crown,
   Calculator,
+  Coffee,
+  MessageSquareHeart,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { REPORTS, type ReportMeta } from "@/lib/reportsRegistry";
 import { isReportEnabled } from "@repo/shared/logic";
@@ -107,6 +111,11 @@ const SETTINGS_CHILDREN: NavLeaf[] = [
   { href: "/settings?tab=data", label: "Data & Privacy", icon: ShieldCheck },
 ];
 
+const HELP_CHILDREN: NavLeaf[] = [
+  { href: "/help/donate", label: "Donate", icon: Coffee },
+  { href: "/help/feedback", label: "Feedback", icon: MessageSquareHeart },
+];
+
 const ENABLED_REPORTS = REPORTS.filter((r) => isReportEnabled(r.slug));
 const REPORT_CHILDREN: NavLeaf[] = ENABLED_REPORTS.map((r) => ({ href: `/reports/${r.slug}`, label: r.title }));
 
@@ -132,6 +141,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "Reports", icon: FileBarChart, children: REPORT_CHILDREN, subGroups: REPORT_SUBGROUPS },
   { label: "Config", icon: Cog, children: CONFIG_CHILDREN },
   { label: "Settings", icon: Settings, children: SETTINGS_CHILDREN },
+  { label: "Help", icon: HelpCircle, children: HELP_CHILDREN },
 ];
 
 /** Matches href+query (e.g. `/assets?tab=gold`) against the current route, not just pathname. */
@@ -149,6 +159,7 @@ function useIsActive() {
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
+  const avatarUrl = useAvatarUrl();
   const router = useRouter();
   const isActive = useIsActive();
   const pathname = usePathname();
@@ -318,6 +329,7 @@ export function Sidebar() {
       <div className={cn("border-sidebar-border border-t py-4", collapsed ? "px-2" : "px-3")}>
         <div className={cn("flex items-center gap-3 rounded-lg px-3 py-2", collapsed && "justify-center px-0")}>
           <Avatar>
+            {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
               {initials}
             </AvatarFallback>

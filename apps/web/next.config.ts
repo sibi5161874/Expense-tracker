@@ -9,10 +9,16 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // www.google.com/s2/favicons is the bank/broker logo source for the import pickers
+  // (institutions.ts); lh3.googleusercontent.com serves a Google OAuth user's own profile
+  // picture (user_metadata.avatar_url); *.supabase.co serves a custom-uploaded avatar from
+  // the "avatars" Storage bucket. No logo/avatar assets are bundled/hosted by this app itself.
+  "img-src 'self' data: blob: https://www.google.com https://lh3.googleusercontent.com https://*.supabase.co",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-src 'self' https://accounts.google.com",
+  // youtube.com/embed powers the optional landing-page promo video (constants.ts's
+  // PROMO_VIDEO_YOUTUBE_URL) — the section itself doesn't render at all when that's empty.
+  "frame-src 'self' https://accounts.google.com https://www.youtube.com",
   "form-action 'self' https://*.supabase.co https://accounts.google.com",
   "base-uri 'self'",
   "object-src 'none'",

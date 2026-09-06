@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,13 +9,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+// Easter egg: click "in" then "it" then "in" then "it" (matching the sequence below) in the
+// delete-account copy to find a hidden page. Purely order-based, no time expiry — an earlier
+// version reset progress after 2s of inactivity, which silently broke a slow/deliberate
+// click-through (e.g. pausing between clicks to verify) with zero visible feedback.
+const EASTER_EGG_SEQUENCE = ['in', 'it', 'in', 'it'];
+
 export function DataTab() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const eggProgressRef = useRef(0);
+
+  function handleEggWordClick(word: (typeof EASTER_EGG_SEQUENCE)[number]) {
+    const expected = EASTER_EGG_SEQUENCE[eggProgressRef.current];
+    eggProgressRef.current = word === expected ? eggProgressRef.current + 1 : word === EASTER_EGG_SEQUENCE[0] ? 1 : 0;
+
+    if (eggProgressRef.current >= EASTER_EGG_SEQUENCE.length) {
+      eggProgressRef.current = 0;
+      router.push('/easter-egg-334354');
+    }
+  }
 
   async function handleExport() {
     setIsExporting(true);
@@ -72,8 +92,10 @@ export function DataTab() {
       <div className="border-destructive/30 bg-destructive/5 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-destructive text-sm font-semibold">Delete account</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
-          Permanently deletes your account and every record in it. This cannot be undone — export your data
-          first if you might want it later.
+          Permanently deletes your account and every record{' '}
+          <span onClick={() => handleEggWordClick('in')}>in</span>{' '}
+          <span onClick={() => handleEggWordClick('it')}>it</span>. This cannot be undone — export
+          your data first if you might want it later.
         </p>
         <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteDialog(true)}>
           <Trash2 className="size-4" />

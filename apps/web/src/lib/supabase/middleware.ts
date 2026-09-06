@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/features",
   "/pricing",
   "/reports-overview",
+  "/donate",
   // No cookie session exists yet when this loads directly from an unauthenticated browser
   // — but by the time a real recovery link lands here, /auth/callback has already exchanged
   // the code for a real session, so this only needs to be public for the direct-visit case.

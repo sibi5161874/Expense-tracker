@@ -123,6 +123,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
                 width={48}
               />
               <Tooltip
+                cursor={{ stroke: 'var(--border)' }}
                 contentStyle={{
                   background: 'var(--popover)',
                   color: 'var(--popover-foreground)',

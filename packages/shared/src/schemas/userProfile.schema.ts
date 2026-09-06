@@ -7,6 +7,7 @@ export const userProfileSchema = z.object({
   number_of_dependents: z.number().int().nonnegative(),
   onboarding_completed: z.boolean(),
   monthly_report_email_enabled: z.boolean().optional(),
+  avatar_url: z.string().url().nullable().optional(),
 });
 
 export type UserProfileInput = z.infer<typeof userProfileSchema>;

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { PAID_TIER_ENABLED, PRICING, FREE_TIER_LIMITS } from '@repo/shared/config';
 import { REPORTS } from '@/lib/reportsRegistry';
+import { PROMO_VIDEO_YOUTUBE_URL } from '@/lib/constants';
+import { toYoutubeEmbedUrl } from '@/lib/youtube';
 import { LandingNavbar } from './LandingNavbar';
 import { LandingFooter } from './LandingFooter';
 import { FadeIn } from './FadeIn';
@@ -77,6 +79,8 @@ function formatRupees(n: number) {
 }
 
 export function LandingPage() {
+  const promoVideoEmbedUrl = toYoutubeEmbedUrl(PROMO_VIDEO_YOUTUBE_URL);
+
   return (
     <div className="bg-background text-foreground min-h-full">
       <LandingNavbar />
@@ -142,6 +146,23 @@ export function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* Promo video — hidden entirely when PROMO_VIDEO_YOUTUBE_URL (lib/constants.ts) is empty or unparseable */}
+      {promoVideoEmbedUrl && (
+        <section className="mx-auto max-w-4xl px-4 py-24 sm:px-6">
+          <FadeIn>
+            <div className="border-border/60 aspect-video overflow-hidden rounded-3xl border shadow-lg">
+              <iframe
+                src={promoVideoEmbedUrl}
+                title="KashMap promo video"
+                className="size-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </FadeIn>
+        </section>
+      )}
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-6xl px-4 py-24 sm:px-6">

@@ -83,7 +83,7 @@ export default function StockDetailPage() {
             onUpgradeClick={goToUpgrade}
           >
             {hasFeature('livePriceRefresh') ? (
-              <FundamentalCard ticker={symbol} />
+              <FundamentalCard ticker={symbol} exchange={holding.exchange} />
             ) : (
               <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
                 <h2 className="mb-4 text-sm font-semibold">Fundamentals</h2>
