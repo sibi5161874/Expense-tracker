@@ -28,3 +28,4 @@ export * from "./payment.schema";
 export * from "./importRequest.schema";
 export * from "./accountDeletion.schema";
 export * from "./feedback.schema";
+export * from "./aiChat.schema";

@@ -17,7 +17,7 @@ export default function DonatePage() {
               Support KashMap
             </h1>
             <p className="text-muted-foreground mt-4 text-lg">
-              KashMap is a labor of love. If it's helped you get on top of your money, consider
+              KashMap is a labor of love. If it&apos;s helped you get on top of your money, consider
               buying the developer a coffee.
             </p>
           </FadeIn>

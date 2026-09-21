@@ -13,10 +13,9 @@ import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { ProLockedButton } from "@/components/shared/ProGate";
 import { useThemeColor } from "@/lib/colors";
 
-type CalcTab = "basic" | "sip" | "averaging" | "lumpsum" | "pnl";
+type CalcTab = "sip" | "averaging" | "lumpsum" | "pnl";
 
 const TAB_OPTIONS = [
-  { value: "basic", label: "Basic" },
   { value: "sip", label: "SIP" },
   { value: "averaging", label: "Averaging" },
   { value: "lumpsum", label: "Lumpsum" },
@@ -59,42 +58,6 @@ function ResultCard({ label, value, tone = "default" }: { label: string; value: 
       >
         {value}
       </AppText>
-    </View>
-  );
-}
-
-function BasicCalculator() {
-  const [a, setA] = useState("0");
-  const [b, setB] = useState("0");
-  const [op, setOp] = useState<"+" | "-" | "×" | "÷">("+");
-  const na = num(a);
-  const nb = num(b);
-  const result = op === "+" ? na + nb : op === "-" ? na - nb : op === "×" ? na * nb : nb !== 0 ? na / nb : 0;
-
-  return (
-    <View className="gap-4">
-      <View className="flex-row gap-4">
-        <View className="flex-1">
-          <Field label="Value A" value={a} onChange={setA} />
-        </View>
-        <View className="flex-1">
-          <Field label="Value B" value={b} onChange={setB} />
-        </View>
-      </View>
-      <View className="gap-1.5">
-        <AppText className="text-sm font-medium">Operation</AppText>
-        <SegmentedControl
-          options={[
-            { value: "+", label: "+" },
-            { value: "-", label: "−" },
-            { value: "×", label: "×" },
-            { value: "÷", label: "÷" },
-          ]}
-          value={op}
-          onChange={(v) => setOp(v as typeof op)}
-        />
-      </View>
-      <ResultCard label="Result" value={result.toLocaleString("en-IN", { maximumFractionDigits: 4 })} />
     </View>
   );
 }
@@ -205,7 +168,7 @@ function PnlCalculator() {
 
 export default function CalculatorsScreen() {
   const { hasFeature } = useEntitlements();
-  const [tab, setTab] = useState<CalcTab>("basic");
+  const [tab, setTab] = useState<CalcTab>("sip");
   const mutedForeground = useThemeColor("mutedForeground");
   const info = useThemeColor("info");
 
@@ -245,7 +208,6 @@ export default function CalculatorsScreen() {
             <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={(v) => setTab(v as CalcTab)} />
           </ScrollView>
 
-          {tab === "basic" && <BasicCalculator />}
           {tab === "sip" && <SipCalculator />}
           {tab === "averaging" && <AveragingCalculator />}
           {tab === "lumpsum" && <LumpsumCalculator />}

@@ -28,7 +28,8 @@
       "expo-router",
       "expo-status-bar",
       "expo-sharing",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "extra": {
       "router": {},

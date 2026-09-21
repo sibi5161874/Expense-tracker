@@ -7,6 +7,8 @@ export const FEEDBACK_RECIPIENT_EMAIL = "sibi24sibi@gmail.com";
 
 /** Landing page promo video — paste any YouTube link here (a normal youtube.com/watch?v=...
  * link, a youtu.be/... short link, or an already-embed youtube.com/embed/... link all work,
- * see toYoutubeEmbedUrl in lib/youtube.ts). Leave empty to hide the promo video section
- * entirely. */
-export const PROMO_VIDEO_YOUTUBE_URL = "";
+ * see toYoutubeEmbedUrl in lib/youtube.ts), or a direct video file path (e.g. /_ _project__ _ _title_.mp4).
+ * Leave empty to hide the promo video section entirely. */
+export const PROMO_VIDEO_YOUTUBE_URL = "https://youtu.be/dGbQzsU61wU";
+
+

@@ -26,12 +26,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 interface AuthFormProps {
   mode: "login" | "signup";
+  initialError?: string | null;
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, initialError }: AuthFormProps) {
   const router = useRouter();
   const { signIn, signUp, signInWithGoogle } = useAuth();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(() => {
+    if (!initialError) return null;
+    if (initialError === "auth_callback_failed") {
+      return "Authentication failed or session expired. Please try signing in again.";
+    }
+    return initialError;
+  });
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 

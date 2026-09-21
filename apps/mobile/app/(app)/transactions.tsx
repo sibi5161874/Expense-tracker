@@ -213,7 +213,7 @@ export default function TransactionsScreen() {
       ) : (
         <FlatList
           className="mt-2"
-          contentContainerStyle={{ paddingBottom: 128 }}
+          contentContainerStyle={{ paddingBottom: 160 }}
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (

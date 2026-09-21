@@ -20,9 +20,9 @@ const TONE_TEXT_CLASSES: Record<BadgeTone, string> = {
 };
 
 /** Mirrors apps/web/src/components/shared/StatusBadge.tsx. */
-export function StatusBadge({ tone, children }: { tone: BadgeTone; children: string }) {
+export function StatusBadge({ tone, children, className }: { tone: BadgeTone; children: string; className?: string }) {
   return (
-    <View className={cn("self-start rounded-full px-2.5 py-0.5", TONE_CLASSES[tone])}>
+    <View className={cn("self-start rounded-full px-2.5 py-0.5", TONE_CLASSES[tone], className)}>
       <AppText className={cn("text-xs font-medium", TONE_TEXT_CLASSES[tone])}>{children}</AppText>
     </View>
   );

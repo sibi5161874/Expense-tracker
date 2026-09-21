@@ -23,13 +23,16 @@ export function CountUpAmount({ value, className }: CountUpAmountProps) {
     if (hasAnimatedRef.current) return;
     hasAnimatedRef.current = true;
 
-    const controls = animate(0, value, {
+    // No cleanup that stops the animation: React Strict Mode's dev-only double-invoke
+    // (mount -> cleanup -> mount) would otherwise kill the animation on its first real start
+    // — the ref guard above then skips the second invocation, leaving `display` stuck at 0
+    // forever. Letting it run to completion is safe; the component staying mounted is exactly
+    // what the ref is guarding for.
+    animate(0, value, {
       duration: 0.6,
       ease: "easeOut",
       onUpdate: (latest) => setDisplay(latest),
     });
-
-    return () => controls.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-once, not value-reactive
   }, []);
 

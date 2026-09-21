@@ -42,15 +42,8 @@ export default function LoginScreen() {
     router.replace("/(app)/dashboard");
   }
 
-  // Password reset needs an emailed link to land somewhere that can complete the exchange —
-  // that's a browser, not this app, so this opens the web app's own forgot-password flow in
-  // the system browser rather than building a second, deep-link-based recovery flow here.
-  async function handleForgotPassword() {
-    if (!WEB_APP_URL) {
-      Alert.alert("Not configured", "EXPO_PUBLIC_WEB_APP_URL is not set — password reset needs the web app's URL.");
-      return;
-    }
-    await Linking.openURL(`${WEB_APP_URL}/forgot-password`);
+  function handleForgotPassword() {
+    router.push("/(auth)/forgot-password");
   }
 
   // Opt-in only — an explicit tap, never automatic, so this never silently hides the login

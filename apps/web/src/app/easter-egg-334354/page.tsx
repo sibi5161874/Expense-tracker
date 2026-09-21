@@ -140,6 +140,55 @@ function KanbanBoard() {
   );
 }
 
+const MOUSE_EVENT_DEFAULTS = {
+  hover: 'Hover Me',
+  rightClick: 'Right Click Here',
+  doubleClick: 'Double-Click Here',
+};
+
+// Mirrors testautomationpractice.blogspot.com's "Mouse Hover", "Right Click Context Menu",
+// and "Double Click" demos — each button's own label changes in place to confirm the exact
+// interaction fired, rather than popping an alert (a hover-triggered alert would be
+// obnoxious, so all three use the same "swap the label" pattern for consistency).
+function MouseEvents() {
+  const [labels, setLabels] = useState(MOUSE_EVENT_DEFAULTS);
+
+  return (
+    <div className="mt-10 text-left">
+      <h2 className="text-lg font-semibold">Mouse Events</h2>
+      <p className="text-muted-foreground mt-1 text-sm">Hover, right-click, and double-click each button below.</p>
+
+      <div className="mt-4 flex flex-col gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onMouseEnter={() => setLabels((prev) => ({ ...prev, hover: 'Hovered!' }))}
+          onMouseLeave={() => setLabels((prev) => ({ ...prev, hover: MOUSE_EVENT_DEFAULTS.hover }))}
+        >
+          {labels.hover}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setLabels((prev) => ({ ...prev, rightClick: 'Right-Clicked!' }));
+          }}
+        >
+          {labels.rightClick}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onDoubleClick={() => setLabels((prev) => ({ ...prev, doubleClick: 'Double-Clicked!' }))}
+        >
+          {labels.doubleClick}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // Reached only via the hidden click sequence in Settings > Data & Privacy (see DataTab.tsx).
 // Deliberately outside the (app) route group — no sidebar/navbar chrome, just this.
 // Modeled on testautomationpractice.blogspot.com's "Alerts & Popups" section: real browser-
@@ -175,6 +224,8 @@ export default function EasterEggPage() {
             </Button>
           </div>
         </div>
+
+        <MouseEvents />
 
         <KanbanBoard />
       </div>
