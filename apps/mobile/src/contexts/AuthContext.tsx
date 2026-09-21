@@ -26,6 +26,7 @@ interface AuthContextType {
    * changes) so the app is usable immediately with zero login friction. Requires
    * "Anonymous Sign-Ins" enabled in the Supabase dashboard (Authentication → Providers). */
   signInAnonymously: () => Promise<{ error: AuthError | null }>;
+  resetPasswordForEmail: (email: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -110,6 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const resetPasswordForEmail = async (email: string) => {
+    const redirectUri = AuthSession.makeRedirectUri({ scheme: "moneymanager", path: "auth/callback" });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUri,
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -125,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signInWithGoogle,
         signInAnonymously,
+        resetPasswordForEmail,
         signOut,
       }}
     >

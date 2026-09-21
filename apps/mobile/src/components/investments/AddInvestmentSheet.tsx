@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,8 +25,6 @@ const ASSET_TYPE_OPTIONS = ["Stock", "ETF", "Mutual Fund", "Crypto", "Bond", "Ot
   value: a,
 }));
 
-/** Mobile equivalent of InvestmentForm.tsx — same shape as AddTransactionSheet.tsx: a
- * full-height modal sheet with the shared Zod schema driving validation on both platforms. */
 export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editing }: AddInvestmentSheetProps) {
   const form = useForm<InvestmentLogInput>({
     resolver: zodResolver(investmentLogSchema),
@@ -38,6 +36,7 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
     },
   });
   const mutedForeground = useThemeColor("mutedForeground");
+  const foreground = useThemeColor("foreground");
   const accountOptions = accounts.map((a) => ({ label: a.name, value: a.id }));
 
   function handleSubmit(data: InvestmentLogInput) {
@@ -47,123 +46,157 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between bg-card px-4 py-3">
-          <AppText className="text-base font-semibold">{editing ? "Edit Investment" : "Add Investment"}</AppText>
-          <Pressable onPress={onClose} hitSlop={14}>
-            <X size={20} color={mutedForeground} />
-          </Pressable>
-        </View>
+      <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          className="flex-1"
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between border-b border-border/60 bg-card px-5 py-4">
+            <AppText className="text-lg font-semibold text-foreground">
+              {editing ? "Edit Investment" : "New Investment"}
+            </AppText>
+            <Pressable
+              onPress={onClose}
+              hitSlop={14}
+              className="rounded-full bg-muted/60 p-1.5 active:bg-muted"
+            >
+              <X size={18} color={foreground} />
+            </Pressable>
+          </View>
 
-        <ScrollView contentContainerClassName="gap-4 p-4">
-          <PickerField
-            label="Action"
-            value={form.watch("action")}
-            options={ACTION_OPTIONS}
-            onChange={(v) => form.setValue("action", v as InvestmentLogInput["action"])}
-          />
+          <ScrollView
+            contentContainerClassName="gap-5 p-5 pb-10"
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="gap-4 rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <PickerField
+                    label="Action"
+                    value={form.watch("action")}
+                    options={ACTION_OPTIONS}
+                    onChange={(v) => form.setValue("action", v as InvestmentLogInput["action"])}
+                  />
+                </View>
+                <View className="flex-1">
+                  <PickerField
+                    label="Asset Type"
+                    value={form.watch("asset_type")}
+                    options={ASSET_TYPE_OPTIONS}
+                    onChange={(v) => form.setValue("asset_type", v as InvestmentLogInput["asset_type"])}
+                  />
+                </View>
+              </View>
 
-          <Controller
-            control={form.control}
-            name="date"
-            render={({ field, fieldState }) => (
-              <TextField label="Date" value={field.value} onChangeText={field.onChange} placeholder="YYYY-MM-DD" error={fieldState.error?.message} />
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="symbol"
-            render={({ field, fieldState }) => (
-              <TextField label="Symbol" value={field.value} onChangeText={field.onChange} autoCapitalize="characters" placeholder="INFY" error={fieldState.error?.message} />
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="exchange"
-            render={({ field, fieldState }) => (
-              <TextField label="Exchange" value={field.value} onChangeText={field.onChange} autoCapitalize="characters" placeholder="NSE" error={fieldState.error?.message} />
-            )}
-          />
-
-          <PickerField
-            label="Asset Type"
-            value={form.watch("asset_type")}
-            options={ASSET_TYPE_OPTIONS}
-            onChange={(v) => form.setValue("asset_type", v as InvestmentLogInput["asset_type"])}
-          />
-
-          <Controller
-            control={form.control}
-            name="quantity"
-            render={({ field, fieldState }) => (
-              <TextField
-                label="Quantity"
-                keyboardType="decimal-pad"
-                value={field.value ? String(field.value) : ""}
-                onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
-                placeholder="0"
-                error={fieldState.error?.message}
+              <Controller
+                control={form.control}
+                name="date"
+                render={({ field, fieldState }) => (
+                  <TextField label="Date" value={field.value} onChangeText={field.onChange} placeholder="YYYY-MM-DD" error={fieldState.error?.message} />
+                )}
               />
-            )}
-          />
 
-          <Controller
-            control={form.control}
-            name="price"
-            render={({ field, fieldState }) => (
-              <TextField
-                label="Price"
-                keyboardType="decimal-pad"
-                value={field.value ? String(field.value) : ""}
-                onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
-                placeholder="0.00"
-                error={fieldState.error?.message}
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Controller
+                    control={form.control}
+                    name="symbol"
+                    render={({ field, fieldState }) => (
+                      <TextField label="Symbol" value={field.value} onChangeText={field.onChange} autoCapitalize="characters" placeholder="INFY" error={fieldState.error?.message} />
+                    )}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Controller
+                    control={form.control}
+                    name="exchange"
+                    render={({ field, fieldState }) => (
+                      <TextField label="Exchange" value={field.value} onChangeText={field.onChange} autoCapitalize="characters" placeholder="NSE" error={fieldState.error?.message} />
+                    )}
+                  />
+                </View>
+              </View>
+
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Controller
+                    control={form.control}
+                    name="quantity"
+                    render={({ field, fieldState }) => (
+                      <TextField
+                        label="Quantity"
+                        keyboardType="decimal-pad"
+                        value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
+                        onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
+                        placeholder="0"
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Controller
+                    control={form.control}
+                    name="price"
+                    render={({ field, fieldState }) => (
+                      <TextField
+                        label="Price (₹)"
+                        keyboardType="decimal-pad"
+                        value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
+                        onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
+                        placeholder="0.00"
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </View>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="fees"
+                render={({ field }) => (
+                  <TextField
+                    label="Fees (₹)"
+                    keyboardType="decimal-pad"
+                    value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
+                    onChangeText={(t) => field.onChange(t ? Number(t) : 0)}
+                    placeholder="0.00"
+                  />
+                )}
               />
-            )}
-          />
 
-          <Controller
-            control={form.control}
-            name="fees"
-            render={({ field }) => (
-              <TextField
-                label="Fees"
-                keyboardType="decimal-pad"
-                value={field.value ? String(field.value) : ""}
-                onChangeText={(t) => field.onChange(t ? Number(t) : 0)}
-                placeholder="0.00"
+              <Controller
+                control={form.control}
+                name="linked_account_id"
+                render={({ field, fieldState }) => (
+                  <PickerField label="Linked Account" value={field.value} options={accountOptions} onChange={field.onChange} error={fieldState.error?.message} />
+                )}
               />
-            )}
-          />
 
-          <Controller
-            control={form.control}
-            name="linked_account_id"
-            render={({ field, fieldState }) => (
-              <PickerField label="Linked Account" value={field.value} options={accountOptions} onChange={field.onChange} error={fieldState.error?.message} />
-            )}
-          />
+              <Controller
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <TextField label="Notes" value={field.value ?? ""} onChangeText={field.onChange} placeholder="Optional notes" multiline />
+                )}
+              />
+            </View>
+          </ScrollView>
 
-          <Controller
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <TextField label="Notes" value={field.value} onChangeText={field.onChange} placeholder="Optional notes" multiline />
-            )}
-          />
-        </ScrollView>
-
-        <View className="flex-row gap-3 bg-card p-4">
-          <Button variant="outline" className="flex-1" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button className="flex-1" onPress={form.handleSubmit(handleSubmit)} disabled={form.formState.isSubmitting}>
-            {editing ? "Save Changes" : "Save Investment"}
-          </Button>
-        </View>
+          {/* Action Footer */}
+          <View className="flex-row gap-3 border-t border-border/60 bg-card p-4">
+            <Button variant="outline" className="flex-1" onPress={onClose}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onPress={form.handleSubmit(handleSubmit)} disabled={form.formState.isSubmitting}>
+              {editing ? "Save Changes" : "Save Investment"}
+            </Button>
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
 }
+

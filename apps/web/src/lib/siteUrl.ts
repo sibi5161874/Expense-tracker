@@ -9,8 +9,14 @@ import { PRODUCTION_SITE_URL } from "@repo/shared/config";
  * project setup works unchanged.
  */
 export function getSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
   if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
     return window.location.origin;
+  }
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
   }
   return PRODUCTION_SITE_URL;
 }

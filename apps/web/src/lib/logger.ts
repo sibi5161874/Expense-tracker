@@ -15,7 +15,6 @@
 
 function logStructured(level: string, context: string, fields: Record<string, unknown>) {
   const line = JSON.stringify({ level, context, timestamp: new Date().toISOString(), ...fields });
-  // eslint-disable-next-line no-console -- this IS the logging implementation
   if (level === 'error') console.error(line);
   else if (level === 'warn') console.warn(line);
   else if (level === 'info') console.info(line);

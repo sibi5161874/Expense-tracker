@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { resolveRequestUser } from '@/lib/supabase/bearer';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { getResendClient, getResendFromAddress } from '@/lib/resend';
 import { FEEDBACK_RECIPIENT_EMAIL } from '@/lib/constants';
@@ -19,10 +19,7 @@ function escapeHtml(value: string): string {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await resolveRequestUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const limited = await enforceRateLimit(`feedback:${user.id}`, 5, 60 * 60_000);

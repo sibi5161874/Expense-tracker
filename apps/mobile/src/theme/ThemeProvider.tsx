@@ -177,8 +177,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const DEFAULT_THEME: ResolvedTheme = resolveTheme("dark", false, DEFAULT_ACCENT, false);
+
+const defaultThemeContextValue: ThemeContextValue = {
+  theme: DEFAULT_THEME,
+  loaded: true,
+  setAmoled: async () => {},
+  setAccent: async () => {},
+  setDynamicColor: async () => {},
+};
+
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within a ThemeProvider");
+  if (!ctx) {
+    return defaultThemeContextValue;
+  }
   return ctx;
 }
+

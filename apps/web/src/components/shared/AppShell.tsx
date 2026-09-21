@@ -3,6 +3,7 @@
 import { Sidebar } from "@/components/shared/Sidebar";
 import { MobileNav } from "@/components/shared/MobileNav";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { AiChatWidget } from "@/components/shared/AiChatWidget";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         <MobileNav />
       </div>
+      <AiChatWidget />
     </div>
   );
 }

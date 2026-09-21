@@ -230,7 +230,11 @@ export function BrokerImportSheet({ visible, onClose, onImported }: BrokerImport
               <PickerField
                 label="Broker"
                 value={broker}
-                options={BROKERS.map((b) => ({ label: b.label, value: b.id }))}
+                options={BROKERS.map((b) => ({
+                  label: b.label,
+                  value: b.id,
+                  domain: b.domain,
+                }))}
                 onChange={setBroker}
               />
               <PickerField

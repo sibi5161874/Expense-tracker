@@ -1,7 +1,20 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
+const path = require("path");
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const monorepoRoot = path.resolve(projectRoot, "../..");
+
+const config = getDefaultConfig(projectRoot);
+
+// 1. Watch all files within the monorepo (shared packages & root node_modules)
+config.watchFolders = [monorepoRoot];
+
+// 2. Let Metro know where to resolve packages and in what order
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(monorepoRoot, "node_modules"),
+];
 
 // forceWriteFileSystem skips nativewind's virtual-module fast-refresh-CSS path, which reads
 // Metro's private dependency-graph internal (graph._fileSystem) to patch it — that internal's
@@ -11,3 +24,4 @@ const config = getDefaultConfig(__dirname);
 // plain "write the CSS output to disk, let Metro's normal file watcher pick it up" path, which
 // doesn't touch that internal at all.
 module.exports = withNativeWind(config, { input: "./global.css", forceWriteFileSystem: true });
+

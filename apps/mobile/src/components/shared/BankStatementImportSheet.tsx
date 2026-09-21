@@ -237,7 +237,11 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
               <PickerField
                 label="Bank"
                 value={bank}
-                options={BANKS.map((b) => ({ label: b.region ? `${b.region} · ${b.label}` : b.label, value: b.id }))}
+                options={BANKS.map((b) => ({
+                  label: b.region ? `${b.region} · ${b.label}` : b.label,
+                  value: b.id,
+                  domain: b.domain,
+                }))}
                 onChange={setBank}
               />
               <PickerField

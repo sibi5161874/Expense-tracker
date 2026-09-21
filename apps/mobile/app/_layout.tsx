@@ -22,11 +22,13 @@ import { ThemeProvider } from "@/theme/ThemeProvider";
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
     <SafeAreaProvider>
-      <View className="flex-1 items-center justify-center gap-4 bg-background p-8">
-        <AppText className="text-lg font-semibold">Something went wrong</AppText>
-        <AppText className="text-center text-sm text-muted-foreground">{error.message}</AppText>
-        <Button onPress={retry}>Try again</Button>
-      </View>
+      <ThemeProvider>
+        <View className="flex-1 items-center justify-center gap-4 bg-background p-8">
+          <AppText className="text-lg font-semibold">Something went wrong</AppText>
+          <AppText className="text-center text-sm text-muted-foreground">{error.message}</AppText>
+          <Button onPress={retry}>Try again</Button>
+        </View>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

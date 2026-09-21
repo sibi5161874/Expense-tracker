@@ -19,3 +19,21 @@ export async function fetchWebApi<T>(path: string, accessToken: string): Promise
   if (!res.ok) throw new Error(data.error ?? "Request failed");
   return data as T;
 }
+
+export async function postWebApi<T, B = unknown>(path: string, body: B, accessToken: string): Promise<T> {
+  if (!WEB_APP_URL) {
+    throw new Error("EXPO_PUBLIC_WEB_APP_URL is not configured.");
+  }
+  const res = await fetch(`${WEB_APP_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  return data as T;
+}
+

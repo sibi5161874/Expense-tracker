@@ -80,6 +80,15 @@ function formatRupees(n: number) {
 
 export function LandingPage() {
   const promoVideoEmbedUrl = toYoutubeEmbedUrl(PROMO_VIDEO_YOUTUBE_URL);
+  const trimmedVideoUrl = PROMO_VIDEO_YOUTUBE_URL.trim();
+  const isDirectVideo =
+    !promoVideoEmbedUrl &&
+    Boolean(
+      trimmedVideoUrl &&
+        (trimmedVideoUrl.startsWith('/') ||
+          /\.(mp4|webm|ogg|mov)($|\?)/i.test(trimmedVideoUrl))
+    );
+  const hasPromoVideo = Boolean(promoVideoEmbedUrl || isDirectVideo);
 
   return (
     <div className="bg-background text-foreground min-h-full">
@@ -148,17 +157,29 @@ export function LandingPage() {
       </section>
 
       {/* Promo video — hidden entirely when PROMO_VIDEO_YOUTUBE_URL (lib/constants.ts) is empty or unparseable */}
-      {promoVideoEmbedUrl && (
+      {hasPromoVideo && (
         <section className="mx-auto max-w-4xl px-4 py-24 sm:px-6">
           <FadeIn>
-            <div className="border-border/60 aspect-video overflow-hidden rounded-3xl border shadow-lg">
-              <iframe
-                src={promoVideoEmbedUrl}
-                title="KashMap promo video"
-                className="size-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+            <div className="border-border/60 bg-black aspect-video overflow-hidden rounded-3xl border shadow-lg">
+              {promoVideoEmbedUrl ? (
+                <iframe
+                  src={promoVideoEmbedUrl}
+                  title="KashMap promo video"
+                  className="size-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={trimmedVideoUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="size-full object-cover"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )}
             </div>
           </FadeIn>
         </section>

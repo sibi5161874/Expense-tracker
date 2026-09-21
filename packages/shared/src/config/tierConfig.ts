@@ -95,6 +95,8 @@ export const FREE_TIER_LIMITS = {
   maxNetWorthSnapshotsPerMonth: 2,
   maxGoals: 3,
   maxLiabilities: 5,
+  /** AI chat questions per calendar month — unlimited on Trial/Pro (see isUnlimitedTier()). Cheap enough per-query (Haiku-tier model, small tool results) that this stays a usage cap rather than a Pro-only feature gate. */
+  maxAiChatQueriesPerMonth: 20,
 } as const;
 
 /**

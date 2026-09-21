@@ -43,6 +43,8 @@ const HIDDEN_ROUTES = [
   "config",
   "settings",
   "billing",
+  "donate",
+  "feedback",
 ] as const;
 
 /** Active-tab pill: Primary Container behind the icon, not just tinted text — matches the

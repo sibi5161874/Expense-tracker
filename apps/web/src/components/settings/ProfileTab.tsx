@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { LoadingState } from '@/components/shared/QueryState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FinancialEssentialsCard } from '@/components/dashboard/FinancialEssentialsCard';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +66,7 @@ function RoadmapPanel({ phase }: { phase: AnalysisPhase }) {
 
   useEffect(() => {
     if (phase !== 'analyzing') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizing animation progress with phase change
       setProgressFilled(false);
       return;
     }
@@ -122,7 +123,6 @@ export function ProfileTab() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>('idle');
-  const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const form = useForm<UserProfileInput>({
     resolver: zodResolver(userProfileSchema),
@@ -140,13 +140,11 @@ export function ProfileTab() {
     });
   }, [profile, form]);
 
-  // Clears the pending "analyzing -> done" timeout if the component unmounts mid-analysis
-  // (e.g. the user navigates to another settings tab), so it can't call setState after unmount.
   useEffect(() => {
-    return () => {
-      if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
-    };
-  }, []);
+    if (analysisPhase !== 'analyzing') return;
+    const timer = setTimeout(() => setAnalysisPhase('done'), ANALYSIS_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [analysisPhase]);
 
   async function onSubmit(data: UserProfileInput) {
     setFormError(null);
@@ -154,16 +152,38 @@ export function ProfileTab() {
     try {
       await saveProfile({ ...data, onboarding_completed: true });
       setSaved(true);
-
-      if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
       setAnalysisPhase('analyzing');
-      analysisTimerRef.current = setTimeout(() => setAnalysisPhase('done'), ANALYSIS_DURATION_MS);
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
-  if (isLoading) return <LoadingState label="Loading profile..." />;
+  if (isLoading) {
+    return (
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm space-y-4">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-64" />
+          <div className="flex items-center gap-4 pt-2">
+            <Skeleton className="size-16 rounded-full" />
+            <Skeleton className="h-9 w-28 rounded-xl" />
+          </div>
+          <div className="space-y-4 pt-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-card border-border/60 flex h-64 flex-col items-center justify-center rounded-2xl border p-8">
+          <Skeleton className="size-8 rounded-full" />
+          <Skeleton className="mt-3 h-4 w-40" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-2">
