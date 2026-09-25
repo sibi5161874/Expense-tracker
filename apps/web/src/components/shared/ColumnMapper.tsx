@@ -1,6 +1,7 @@
 'use client';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getMappableFieldsForAssetType } from '@repo/shared/logic';
 
 export interface MappableField {
   key: string;
@@ -11,7 +12,8 @@ export interface MappableField {
 
 interface ColumnMapperProps {
   headers: string[];
-  fields: MappableField[];
+  fields?: MappableField[];
+  assetType?: string;
   value: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
 }
@@ -26,7 +28,9 @@ const NONE = '__none__';
  * user confirms the interpretation rather than the importer guessing. This is
  * what keeps a wrong guess from silently writing amounts into the wrong field.
  */
-export function ColumnMapper({ headers, fields, value, onChange }: ColumnMapperProps) {
+export function ColumnMapper({ headers, fields, assetType, value, onChange }: ColumnMapperProps) {
+  const activeFields = fields ?? (assetType ? getMappableFieldsForAssetType(assetType) : BROKER_MAPPABLE_FIELDS);
+
   function setField(key: string, selected: string | null) {
     const next = { ...value };
     if (!selected || selected === NONE) {
@@ -44,7 +48,7 @@ export function ColumnMapper({ headers, fields, value, onChange }: ColumnMapperP
         imported.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        {fields.map((field) => (
+        {activeFields.map((field) => (
           <div key={field.key}>
             <label className="mb-1.5 block text-sm font-medium">
               {field.label}

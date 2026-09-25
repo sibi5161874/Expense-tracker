@@ -119,6 +119,23 @@ describe('calculateNetWorth', () => {
     expect(result.vehiclesTotal).toBe(400_000);
     expect(result.netWorth).toBe(570_000);
   });
+
+  it('includes crypto assets at current_price * quantity', () => {
+    const result = calculateNetWorth({
+      accountBalances: [],
+      activeFixedDeposits: [],
+      goldHoldings: [],
+      cryptoAssets: [
+        { quantity: 0.5, current_price: 6_000_000 },
+        { quantity: 10, current_price: 200_000 },
+      ],
+      portfolioCurrentValue: 0,
+      liabilities: [],
+    });
+    expect(result.cryptoTotal).toBe(3_000_000 + 2_000_000);
+    expect(result.netWorth).toBe(5_000_000);
+  });
+
 });
 
 describe('buildSnapshotFromBreakdown', () => {

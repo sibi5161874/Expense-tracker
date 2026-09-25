@@ -21,6 +21,7 @@ export * from "./netWorthSnapshot.schema";
 export * from "./assetRecurringDeposit.schema";
 export * from "./assetNsc.schema";
 export * from "./assetVehicle.schema";
+export * from "./assetCrypto.schema";
 export * from "./userProfile.schema";
 export * from "./insurancePolicy.schema";
 export * from "./recurringTransaction.schema";
@@ -29,3 +30,4 @@ export * from "./importRequest.schema";
 export * from "./accountDeletion.schema";
 export * from "./feedback.schema";
 export * from "./aiChat.schema";
+

@@ -51,6 +51,10 @@ import {
   deleteRecurringDeposit,
   deleteNscCertificate,
   deleteVehicle,
+  getCryptoAssets,
+  createCryptoAsset,
+  updateCryptoAsset,
+  deleteCryptoAsset,
 } from '@repo/shared/queries/assets';
 import type {
   AssetFixedDepositInput,
@@ -66,6 +70,7 @@ import type {
   AssetRecurringDepositInput,
   AssetNscInput,
   AssetVehicleInput,
+  AssetCryptoInput,
 } from '@repo/shared/schemas';
 import type {
   FixedDeposit,
@@ -81,6 +86,7 @@ import type {
   RecurringDepositAsset,
   NscAsset,
   VehicleAsset,
+  CryptoAsset,
 } from '@repo/shared/types';
 import { createAssetHook } from '@/hooks/createAssetHook';
 
@@ -196,6 +202,14 @@ const useVehiclesBase = createAssetHook<VehicleAsset, AssetVehicleInput>({
   remove: deleteVehicle,
 });
 
+const useCryptoAssetsBase = createAssetHook<CryptoAsset, AssetCryptoInput>({
+  queryKey: 'cryptoAssets',
+  list: getCryptoAssets,
+  create: createCryptoAsset,
+  update: updateCryptoAsset,
+  remove: deleteCryptoAsset,
+});
+
 export function useFixedDeposits() {
   const base = useFixedDepositsBase();
   return {
@@ -280,3 +294,9 @@ export function useVehicles() {
   const base = useVehiclesBase();
   return { ...base, createVehicle: base.create, updateVehicle: base.update, deleteVehicle: base.remove };
 }
+
+export function useCryptoAssets() {
+  const base = useCryptoAssetsBase();
+  return { ...base, createCryptoAsset: base.create, updateCryptoAsset: base.update, deleteCryptoAsset: base.remove };
+}
+

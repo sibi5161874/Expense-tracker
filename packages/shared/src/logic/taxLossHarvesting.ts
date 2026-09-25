@@ -12,3 +12,16 @@ export function calculateUnrealizedLosses(holdings: SymbolHolding[], limit = 5):
   const totalLoss = losers.reduce((sum, h) => sum + Math.abs(h.unrealisedPnl), 0);
   return { totalLoss, topLosers: losers.slice(0, limit) };
 }
+
+/**
+ * Estimates potential tax savings from harvesting unrealized capital losses.
+ * Assumes a 15% Short-Term Capital Gains (STCG) tax offset rate per Indian tax rules (Section 111A).
+ * In practice, unrealized losses can be realized before financial year end to offset taxable capital gains.
+ *
+ * @param totalUnrealizedLoss - Absolute positive number representing total unrealized loss
+ * @returns Estimated tax savings rounded to 2 decimal places (or 0 if loss <= 0)
+ */
+export function estimateTaxSavings(totalUnrealizedLoss: number): number {
+  if (totalUnrealizedLoss <= 0) return 0;
+  return Math.round(totalUnrealizedLoss * 0.15 * 100) / 100;
+}

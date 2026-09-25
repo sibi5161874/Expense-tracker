@@ -92,3 +92,9 @@ export async function deleteVehicle(supabase: SupabaseClient<Database>, userId: 
   const { error } = await supabase.from('assets_vehicles').delete().eq('user_id', userId).eq('id', id);
   if (error) throw error;
 }
+
+export async function deleteCryptoAsset(supabase: SupabaseClient<Database>, userId: string, id: string) {
+  const { error } = await supabase.from('assets_crypto').delete().eq('user_id', userId).eq('id', id);
+  if (error) throw error;
+}
+

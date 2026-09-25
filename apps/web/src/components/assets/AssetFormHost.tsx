@@ -13,6 +13,7 @@ import { PpfForm } from '@/components/PpfForm';
 import { RecurringDepositForm } from '@/components/RecurringDepositForm';
 import { NscForm } from '@/components/NscForm';
 import { VehicleForm } from '@/components/VehicleForm';
+import { CryptoForm } from '@/components/CryptoForm';
 import type {
   FixedDeposit,
   GoldAsset,
@@ -27,6 +28,7 @@ import type {
   RecurringDepositAsset,
   NscAsset,
   VehicleAsset,
+  CryptoAsset,
 } from '@repo/shared/types';
 
 export type AssetTab =
@@ -42,7 +44,8 @@ export type AssetTab =
   | 'ppf'
   | 'rd'
   | 'nsc'
-  | 'vehicles';
+  | 'vehicles'
+  | 'crypto';
 
 /** The row currently being edited, per asset type — at most one is ever non-null. */
 export interface AssetEditingState {
@@ -59,7 +62,9 @@ export interface AssetEditingState {
   rd: RecurringDepositAsset | null;
   nsc: NscAsset | null;
   vehicles: VehicleAsset | null;
+  crypto: CryptoAsset | null;
 }
+
 
 interface AssetFormHostProps {
   activeTab: AssetTab;
@@ -351,5 +356,30 @@ export function AssetFormHost({ activeTab, showForm, editing, onClose }: AssetFo
     );
   }
 
+  if (isOpen('crypto') || editing.crypto) {
+    const row = editing.crypto;
+    return (
+      <CryptoForm
+        {...formProps}
+        editing={
+          row
+            ? {
+                id: row.id,
+                symbol: row.symbol,
+                name: row.name,
+                quantity: row.quantity,
+                buy_price: row.buy_price,
+                current_price: row.current_price,
+                wallet_or_exchange: row.wallet_or_exchange,
+                purchase_date: row.purchase_date,
+                notes: row.notes,
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
   return null;
 }
+

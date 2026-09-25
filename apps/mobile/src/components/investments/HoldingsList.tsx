@@ -12,7 +12,7 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
     return (
       <View className="items-center py-10">
         <AppText className="text-sm text-muted-foreground">
-          No holdings found. Add your first investment to get started.
+          No holdings match the selected filters.
         </AppText>
       </View>
     );
@@ -20,40 +20,44 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
 
   return (
     <View className="gap-3">
-      {holdings.map((holding) => (
-        <Pressable
-          key={`${holding.symbol}-${holding.exchange}`}
-          onPress={() => router.push({ pathname: "/(app)/stock-detail", params: { symbol: holding.symbol } })}
-          className="gap-2 rounded-2xl bg-card p-4 active:opacity-70"
-        >
-          <View className="flex-row items-center justify-between">
-            <AppText className="text-sm font-medium">{holding.symbol}</AppText>
-            <AppText className="text-xs text-muted-foreground">{holding.exchange}</AppText>
-          </View>
-          <View className="flex-row items-center justify-between">
-            <AppText className="text-xs text-muted-foreground">
-              {holding.unitsHeld} units @ avg <AmountText value={holding.avgBuyPrice} colorBySign={false} className="text-xs" />
-            </AppText>
-            <View className="flex-row items-center gap-1.5">
-              {!holding.hasLivePrice && (
-                <AppText className="rounded bg-warning-subtle px-1 py-0.5 text-[10px] font-semibold uppercase text-warning-foreground">
-                  Est.
-                </AppText>
-              )}
-              <AmountText value={holding.currentValue} colorBySign={false} className="text-sm font-semibold" />
+      {holdings.map((holding) => {
+        const isLoss = holding.returnPct < 0 || holding.unrealisedPnl < 0;
+
+        return (
+          <Pressable
+            key={`${holding.symbol}-${holding.exchange}`}
+            onPress={() => router.push({ pathname: "/(app)/stock-detail", params: { symbol: holding.symbol } })}
+            className={`gap-2 rounded-2xl bg-card p-4 active:opacity-70 ${isLoss ? "border-l-4 border-destructive" : ""}`}
+          >
+            <View className="flex-row items-center justify-between">
+              <AppText className="text-sm font-medium">{holding.symbol}</AppText>
+              <AppText className="text-xs text-muted-foreground">{holding.exchange}</AppText>
             </View>
-          </View>
-          <View className="flex-row items-center justify-between">
-            <AppText className="text-xs text-muted-foreground">Unrealised P&L</AppText>
-            <View className="flex-row items-center gap-1.5">
-              <AmountText value={holding.unrealisedPnl} className="text-xs font-medium" />
-              <AppText className={holding.returnPct >= 0 ? "text-xs text-success" : "text-xs text-destructive"}>
-                ({(holding.returnPct * 100).toFixed(2)}%)
+            <View className="flex-row items-center justify-between">
+              <AppText className="text-xs text-muted-foreground">
+                {holding.unitsHeld} units @ avg <AmountText value={holding.avgBuyPrice} colorBySign={false} className="text-xs" />
               </AppText>
+              <View className="flex-row items-center gap-1.5">
+                {!holding.hasLivePrice && (
+                  <AppText className="rounded bg-warning-subtle px-1 py-0.5 text-[10px] font-semibold uppercase text-warning-foreground">
+                    Est.
+                  </AppText>
+                )}
+                <AmountText value={holding.currentValue} colorBySign={false} className="text-sm font-semibold" />
+              </View>
             </View>
-          </View>
-        </Pressable>
-      ))}
+            <View className="flex-row items-center justify-between">
+              <AppText className="text-xs text-muted-foreground">Unrealised P&L</AppText>
+              <View className="flex-row items-center gap-1.5">
+                <AmountText value={holding.unrealisedPnl} className="text-xs font-medium" />
+                <AppText className={isLoss ? "text-xs font-semibold text-destructive" : "text-xs font-semibold text-success"}>
+                  ({(holding.returnPct * 100).toFixed(2)}%)
+                </AppText>
+              </View>
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -68,6 +68,19 @@ export const REPORTS: ReportMeta[] = [
     description: 'Holdings ranked by unrealised return %.',
     category: 'Investment',
   },
+  {
+    slug: 'capital-gains',
+    title: 'Capital Gains (STCG/LTCG)',
+    description: 'Realized profit/loss, FIFO lot matching, and tax-season breakdown by FY.',
+    category: 'Investment',
+  },
+  {
+    slug: 'xirr-analysis',
+    title: 'XIRR Return Analysis',
+    description: 'Extended Internal Rate of Return across irregular cash flows and live portfolio value.',
+    category: 'Investment',
+  },
+
   // Combined / net worth reports
   {
     slug: 'net-worth',

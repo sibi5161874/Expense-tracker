@@ -20,6 +20,7 @@ import {
   useRecurringDeposits,
   useNscCertificates,
   useVehicles,
+  useCryptoAssets,
 } from '@/hooks/useAssets';
 import { AssetCard } from '@/components/assets/AssetCard';
 import {
@@ -36,6 +37,7 @@ import {
   recurringDepositCardConfig,
   nscCardConfig,
   vehicleCardConfig,
+  cryptoCardConfig,
 } from '@/components/assets/assetCardConfigs';
 import { AssetTabPanel } from '@/components/assets/AssetTabPanel';
 import { AssetFormHost, type AssetTab, type AssetEditingState } from '@/components/assets/AssetFormHost';
@@ -59,7 +61,9 @@ const TAB_LABELS: Record<AssetTab, string> = {
   rd: 'Recurring Deposit',
   nsc: 'NSC Certificate',
   vehicles: 'Vehicle',
+  crypto: 'Crypto Asset',
 };
+
 
 function isAssetTab(value: string | null): value is AssetTab {
   return !!value && value in TAB_LABELS;
@@ -120,8 +124,9 @@ export default function AssetsPage() {
   const rd = useRecurringDeposits();
   const nsc = useNscCertificates();
   const vehicles = useVehicles();
+  const crypto = useCryptoAssets();
 
-  const sources = [fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, rd, nsc, vehicles];
+  const sources = [fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, rd, nsc, vehicles, crypto];
   const isLoading = sources.some((s) => s.isLoading);
   const error = sources.find((s) => s.error)?.error ?? null;
   const addLabel = TAB_LABELS[activeTab];
@@ -284,6 +289,17 @@ export default function AssetsPage() {
         <AssetCard config={vehicleCardConfig} item={row as never} onEdit={() => onEdit(row)} onDelete={vehicles.remove} />
       ),
     },
+    {
+      tab: 'crypto',
+      emptyMessage: 'No crypto assets found. Add your first crypto holding to get started.',
+      items: crypto.data,
+      isLoading: crypto.isLoading,
+      error: crypto.error,
+      onDelete: crypto.remove,
+      renderCard: (row, onEdit) => (
+        <AssetCard config={cryptoCardConfig} item={row as never} onEdit={() => onEdit(row)} onDelete={crypto.remove} />
+      ),
+    },
   ];
 
   const emptyEditing: AssetEditingState = {
@@ -300,7 +316,9 @@ export default function AssetsPage() {
     rd: null,
     nsc: null,
     vehicles: null,
+    crypto: null,
   };
+
   const editing: AssetEditingState = editingRow
     ? { ...emptyEditing, [editingRow.tab]: editingRow.row }
     : emptyEditing;

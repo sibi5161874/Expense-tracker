@@ -95,7 +95,9 @@ const ASSET_CHILDREN: NavLeaf[] = [
   { href: "/assets?tab=rd", label: "Recurring Deposits", icon: CalendarClock },
   { href: "/assets?tab=nsc", label: "NSC", icon: ScrollText },
   { href: "/assets?tab=vehicles", label: "Vehicles", icon: Car },
+  { href: "/assets?tab=crypto", label: "Crypto", icon: Coins },
 ];
+
 
 const CONFIG_CHILDREN: NavLeaf[] = [
   { href: "/config?tab=accounts", label: "Accounts", icon: Wallet },

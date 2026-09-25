@@ -25,3 +25,9 @@ export * from './calculators';
 export * from './calendar';
 export * from './insights';
 export * from './taxLossHarvesting';
+export * from './portfolioSegmentation';
+export * from './institutionSchemas';
+export * from './capitalGains';
+export * from './xirr';
+
+

@@ -796,7 +796,38 @@ export interface Database {
           },
         ];
       };
+      assets_crypto: {
+        Row: {
+          id: string;
+          user_id: string;
+          symbol: string;
+          name: string | null;
+          quantity: number;
+          buy_price: number;
+          current_price: number;
+          wallet_or_exchange: string | null;
+          purchase_date: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          symbol: string;
+          name?: string | null;
+          quantity: number;
+          buy_price: number;
+          current_price: number;
+          wallet_or_exchange?: string | null;
+          purchase_date: string;
+          notes?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets_crypto"]["Insert"]>;
+        Relationships: [];
+      };
     };
+
     Views: Record<string, never>;
     Functions: {
       get_monthly_category_breakdown: {

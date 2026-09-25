@@ -13,6 +13,8 @@ import type { AssetPpfInput } from '../../schemas';
 import type { AssetRecurringDepositInput } from '../../schemas';
 import type { AssetNscInput } from '../../schemas';
 import type { AssetVehicleInput } from '../../schemas';
+import type { AssetCryptoInput } from '../../schemas';
+
 
 export async function updateFixedDeposit(
   supabase: SupabaseClient<Database>,
@@ -237,3 +239,21 @@ export async function updateVehicle(
   if (error) throw error;
   return result;
 }
+
+export async function updateCryptoAsset(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  id: string,
+  data: Partial<AssetCryptoInput>
+) {
+  const { data: result, error } = await supabase
+    .from('assets_crypto')
+    .update(data)
+    .eq('user_id', userId)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+

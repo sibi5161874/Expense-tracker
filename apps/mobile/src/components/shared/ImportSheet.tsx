@@ -7,6 +7,7 @@ import { X, Upload } from "lucide-react-native";
 import { parseCsv, headersMatch, rowsToRecords, type ImportRowError, type ImportRecord } from "@repo/shared";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { useThemeColor } from "@/lib/colors";
 
 interface ImportPlanResult<T> {
@@ -23,6 +24,7 @@ interface ImportSheetProps<T> {
   buildPlan: (records: ImportRecord[]) => ImportPlanResult<T>;
   createBulk: (rows: T[]) => Promise<unknown>;
   onImported: () => void;
+  assetType?: string;
 }
 
 /**
@@ -32,7 +34,17 @@ interface ImportSheetProps<T> {
  * Next.js server for the mobile app to call. Same validation, same dedup logic, same
  * Zod schemas — just invoked client-side here instead of in a Route Handler.
  */
-export function ImportSheet<T>({ visible, onClose, entityLabel, templateColumns, buildPlan, createBulk, onImported }: ImportSheetProps<T>) {
+export function ImportSheet<T>({
+  visible,
+  onClose,
+  entityLabel,
+  templateColumns,
+  buildPlan,
+  createBulk,
+  onImported,
+  assetType: initialAssetType,
+}: ImportSheetProps<T>) {
+  const [selectedAssetType, setSelectedAssetType] = useState<string>(initialAssetType || "Stock");
   const [fileName, setFileName] = useState<string | null>(null);
   const [plan, setPlan] = useState<ImportPlanResult<T> | null>(null);
   const [totalRows, setTotalRows] = useState(0);
@@ -40,6 +52,8 @@ export function ImportSheet<T>({ visible, onClose, entityLabel, templateColumns,
   const [isCommitting, setIsCommitting] = useState(false);
   const mutedForeground = useThemeColor("mutedForeground");
   const accentForeground = useThemeColor("accentForeground");
+
+  const isInvestmentImport = entityLabel.toLowerCase().includes("investment");
 
   function reset() {
     setFileName(null);
@@ -105,6 +119,24 @@ export function ImportSheet<T>({ visible, onClose, entityLabel, templateColumns,
         </View>
 
         <ScrollView contentContainerClassName="gap-4 p-4">
+          {isInvestmentImport && (
+            <View className="gap-1.5">
+              <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Asset Class
+              </AppText>
+              <SegmentedControl
+                options={[
+                  { value: "Stock", label: "Stock" },
+                  { value: "Mutual Fund", label: "Mutual Fund" },
+                  { value: "ETF", label: "ETF" },
+                  { value: "Gold", label: "Gold" },
+                ]}
+                value={selectedAssetType}
+                onChange={setSelectedAssetType}
+              />
+            </View>
+          )}
+
           <AppText className="text-sm text-muted-foreground">
             Pick a CSV with columns: {templateColumns.join(", ")}
           </AppText>

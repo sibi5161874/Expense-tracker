@@ -12,6 +12,8 @@ export const ASSET_TABS = [
   { key: "recurringDeposits", label: "Recurring Deposits" },
   { key: "nsc", label: "NSC" },
   { key: "vehicles", label: "Vehicles" },
+  { key: "crypto", label: "Crypto" },
 ] as const;
 
 export type AssetTabKey = (typeof ASSET_TABS)[number]["key"];
+

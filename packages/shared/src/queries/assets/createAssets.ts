@@ -13,6 +13,8 @@ import type { AssetPpfInput } from '../../schemas';
 import type { AssetRecurringDepositInput } from '../../schemas';
 import type { AssetNscInput } from '../../schemas';
 import type { AssetVehicleInput } from '../../schemas';
+import type { AssetCryptoInput } from '../../schemas';
+
 
 export async function createFixedDeposit(
   supabase: SupabaseClient<Database>,
@@ -175,3 +177,18 @@ export async function createVehicle(supabase: SupabaseClient<Database>, userId: 
   if (error) throw error;
   return result;
 }
+
+export async function createCryptoAsset(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  data: AssetCryptoInput
+) {
+  const { data: result, error } = await supabase
+    .from('assets_crypto')
+    .insert({ ...data, user_id: userId })
+    .select()
+    .single();
+  if (error) throw error;
+  return result;
+}
+

@@ -13,13 +13,14 @@ import {
   assetRecurringDepositSchema,
   assetNscSchema,
   assetVehicleSchema,
+  assetCryptoSchema,
 } from "./index";
 
 /**
- * Both apps' useAssets.ts hooks are built on the same 13 asset-type schemas from this
+ * Both apps' useAssets.ts hooks are built on the same 14 asset-type schemas from this
  * package (see createAssetHook's queries.create/update, typed against each *Input type).
  * A schema going missing here is a compile error in both apps already — this test is a
- * runtime canary that the set itself stays at exactly 13, so a silent count drift (an asset
+ * runtime canary that the set itself stays at exactly 14, so a silent count drift (an asset
  * type quietly dropped from this list) fails loudly instead of just shrinking a union type.
  *
  * Note: this intentionally does NOT assert web's and mobile's tab-key *strings* are
@@ -43,10 +44,11 @@ describe("asset type schema parity", () => {
     assetRecurringDepositSchema,
     assetNscSchema,
     assetVehicleSchema,
+    assetCryptoSchema,
   ];
 
-  it("exposes exactly 13 asset-type schemas", () => {
-    expect(schemas).toHaveLength(13);
+  it("exposes exactly 14 asset-type schemas", () => {
+    expect(schemas).toHaveLength(14);
   });
 
   it("every asset schema is a real, usable Zod schema", () => {
@@ -55,3 +57,4 @@ describe("asset type schema parity", () => {
     }
   });
 });
+
