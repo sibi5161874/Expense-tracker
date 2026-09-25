@@ -29,3 +29,8 @@ export type MonthlyEmailLog = Database["public"]["Tables"]["monthly_email_logs"]
 export type RecurringDepositAsset = Database["public"]["Tables"]["assets_recurring_deposits"]["Row"];
 export type NscAsset = Database["public"]["Tables"]["assets_nsc"]["Row"];
 export type VehicleAsset = Database["public"]["Tables"]["assets_vehicles"]["Row"];
+export type CryptoAsset = Database["public"]["Tables"]["assets_crypto"]["Row"];
+
+export * from "./portfolio.types";
+
+

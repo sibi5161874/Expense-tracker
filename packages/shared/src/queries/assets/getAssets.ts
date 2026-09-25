@@ -123,3 +123,14 @@ export async function getVehicles(supabase: SupabaseClient<Database>, userId: st
   if (error) throw error;
   return data;
 }
+
+export async function getCryptoAssets(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase
+    .from('assets_crypto')
+    .select('*')
+    .eq('user_id', userId)
+    .order('purchase_date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+

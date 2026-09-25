@@ -110,3 +110,15 @@ export const VEHICLE_FIELDS = [
   { name: "current_value", label: "Current Value", type: "number" },
   { name: "purchase_date", label: "Purchase Date", type: "date" },
 ] as const;
+
+export const CRYPTO_FIELDS = [
+  { name: "symbol", label: "Symbol (e.g. BTC, ETH)", type: "text" },
+  { name: "name", label: "Coin Name", type: "text", optional: true },
+  { name: "quantity", label: "Quantity", type: "number" },
+  { name: "buy_price", label: "Buy Price (per coin)", type: "number" },
+  { name: "current_price", label: "Current Price (per coin)", type: "number" },
+  { name: "wallet_or_exchange", label: "Wallet / Exchange", type: "text", optional: true },
+  { name: "purchase_date", label: "Purchase Date", type: "date" },
+  { name: "notes", label: "Notes", type: "text", optional: true },
+] as const;
+

@@ -51,6 +51,10 @@ import {
   deleteRecurringDeposit,
   deleteNscCertificate,
   deleteVehicle,
+  getCryptoAssets,
+  createCryptoAsset,
+  updateCryptoAsset,
+  deleteCryptoAsset,
 } from '@repo/shared/queries/assets';
 import type {
   AssetFixedDepositInput,
@@ -66,6 +70,7 @@ import type {
   AssetRecurringDepositInput,
   AssetNscInput,
   AssetVehicleInput,
+  AssetCryptoInput,
 } from '@repo/shared/schemas';
 import type {
   FixedDeposit,
@@ -81,6 +86,7 @@ import type {
   RecurringDepositAsset,
   NscAsset,
   VehicleAsset,
+  CryptoAsset,
 } from '@repo/shared/types';
 import { createAssetHook } from '@/hooks/createAssetHook';
 
@@ -195,9 +201,18 @@ const useVehiclesBase = createAssetHook<VehicleAsset, AssetVehicleInput>({
   remove: deleteVehicle,
 });
 
+const useCryptoAssetsBase = createAssetHook<CryptoAsset, AssetCryptoInput>({
+  queryKey: 'cryptoAssets',
+  list: getCryptoAssets,
+  create: createCryptoAsset,
+  update: updateCryptoAsset,
+  remove: deleteCryptoAsset,
+});
+
 export const useRecurringDeposits = useRecurringDepositsBase;
 export const useNscCertificates = useNscCertificatesBase;
 export const useVehicles = useVehiclesBase;
+export const useCryptoAssets = useCryptoAssetsBase;
 
 export function useFixedDeposits() {
   const base = useFixedDepositsBase();
@@ -258,3 +273,4 @@ export function usePpfAccounts() {
   const base = usePpfAccountsBase();
   return { ...base, createPpfAccount: base.create, updatePpfAccount: base.update, deletePpfAccount: base.remove };
 }
+

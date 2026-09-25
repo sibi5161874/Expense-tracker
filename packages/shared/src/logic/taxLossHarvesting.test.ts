@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateUnrealizedLosses } from './taxLossHarvesting';
+import { calculateUnrealizedLosses, estimateTaxSavings } from './taxLossHarvesting';
 import type { SymbolHolding } from './investment';
 
 function holding(overrides: Partial<SymbolHolding>): SymbolHolding {
@@ -46,5 +46,26 @@ describe('calculateUnrealizedLosses', () => {
   it('is zero/empty when nothing is at a loss', () => {
     const result = calculateUnrealizedLosses([holding({ unrealisedPnl: 500 })]);
     expect(result).toEqual({ totalLoss: 0, topLosers: [] });
+  });
+});
+
+describe('estimateTaxSavings', () => {
+  it('estimateTaxSavings(10000) returns 1500', () => {
+    expect(estimateTaxSavings(10000)).toBe(1500);
+  });
+
+  it('estimateTaxSavings(0) returns 0', () => {
+    expect(estimateTaxSavings(0)).toBe(0);
+  });
+
+  it('estimateTaxSavings with negative input returns 0 (defensive)', () => {
+    expect(estimateTaxSavings(-5000)).toBe(0);
+  });
+
+  it('estimateTaxSavings rounds to 2 decimals', () => {
+    // 123.45 * 0.15 = 18.5175 -> rounds to 18.52
+    expect(estimateTaxSavings(123.45)).toBe(18.52);
+    // 100.33 * 0.15 = 15.0495 -> rounds to 15.05
+    expect(estimateTaxSavings(100.33)).toBe(15.05);
   });
 });

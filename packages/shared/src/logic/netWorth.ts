@@ -58,6 +58,7 @@ export interface NetWorthBreakdown {
   recurringDepositsTotal: number;
   nscTotal: number;
   vehiclesTotal: number;
+  cryptoTotal: number;
   portfolioValue: number;
   liabilitiesTotal: number;
   netWorth: number;
@@ -77,6 +78,7 @@ export function calculateNetWorth(params: {
   recurringDeposits?: Array<{ maturity_value: number }>;
   nscCertificates?: Array<{ purchase_value: number }>;
   vehicles?: Array<{ current_value: number }>;
+  cryptoAssets?: Array<{ quantity: number; current_price: number }>;
   portfolioCurrentValue: number;
   liabilities: Array<{ outstanding: number }>;
 }): NetWorthBreakdown {
@@ -98,6 +100,7 @@ export function calculateNetWorth(params: {
   const recurringDepositsTotal = (params.recurringDeposits ?? []).reduce((sum, r) => sum + r.maturity_value, 0);
   const nscTotal = (params.nscCertificates ?? []).reduce((sum, n) => sum + n.purchase_value, 0);
   const vehiclesTotal = (params.vehicles ?? []).reduce((sum, v) => sum + v.current_value, 0);
+  const cryptoTotal = (params.cryptoAssets ?? []).reduce((sum, c) => sum + c.quantity * c.current_price, 0);
   const liabilitiesTotal = params.liabilities.reduce((sum, l) => sum + l.outstanding, 0);
   const netWorth =
     cashAndBankTotal +
@@ -113,6 +116,7 @@ export function calculateNetWorth(params: {
     recurringDepositsTotal +
     nscTotal +
     vehiclesTotal +
+    cryptoTotal +
     params.portfolioCurrentValue -
     liabilitiesTotal;
 
@@ -130,6 +134,7 @@ export function calculateNetWorth(params: {
     recurringDepositsTotal,
     nscTotal,
     vehiclesTotal,
+    cryptoTotal,
     portfolioValue: params.portfolioCurrentValue,
     liabilitiesTotal,
     netWorth,
@@ -151,6 +156,7 @@ export interface NetWorthSnapshotFields {
   recurring_deposits_total: number;
   nsc_total: number;
   vehicles_total: number;
+  crypto_total?: number;
   portfolio_value: number;
   liabilities_total: number;
   net_worth: number;
@@ -173,11 +179,13 @@ export function buildSnapshotFromBreakdown(breakdown: NetWorthBreakdown, snapsho
     recurring_deposits_total: breakdown.recurringDepositsTotal,
     nsc_total: breakdown.nscTotal,
     vehicles_total: breakdown.vehiclesTotal,
+    crypto_total: breakdown.cryptoTotal,
     portfolio_value: breakdown.portfolioValue,
     liabilities_total: breakdown.liabilitiesTotal,
     net_worth: breakdown.netWorth,
   };
 }
+
 
 /** % change between two snapshots' net worth — null when there's nothing to compare against (first-ever snapshot, or a zero baseline). */
 export function calculateSnapshotGrowthPct(currentNetWorth: number, previousNetWorth: number | null): number | null {

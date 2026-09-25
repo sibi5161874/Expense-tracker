@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, View, ActivityIndicator, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -9,13 +9,18 @@ import { useRefreshPrices } from "@/hooks/useRefreshPrices";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { checkIsOnline } from "@/hooks/useNetworkStatus";
 import { formatRelativeTime } from "@repo/shared/utils";
-import { groupInvestmentsBySymbol, summarizeHoldings } from "@repo/shared/logic";
+import { groupInvestmentsBySymbol, summarizeHoldings, filterAndSortHoldings } from "@repo/shared/logic";
+import type { FilterType, SortKey } from "@repo/shared/types";
 import { AppText } from "@/components/common/AppText";
 import { PageHeader } from "@/components/common/PageHeader";
 import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
 import { HoldingsList } from "@/components/investments/HoldingsList";
 import { TaxLossHarvestingCard } from "@/components/investments/TaxLossHarvestingCard";
+import { LossMakingHoldingsCard } from "@/components/portfolio/LossMakingHoldingsCard";
+import { AssetClassBreakdownCard } from "@/components/portfolio/AssetClassBreakdownCard";
+import { AssetClassTabs } from "@/components/portfolio/AssetClassTabs";
+import { HoldingsFilterBar } from "@/components/portfolio/HoldingsFilterBar";
 import { ReportExportBar } from "@/components/shared/ReportExportBar";
 import { useThemeColor } from "@/lib/colors";
 
@@ -28,6 +33,12 @@ export default function PortfolioScreen() {
   const warning = useThemeColor("warning");
   const mutedForeground = useThemeColor("mutedForeground");
 
+  // Filter & sort state
+  const [selectedAssetTab, setSelectedAssetTab] = useState("All");
+  const [sortValue, setSortValue] = useState<SortKey>("currentValue_desc");
+  const [filterValue, setFilterValue] = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const livePriceOverrides = useMemo(
     () => Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price])),
     [holdingRows]
@@ -36,8 +47,7 @@ export default function PortfolioScreen() {
     if (!holdingRows || holdingRows.length === 0) return null;
     return holdingRows.reduce((latest, h) => (h.updated_at > latest ? h.updated_at : latest), holdingRows[0]!.updated_at);
   }, [holdingRows]);
-  // Prices come from an unofficial Yahoo Finance endpoint with no fallback — surfacing
-  // staleness here is the signal users get if it silently breaks (mirrors web Portfolio page).
+
   const isStale = useMemo(() => {
     if (!lastUpdated) return false;
     return Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000;
@@ -47,13 +57,20 @@ export default function PortfolioScreen() {
     () => (allInvestments ? groupInvestmentsBySymbol(allInvestments, livePriceOverrides) : []),
     [allInvestments, livePriceOverrides]
   );
+
+  const filteredHoldings = useMemo(() => {
+    return filterAndSortHoldings(holdings, {
+      assetType: selectedAssetTab,
+      filter: filterValue,
+      sortBy: sortValue,
+      searchQuery,
+    });
+  }, [holdings, selectedAssetTab, filterValue, sortValue, searchQuery]);
+
   const allocation = useMemo(() => holdings.map((h) => ({ name: h.symbol, value: h.currentValue })), [holdings]);
   const summary = allInvestments ? summarizeHoldings(holdings) : null;
 
   async function handleRefresh() {
-    // livePriceRefresh is Pro-gated (packages/shared/src/config/tierConfig.ts) — inert
-    // today since PAID_TIER_ENABLED is false and hasFeature always returns true, but wired
-    // so flipping that flag actually gates this without a follow-up change here.
     if (!hasFeature("livePriceRefresh")) {
       Alert.alert("Pro feature", "Live price refresh is a Pro feature.", [
         { text: "Not now", style: "cancel" },
@@ -61,9 +78,6 @@ export default function PortfolioScreen() {
       ]);
       return;
     }
-    // Live prices have no offline equivalent (unofficial Yahoo Finance endpoint, no cached
-    // fallback source) — fail fast with a clear message instead of a generic network error
-    // after however long the request takes to time out.
     if (!(await checkIsOnline())) {
       Alert.alert("You're offline", "Connect to the internet to refresh live prices. Your holdings still show the last prices we fetched.");
       return;
@@ -153,6 +167,12 @@ export default function PortfolioScreen() {
           <AppText className="text-sm text-destructive">{error.message}</AppText>
         ) : (
           <>
+            {/* Loss-Making Holdings Section */}
+            <LossMakingHoldingsCard holdings={holdings} />
+
+            {/* Asset Class Breakdown Section */}
+            <AssetClassBreakdownCard holdings={holdings} />
+
             {summary && <KpiGrid items={kpis} />}
 
             {holdings.length > 0 && (
@@ -169,8 +189,28 @@ export default function PortfolioScreen() {
             )}
 
             <View className="gap-3">
-              <AppText className="text-sm font-semibold">Holdings</AppText>
-              <HoldingsList holdings={holdings} />
+              <AssetClassTabs
+                holdings={holdings}
+                selectedTab={selectedAssetTab}
+                onSelectTab={setSelectedAssetTab}
+              />
+
+              <HoldingsFilterBar
+                sortValue={sortValue}
+                onSortChange={setSortValue}
+                filterValue={filterValue}
+                onFilterChange={setFilterValue}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+
+              <View className="flex-row items-center justify-between pt-1">
+                <AppText className="text-sm font-semibold">
+                  Holdings ({filteredHoldings.length})
+                </AppText>
+              </View>
+
+              <HoldingsList holdings={filteredHoldings} />
             </View>
           </>
         )}

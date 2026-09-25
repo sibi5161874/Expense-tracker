@@ -12,6 +12,8 @@ import {
   CalendarClock,
   Wallet,
   BarChart3,
+  Percent,
+  ReceiptText,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -27,6 +29,8 @@ export interface ReportLink {
     | "/(app)/asset-allocation-report"
     | "/(app)/dividend-income-report"
     | "/(app)/best-worst-performers-report"
+    | "/(app)/capital-gains-report"
+    | "/(app)/xirr-report"
     | "/(app)/net-worth-report"
     | "/(app)/cashbook-net-position-report"
     | "/(app)/asset-maturity-calendar-report"
@@ -41,8 +45,7 @@ export interface ReportSection {
   reports: ReportLink[];
 }
 
-/** All 14 reports, matching apps/web/src/components/reports/ 1:1 (Portfolio Summary reuses
- * the existing Portfolio tab rather than a duplicate screen — same data either way). */
+/** All reports matching apps/web/src/components/reports/ 1:1. */
 export const REPORT_SECTIONS: ReportSection[] = [
   {
     title: "Cash Flow",
@@ -62,6 +65,8 @@ export const REPORT_SECTIONS: ReportSection[] = [
       { href: "/(app)/asset-allocation-report", icon: Coins, title: "Asset Allocation", description: "Portfolio split by asset type and holding." },
       { href: "/(app)/dividend-income-report", icon: Wallet, title: "Dividend Income", description: "Total dividends received." },
       { href: "/(app)/best-worst-performers-report", icon: Award, title: "Best/Worst Performers", description: "Holdings ranked by return %." },
+      { href: "/(app)/capital-gains-report", icon: ReceiptText, title: "Capital Gains (STCG/LTCG)", description: "Realized gains & tax-season breakdown by FY." },
+      { href: "/(app)/xirr-report", icon: Percent, title: "XIRR Return Analysis", description: "Annualized internal rate of return." },
     ],
   },
   {
@@ -74,3 +79,4 @@ export const REPORT_SECTIONS: ReportSection[] = [
     ],
   },
 ];
+

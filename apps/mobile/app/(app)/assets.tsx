@@ -16,6 +16,7 @@ import {
   useRecurringDeposits,
   useNscCertificates,
   useVehicles,
+  useCryptoAssets,
 } from "@/hooks/useAssets";
 import {
   assetFixedDepositSchema,
@@ -31,6 +32,7 @@ import {
   assetRecurringDepositSchema,
   assetNscSchema,
   assetVehicleSchema,
+  assetCryptoSchema,
 } from "@repo/shared/schemas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/common/Button";
@@ -50,6 +52,7 @@ import { PpfCard } from "@/components/assets/PpfCard";
 import { RecurringDepositCard } from "@/components/assets/RecurringDepositCard";
 import { NscCard } from "@/components/assets/NscCard";
 import { VehicleCard } from "@/components/assets/VehicleCard";
+import { CryptoCard } from "@/components/assets/CryptoCard";
 import { ASSET_TABS, type AssetTabKey } from "@/components/assets/assetTabs";
 import {
   FD_FIELDS,
@@ -65,7 +68,9 @@ import {
   RECURRING_DEPOSIT_FIELDS,
   NSC_FIELDS,
   VEHICLE_FIELDS,
+  CRYPTO_FIELDS,
 } from "@/components/assets/assetFieldConfigs";
+
 import { confirmAssetDelete, findEditingRow, submitAssetForm, toFormDefaults } from "@/components/assets/assetFormHelpers";
 import { useThemeColor } from "@/lib/colors";
 
@@ -90,6 +95,7 @@ export default function AssetsScreen() {
   const recurringDeposits = useRecurringDeposits();
   const nsc = useNscCertificates();
   const vehicles = useVehicles();
+  const crypto = useCryptoAssets();
 
   function closeSheet() {
     setSheetOpen(false);
@@ -104,7 +110,7 @@ export default function AssetsScreen() {
     setSheetOpen(true);
   }
 
-  const isLoading = { fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles }[tab]
+  const isLoading = { fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles, crypto }[tab]
     .isLoading;
 
   return (
@@ -147,8 +153,9 @@ export default function AssetsScreen() {
             {tab === "recurringDeposits" && recurringDeposits.data?.map((row) => <RecurringDepositCard key={row.id} rd={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => recurringDeposits.deleteRecurringDeposit(id))} />)}
             {tab === "nsc" && nsc.data?.map((row) => <NscCard key={row.id} nsc={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => nsc.deleteNscCertificate(id))} />)}
             {tab === "vehicles" && vehicles.data?.map((row) => <VehicleCard key={row.id} vehicle={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => vehicles.deleteVehicle(id))} />)}
+            {tab === "crypto" && crypto.data?.map((row) => <CryptoCard key={row.id} crypto={row} onEdit={() => openEdit(row.id)} onDelete={(id) => confirmAssetDelete(() => crypto.deleteCryptoAsset(id))} />)}
 
-            {({ fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles }[tab].data
+            {({ fd, gold, loans, epf, nps, ssy, sgb, ulip, realEstate, ppf, recurringDeposits, nsc, vehicles, crypto }[tab].data
               ?.length ?? 0) === 0 && (
               <AppText className="py-8 text-center text-sm text-muted-foreground">
                 No {ASSET_TABS.find((t) => t.key === tab)?.label.toLowerCase()} yet. Add your first one to get started.
@@ -223,6 +230,12 @@ export default function AssetsScreen() {
           defaultValues={toFormDefaults(findEditingRow(vehicles.data, editingId), VEHICLE_FIELDS, { description: "", vehicle_type: "Car" as const, registration_number: "", purchase_value: 0, current_value: 0, purchase_date: "" })}
           onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, vehicles.createVehicle, vehicles.updateVehicle, closeSheet)} />
       )}
+      {tab === "crypto" && (
+        <AssetForm visible={sheetOpen} title={editingId ? "Edit Crypto" : "Add Crypto"} schema={assetCryptoSchema} fields={CRYPTO_FIELDS}
+          defaultValues={toFormDefaults(findEditingRow(crypto.data, editingId), CRYPTO_FIELDS, { symbol: "", name: "", quantity: 0, buy_price: 0, current_price: 0, wallet_or_exchange: "", purchase_date: new Date().toISOString().slice(0, 10), notes: "" })}
+          onClose={closeSheet} onSubmit={(data) => submitAssetForm(editingId, data, crypto.createCryptoAsset, crypto.updateCryptoAsset, closeSheet)} />
+      )}
     </SafeAreaView>
   );
 }
+

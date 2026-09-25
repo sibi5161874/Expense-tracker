@@ -9,7 +9,8 @@ import { useHoldings } from '@/hooks/useHoldings';
 import { useRefreshPrices } from '@/hooks/useRefreshPrices';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { formatINR, formatRelativeTime } from '@repo/shared/utils';
-import { groupInvestmentsBySymbol, summarizeHoldings } from '@repo/shared/logic';
+import { groupInvestmentsBySymbol, summarizeHoldings, filterAndSortHoldings } from '@repo/shared/logic';
+import type { FilterType, SortKey } from '@repo/shared/types';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,10 @@ import { ProLockedButton } from '@/components/shared/ProGate';
 import { ExpenseBreakdownChart } from '@/components/shared/ExpenseBreakdownChart';
 import { HoldingsTable } from '@/components/investments/HoldingsTable';
 import { TaxLossHarvestingCard } from '@/components/investments/TaxLossHarvestingCard';
+import { LossMakingHoldingsCard } from '@/components/portfolio/LossMakingHoldingsCard';
+import { AssetClassBreakdownCard } from '@/components/portfolio/AssetClassBreakdownCard';
+import { AssetClassTabs } from '@/components/portfolio/AssetClassTabs';
+import { HoldingsFilterBar } from '@/components/portfolio/HoldingsFilterBar';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import { AmountText } from '@/components/shared/AmountText';
 import { cn } from '@/lib/utils';
@@ -28,6 +33,12 @@ export default function PortfolioPage() {
   const { data: holdingRows } = useHoldings();
   const { refresh, isRefreshing } = useRefreshPrices();
   const { hasFeature } = useEntitlements();
+
+  // Filter & sort state for holdings table
+  const [selectedAssetTab, setSelectedAssetTab] = useState('All');
+  const [sortValue, setSortValue] = useState<SortKey>('currentValue_desc');
+  const [filterValue, setFilterValue] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   function goToUpgrade() {
     toast.info('Live price refresh is a Pro feature — start your free trial to unlock it.');
@@ -43,31 +54,26 @@ export default function PortfolioPage() {
     const mostRecent = holdingRows.reduce((latest, h) => (h.updated_at > latest ? h.updated_at : latest), holdingRows[0]!.updated_at);
     return mostRecent;
   }, [holdingRows]);
-  // Prices come from AMFI (mutual fund NAVs — official) and Yahoo Finance
-  // (Stock/ETF — unofficial and undocumented), via /api/prices/refresh. Neither
-  // has a fallback source, so if one silently breaks `lastUpdated` just stops
-  // advancing. Surfacing staleness here is the signal users get.
-  //
-  // Date.now() makes this impure, which is why it isn't wrapped in useMemo (that implies a
-  // cacheable pure computation). This is a one-off freshness check, not a ticking clock — it
-  // only needs to be right as of whenever the page next re-renders for an unrelated reason
-  // (e.g. holdings data changing), not to update itself every second, so a timer-driven
-  // effect would be solving a problem this component doesn't have.
-  // eslint-disable-next-line react-hooks/purity -- see comment above
+
+  // eslint-disable-next-line react-hooks/purity -- staleness snapshot against Date.now()
   const isStale = lastUpdated ? Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000 : false;
 
   const holdings = useMemo(
     () => (allInvestments ? groupInvestmentsBySymbol(allInvestments, livePriceOverrides) : []),
     [allInvestments, livePriceOverrides]
   );
+
+  const filteredHoldings = useMemo(() => {
+    return filterAndSortHoldings(holdings, {
+      assetType: selectedAssetTab,
+      filter: filterValue,
+      sortBy: sortValue,
+      searchQuery,
+    });
+  }, [holdings, selectedAssetTab, filterValue, sortValue, searchQuery]);
+
   const allocation = useMemo(() => holdings.map((h) => ({ name: h.symbol, value: h.currentValue })), [holdings]);
 
-  // Stagger-fade holdings rows in only on the very first successful load, never on refetch.
-  // A ref can't be read during render (see react-hooks/refs), so this tracks the same
-  // "have we animated yet" flag as state instead, flipped via the same render-time
-  // "adjusting state" pattern used for the tab-from-URL pages elsewhere in this app: this
-  // render's `shouldAnimateRows` is computed first and used as-is for the current output,
-  // then setHasAnimated schedules the flag for next render — never itself re-read this render.
   const [hasAnimated, setHasAnimated] = useState(false);
   const shouldAnimateRows = !isLoading && !hasAnimated;
   if (shouldAnimateRows) {
@@ -137,6 +143,13 @@ export default function PortfolioPage() {
         }
       />
 
+      {/* Loss-Making Holdings Section */}
+      <LossMakingHoldingsCard holdings={holdings} />
+
+      {/* Asset Class Breakdown Section */}
+      <AssetClassBreakdownCard holdings={holdings} />
+
+      {/* KPI Summary Grid */}
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Total Invested" value={formatINR(summary.totalInvested)} icon={Wallet} />
@@ -156,19 +169,43 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold">Holdings</h2>
-          <HoldingsTable holdings={holdings} animateRows={shouldAnimateRows} />
-        </div>
-        <div className="bg-card rounded-2xl p-5">
-          <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
-          <ExpenseBreakdownChart data={allocation} />
+      {/* Tax-Loss Harvesting Opportunity */}
+      <TaxLossHarvestingCard holdings={holdings} />
+
+      {/* Main Holdings Table & Allocation Grid */}
+      <div className="space-y-4">
+        {/* Asset Class Filter Tabs */}
+        <AssetClassTabs
+          holdings={holdings}
+          selectedTab={selectedAssetTab}
+          onSelectTab={setSelectedAssetTab}
+        />
+
+        {/* Search, Filter, Sort Controls */}
+        <HoldingsFilterBar
+          sortValue={sortValue}
+          onSortChange={setSortValue}
+          filterValue={filterValue}
+          onFilterChange={setFilterValue}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-sm font-semibold">
+              Holdings ({filteredHoldings.length})
+            </h2>
+            <HoldingsTable holdings={filteredHoldings} animateRows={shouldAnimateRows} />
+          </div>
+          <div className="bg-card rounded-2xl p-5">
+            <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
+            <ExpenseBreakdownChart data={allocation} />
+          </div>
         </div>
       </div>
 
-      <TaxLossHarvestingCard holdings={holdings} />
-
+      {/* Recent Transactions */}
       <div>
         <h2 className="mb-3 text-sm font-semibold">Recent transactions</h2>
         <div className="bg-card overflow-hidden rounded-2xl">

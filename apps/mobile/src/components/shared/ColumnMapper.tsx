@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { getMappableFieldsForAssetType } from "@repo/shared/logic";
 import { AppText } from "@/components/common/AppText";
 import { PickerField } from "@/components/common/PickerField";
 
@@ -11,7 +12,8 @@ export interface MappableField {
 
 interface ColumnMapperProps {
   headers: string[];
-  fields: MappableField[];
+  fields?: MappableField[];
+  assetType?: string;
   value: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
 }
@@ -23,7 +25,9 @@ const NONE = "__none__";
  * shown whenever automatic column detection can't resolve every required field, so the
  * user confirms the interpretation instead of the importer guessing.
  */
-export function ColumnMapper({ headers, fields, value, onChange }: ColumnMapperProps) {
+export function ColumnMapper({ headers, fields, assetType, value, onChange }: ColumnMapperProps) {
+  const activeFields = fields ?? (assetType ? getMappableFieldsForAssetType(assetType) : BROKER_MAPPABLE_FIELDS);
+
   function setField(key: string, selected: string) {
     const next = { ...value };
     if (selected === NONE) {
@@ -40,7 +44,7 @@ export function ColumnMapper({ headers, fields, value, onChange }: ColumnMapperP
         Tell us which column in your file holds each value. You&apos;ll see a preview before anything is
         imported.
       </AppText>
-      {fields.map((field) => (
+      {activeFields.map((field) => (
         <View key={field.key}>
           <PickerField
             label={field.required ? `${field.label} *` : field.label}

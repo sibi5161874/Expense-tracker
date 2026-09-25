@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { ImportResultSummary, type ImportResult } from '@/components/shared/ImportResultSummary';
 import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
@@ -14,6 +15,7 @@ interface ImportDialogProps {
   apiPath: string;
   entityLabel: string;
   invalidateQueryKeys: unknown[][];
+  assetType?: string;
   onClose: () => void;
 }
 
@@ -24,9 +26,10 @@ const COMMIT_CHUNK_SIZE = 200;
 
 type Step = 'select' | 'previewing' | 'preview' | 'committing' | 'partial' | 'done';
 
-export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClose }: ImportDialogProps) {
+export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, assetType: initialAssetType, onClose }: ImportDialogProps) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('select');
+  const [selectedAssetType, setSelectedAssetType] = useState<string>(initialAssetType || 'Stock');
   const [csvText, setCsvText] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -37,11 +40,13 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
   const [remainingChunks, setRemainingChunks] = useState<string[]>([]);
   const [remainingRowOffset, setRemainingRowOffset] = useState(0);
 
+  const isInvestmentImport = entityLabel.toLowerCase().includes('investment');
+
   async function runImport(csv: string, commit: boolean) {
     const res = await fetch(apiPath, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csv, commit }),
+      body: JSON.stringify({ csv, commit, asset_type: selectedAssetType }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? 'Import failed');
@@ -152,8 +157,26 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, onClos
         </DialogHeader>
 
         <DialogBody>
+          {isInvestmentImport && step === 'select' && (
+            <div className="mb-4">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground block mb-1.5">
+                Asset Class
+              </label>
+              <SegmentedControl
+                options={[
+                  { value: 'Stock', label: 'Stock' },
+                  { value: 'Mutual Fund', label: 'Mutual Fund' },
+                  { value: 'ETF', label: 'ETF' },
+                  { value: 'Gold', label: 'Gold' },
+                ]}
+                value={selectedAssetType}
+                onChange={setSelectedAssetType}
+              />
+            </div>
+          )}
+
           {errorMessage && (
-            <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errorMessage}</p>
+            <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive mb-3">{errorMessage}</p>
           )}
 
           {step === 'select' && (

@@ -37,9 +37,16 @@ const REPORT_COMPONENTS: Record<string, ReturnType<typeof dynamic>> = {
   'best-worst-performers': dynamic(() => import('@/components/reports/BestWorstPerformersReport').then((m) => m.BestWorstPerformersReport), {
     loading: () => <LoadingState label="Loading report..." />,
   }),
+  'capital-gains': dynamic(() => import('@/components/reports/CapitalGainsReport').then((m) => m.CapitalGainsReport), {
+    loading: () => <LoadingState label="Loading report..." />,
+  }),
+  'xirr-analysis': dynamic(() => import('@/components/reports/XirrReport').then((m) => m.XirrReport), {
+    loading: () => <LoadingState label="Loading report..." />,
+  }),
   'net-worth': dynamic(() => import('@/components/reports/NetWorthReport').then((m) => m.NetWorthReport), {
     loading: () => <LoadingState label="Loading report..." />,
   }),
+
   'cashbook-net-position': dynamic(() => import('@/components/reports/CashbookNetPositionReport').then((m) => m.CashbookNetPositionReport), {
     loading: () => <LoadingState label="Loading report..." />,
   }),

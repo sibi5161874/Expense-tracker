@@ -26,7 +26,9 @@ import type {
   RecurringDepositAsset,
   NscAsset,
   VehicleAsset,
+  CryptoAsset,
 } from '@repo/shared/types';
+
 import {
   calculateDaysLeft,
   calculateFixedDepositStatus,
@@ -268,3 +270,35 @@ export const vehicleCardConfig: AssetCardConfig<VehicleAsset> = {
   },
   confirmTitle: 'Delete vehicle?',
 };
+
+export const cryptoCardConfig: AssetCardConfig<CryptoAsset> = {
+  icon: Coins,
+  getTitle: (c) => `${c.symbol.toUpperCase()}${c.name ? ` · ${c.name}` : ''}`,
+  getSubtitle: (c) => (c.wallet_or_exchange ? c.wallet_or_exchange : undefined),
+  getBadge: (c) => {
+    const invested = c.quantity * c.buy_price;
+    const currentValue = c.quantity * c.current_price;
+    const pnl = currentValue - invested;
+    return { tone: pnl >= 0 ? 'success' : 'destructive', label: pnl >= 0 ? 'Profit' : 'Loss' };
+  },
+  getFields: (c) => {
+    const invested = c.quantity * c.buy_price;
+    const currentValue = c.quantity * c.current_price;
+    const pnl = currentValue - invested;
+    return [
+      { label: 'Quantity', value: String(c.quantity), numeric: true },
+      { label: 'Buy Price', value: formatINR(c.buy_price), numeric: true },
+      { label: 'Current Price', value: formatINR(c.current_price), numeric: true },
+      { label: 'Current Value', value: formatINR(currentValue), numeric: true },
+      {
+        label: 'P&L',
+        value: formatINR(pnl),
+        numeric: true,
+        span2: true,
+        tone: pnl >= 0 ? 'success' : 'destructive',
+      },
+    ];
+  },
+  confirmTitle: 'Delete crypto asset?',
+};
+
