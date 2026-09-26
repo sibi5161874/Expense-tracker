@@ -826,6 +826,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["assets_crypto"]["Insert"]>;
         Relationships: [];
       };
+      archive_runs: {
+        Row: {
+          id: string;
+          table_name: string;
+          rows_moved: number;
+          ran_at: string;
+          duration_ms: number | null;
+        };
+        Insert: {
+          id?: string;
+          table_name: string;
+          rows_moved: number;
+          ran_at?: string;
+          duration_ms?: number | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["archive_runs"]["Insert"]>;
+        Relationships: [];
+      };
+      transactions_archive: Database["public"]["Tables"]["transactions"];
+      investment_log_archive: Database["public"]["Tables"]["investment_log"];
+      cashbook_archive: Database["public"]["Tables"]["cashbook"];
+      net_worth_snapshots_archive: Database["public"]["Tables"]["net_worth_snapshots"];
     };
 
     Views: Record<string, never>;
@@ -846,8 +868,13 @@ export interface Database {
         Args: { p_purpose: string; p_amount_paise: number; p_placeholder_order_id: string };
         Returns: { id: string; razorpay_order_id: string; amount_paise: number; reserved_by_me: boolean }[];
       };
+      archive_old_records: {
+        Args: { p_table_name: string; p_cutoff_date?: string };
+        Returns: number;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
 }
+

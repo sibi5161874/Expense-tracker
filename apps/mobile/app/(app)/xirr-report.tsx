@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TrendingUp } from "lucide-react-native";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
-import { computePortfolioXirr } from "@repo/shared/logic";
+import { computePortfolioXirr, groupInvestmentsBySymbol } from "@repo/shared/logic";
 import { formatINR } from "@repo/shared/utils/currency";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppText } from "@/components/common/AppText";
@@ -14,19 +14,21 @@ import { useThemeColor } from "@/lib/colors";
 
 export default function XirrReportScreen() {
   const { data: investments, isLoading: isLogsLoading, error: logsError } = useAllInvestmentLog();
-  const { data: holdings, isLoading: isHoldingsLoading, error: holdingsError } = useHoldings();
+  const { data: holdingRows, isLoading: isHoldingsLoading, error: holdingsError } = useHoldings();
   const primary = useThemeColor("primary");
 
   const report = useMemo(() => {
-    const holdingsData = (holdings ?? []).map((h) => ({
+    const livePriceOverrides = Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price]));
+    const computedHoldings = investments ? groupInvestmentsBySymbol(investments, livePriceOverrides) : [];
+    const holdingsData = computedHoldings.map((h) => ({
       symbol: h.symbol,
-      shares: h.shares,
-      current_price: h.live_price ?? h.avg_buy_price,
-      current_value: (h.shares ?? 0) * (h.live_price ?? h.avg_buy_price ?? 0),
+      shares: h.unitsHeld,
+      current_price: h.currentPrice,
+      current_value: h.currentValue,
     }));
 
     return computePortfolioXirr(investments ?? [], holdingsData);
-  }, [investments, holdings]);
+  }, [investments, holdingRows]);
 
   const isLoading = isLogsLoading || isHoldingsLoading;
   const error = logsError || holdingsError;
@@ -123,10 +125,10 @@ export default function XirrReportScreen() {
                     </View>
                     {hasXirr ? (
                       <StatusBadge tone={isPositive ? "success" : "destructive"}>
-                        {isPositive ? "+" : ""}{h.xirrPct!.toFixed(2)}% p.a.
+                        {`${isPositive ? "+" : ""}${h.xirrPct!.toFixed(2)}% p.a.`}
                       </StatusBadge>
                     ) : (
-                      <StatusBadge tone="default">—</StatusBadge>
+                      <StatusBadge tone="neutral">—</StatusBadge>
                     )}
                   </View>
 

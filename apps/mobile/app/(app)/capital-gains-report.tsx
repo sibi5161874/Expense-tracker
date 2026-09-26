@@ -194,8 +194,8 @@ export default function CapitalGainsReportScreen() {
                       <AppText className="font-semibold">{t.symbol}</AppText>
                       <AppText className="text-xs text-muted-foreground">{t.assetType}</AppText>
                     </View>
-                    <StatusBadge tone={t.taxType === "LTCG" ? "default" : "info"}>
-                      {t.taxType} ({t.holdingDays}d)
+                    <StatusBadge tone={t.taxType === "LTCG" ? "neutral" : "info"}>
+                      {`${t.taxType} (${t.holdingDays}d)`}
                     </StatusBadge>
                   </View>
 
