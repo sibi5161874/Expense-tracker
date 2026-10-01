@@ -30,4 +30,6 @@ export * from "./importRequest.schema";
 export * from "./accountDeletion.schema";
 export * from "./feedback.schema";
 export * from "./aiChat.schema";
+export * from "./contact.schema";
+export * from "./dividendImport.schema";
 

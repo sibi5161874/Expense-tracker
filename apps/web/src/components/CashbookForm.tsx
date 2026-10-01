@@ -14,6 +14,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AccountSelectField } from '@/components/shared/form-fields/AccountSelectField';
+import { ContactSelectField } from '@/components/shared/form-fields/ContactSelectField';
 import { NotesField } from '@/components/shared/form-fields/NotesField';
 
 interface CashbookFormProps {
@@ -72,19 +73,7 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="counterparty"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Counterparty</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., John Doe, Company XYZ" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <ContactSelectField control={form.control} name="counterparty" label="Counterparty" />
 
             <FormField
               control={form.control}

@@ -2,24 +2,7 @@
 
 import { useMemo, useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useAccounts } from '@/hooks/useAccounts';
-import { useAllTimeTransactions } from '@/hooks/useReportsData';
-import {
-  useFixedDeposits,
-  useGoldAssets,
-  useLoanLiabilities,
-  useEpfAccounts,
-  useNpsAccounts,
-  useSsyAccounts,
-  useSgbHoldings,
-  useUlipPolicies,
-  useRealEstateAssets,
-  usePpfAccounts,
-  useRecurringDeposits,
-  useNscCertificates,
-  useVehicles,
-} from '@/hooks/useAssets';
-import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
+import { useNetWorthRawData } from '@/hooks/useNetWorthRawData';
 import { useFxRates } from '@/hooks/useFxRates';
 import {
   calculateAccountBalances,
@@ -43,88 +26,36 @@ interface NetWorthRow {
 
 export function NetWorthReport() {
   const chartRef = useRef<HTMLDivElement>(null);
-  const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
-  const { data: transactions, isLoading: txnsLoading, error: txnsError } = useAllTimeTransactions();
+  const { data: raw, isLoading, error } = useNetWorthRawData();
   const { rates: fxRates, isStale: fxRatesStale, fetchedAt: fxRatesFetchedAt } = useFxRates();
-  const { data: fds, isLoading: fdsLoading } = useFixedDeposits();
-  const { data: gold, isLoading: goldLoading } = useGoldAssets();
-  const { data: liabilities, isLoading: liabilitiesLoading } = useLoanLiabilities();
-  const { data: investments, isLoading: investmentsLoading } = useAllInvestmentLog();
-  const { data: epfAccounts, isLoading: epfLoading } = useEpfAccounts();
-  const { data: npsAccounts, isLoading: npsLoading } = useNpsAccounts();
-  const { data: ssyAccounts, isLoading: ssyLoading } = useSsyAccounts();
-  const { data: sgbHoldings, isLoading: sgbLoading } = useSgbHoldings();
-  const { data: ulipPolicies, isLoading: ulipLoading } = useUlipPolicies();
-  const { data: realEstateAssets, isLoading: realEstateLoading } = useRealEstateAssets();
-  const { data: ppfAccounts, isLoading: ppfLoading } = usePpfAccounts();
-  const { data: recurringDeposits, isLoading: rdLoading } = useRecurringDeposits();
-  const { data: nscCertificates, isLoading: nscLoading } = useNscCertificates();
-  const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
-
-  const isLoading =
-    accountsLoading ||
-    txnsLoading ||
-    fdsLoading ||
-    goldLoading ||
-    liabilitiesLoading ||
-    investmentsLoading ||
-    epfLoading ||
-    npsLoading ||
-    ssyLoading ||
-    sgbLoading ||
-    ulipLoading ||
-    realEstateLoading ||
-    ppfLoading ||
-    rdLoading ||
-    nscLoading ||
-    vehiclesLoading;
-  const error = accountsError || txnsError;
 
   const conversion = useMemo(() => {
-    if (!accounts || !transactions) return null;
-    const accountBalances = calculateAccountBalances(accounts, transactions);
-    return convertAccountBalancesToBase(accountBalances, accounts, fxRates);
-  }, [accounts, transactions, fxRates]);
+    if (!raw) return null;
+    const accountBalances = calculateAccountBalances(raw.accounts, raw.transactions);
+    return convertAccountBalancesToBase(accountBalances, raw.accounts, fxRates);
+  }, [raw, fxRates]);
 
   const breakdown = useMemo(() => {
-    if (!accounts || !transactions || !conversion) return null;
-    const holdings = investments ? groupInvestmentsBySymbol(investments) : [];
+    if (!raw || !conversion) return null;
+    const holdings = groupInvestmentsBySymbol(raw.investments);
     return calculateNetWorth({
       accountBalances: conversion.convertedBalances,
-      activeFixedDeposits: (fds ?? []).filter((fd) => !fd.withdrawn),
-      goldHoldings: gold ?? [],
-      epfAccounts: epfAccounts ?? [],
-      npsAccounts: npsAccounts ?? [],
-      ssyAccounts: ssyAccounts ?? [],
-      sgbHoldings: sgbHoldings ?? [],
-      ulipPolicies: ulipPolicies ?? [],
-      realEstate: realEstateAssets ?? [],
-      ppfAccounts: ppfAccounts ?? [],
-      recurringDeposits: recurringDeposits ?? [],
-      nscCertificates: nscCertificates ?? [],
-      vehicles: vehicles ?? [],
+      activeFixedDeposits: raw.fixed_deposits.filter((fd) => !fd.withdrawn),
+      goldHoldings: raw.gold,
+      epfAccounts: raw.epf,
+      npsAccounts: raw.nps,
+      ssyAccounts: raw.ssy,
+      sgbHoldings: raw.sgb,
+      ulipPolicies: raw.ulip,
+      realEstate: raw.real_estate,
+      ppfAccounts: raw.ppf,
+      recurringDeposits: raw.recurring_deposits,
+      nscCertificates: raw.nsc,
+      vehicles: raw.vehicles,
       portfolioCurrentValue: summarizeHoldings(holdings).currentValue,
-      liabilities: liabilities ?? [],
+      liabilities: raw.liabilities,
     });
-  }, [
-    accounts,
-    transactions,
-    conversion,
-    fds,
-    gold,
-    liabilities,
-    investments,
-    epfAccounts,
-    npsAccounts,
-    ssyAccounts,
-    sgbHoldings,
-    ulipPolicies,
-    realEstateAssets,
-    ppfAccounts,
-    recurringDeposits,
-    nscCertificates,
-    vehicles,
-  ]);
+  }, [raw, conversion]);
 
   if (isLoading) return <ReportSkeleton />;
   if (error) return <ErrorState error={error} />;

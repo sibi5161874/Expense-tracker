@@ -796,6 +796,23 @@ export interface Database {
           },
         ];
       };
+      contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          avatar_seed: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          avatar_seed: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["contacts"]["Insert"]>;
+        Relationships: [];
+      };
       assets_crypto: {
         Row: {
           id: string;
@@ -871,6 +888,28 @@ export interface Database {
       archive_old_records: {
         Args: { p_table_name: string; p_cutoff_date?: string };
         Returns: number;
+      };
+      get_net_worth_raw_data: {
+        Args: { p_user_id: string };
+        Returns: {
+          accounts: Database["public"]["Tables"]["accounts"]["Row"][];
+          transactions: { type: TransactionType; amount: number; from_account_id: string; to_account_id: string | null }[];
+          investments: Database["public"]["Tables"]["investment_log"]["Row"][];
+          holdings: Database["public"]["Tables"]["holdings"]["Row"][];
+          fixed_deposits: Database["public"]["Tables"]["assets_fixed_deposits"]["Row"][];
+          gold: Database["public"]["Tables"]["assets_gold"]["Row"][];
+          liabilities: Database["public"]["Tables"]["assets_loans_liabilities"]["Row"][];
+          epf: Database["public"]["Tables"]["assets_epf"]["Row"][];
+          nps: Database["public"]["Tables"]["assets_nps"]["Row"][];
+          ssy: Database["public"]["Tables"]["assets_ssy"]["Row"][];
+          sgb: Database["public"]["Tables"]["assets_sgb"]["Row"][];
+          ulip: Database["public"]["Tables"]["assets_ulip"]["Row"][];
+          real_estate: Database["public"]["Tables"]["assets_real_estate"]["Row"][];
+          ppf: Database["public"]["Tables"]["assets_ppf"]["Row"][];
+          recurring_deposits: Database["public"]["Tables"]["assets_recurring_deposits"]["Row"][];
+          nsc: Database["public"]["Tables"]["assets_nsc"]["Row"][];
+          vehicles: Database["public"]["Tables"]["assets_vehicles"]["Row"][];
+        };
       };
     };
     Enums: Record<string, never>;

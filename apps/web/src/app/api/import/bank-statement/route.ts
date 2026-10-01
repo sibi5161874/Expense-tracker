@@ -102,12 +102,14 @@ export async function POST(req: Request) {
 
     // Key records by the file's own header row so column order never matters.
     const records = rowsToRecords(rows, headers);
-    const { errors, validRows, duplicateCount } = buildBankStatementImportPlan(
+    const dividendSkipRows = body.dividend_skip_rows?.length ? new Set(body.dividend_skip_rows) : undefined;
+    const { errors, validRows, duplicateCount, dividendCandidates } = buildBankStatementImportPlan(
       mapping,
       records,
       body.account_id,
       categoryIndex,
-      existingKeys
+      existingKeys,
+      dividendSkipRows
     );
 
     // Self-check against the file's own running balance, when one is mapped —
@@ -139,6 +141,7 @@ export async function POST(req: Request) {
       errors,
       reconciliation,
       preview: validRows.slice(0, 10),
+      dividendCandidates,
       committed,
     });
   } catch (e) {

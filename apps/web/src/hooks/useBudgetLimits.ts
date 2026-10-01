@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
+import { STALE_TIME_LONG } from '@/lib/queryStaleTimes';
 import {
   getBudgetLimits,
   createBudgetLimit,
@@ -22,7 +23,7 @@ export function useBudgetLimits() {
       return getBudgetLimits(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_LONG,
   });
 
   const createMutation = useMutation({

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import { getMonthlyTrend } from '@repo/shared/queries/transactions';
+import { STALE_TIME_MEDIUM } from '@/lib/queryStaleTimes';
 
 /**
  * Income/expense totals for the last `n` months — one get_monthly_trend Postgres call
@@ -19,7 +20,7 @@ export function useMonthlyTrend(n = 6) {
       return getMonthlyTrend(supabase, userId, n);
     },
     enabled: !!userId,
-    staleTime: 60_000,
+    staleTime: STALE_TIME_MEDIUM,
   });
 
   const data = (query.data ?? []).map((row) => ({

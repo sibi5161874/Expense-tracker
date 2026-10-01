@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import { getHoldings } from '@repo/shared/queries/holdings';
+import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 
 /** `holdings.live_price` — read-only from the client; only the refresh-prices Edge Function writes it. */
 export function useHoldings() {
@@ -16,6 +17,6 @@ export function useHoldings() {
       return getHoldings(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
+import { STALE_TIME_LONG } from '@/lib/queryStaleTimes';
 import {
   getCategories,
   getCategoriesByType,
@@ -23,7 +24,7 @@ export function useCategories(type?: 'Income' | 'Expense' | 'Transfer') {
       return type ? getCategoriesByType(supabase, userId, type) : getCategories(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_LONG,
   });
 
   const createMutation = useMutation({

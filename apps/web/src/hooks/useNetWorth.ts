@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFxRates } from '@/hooks/useFxRates';
 import type { NetWorthBreakdown } from '@repo/shared/logic';
+import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 
 interface NetWorthResponse {
   data: NetWorthBreakdown;
@@ -35,7 +36,7 @@ export function useNetWorth() {
       return body;
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   return {

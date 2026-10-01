@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { FxRates } from '@repo/shared/logic';
+import { STALE_TIME_SIX_HOURS } from '@/lib/queryStaleTimes';
 
 interface FxRatesResponse {
   base: string;
@@ -26,7 +27,7 @@ export function useFxRates() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to fetch FX rates');
       return data;
     },
-    staleTime: 6 * 60 * 60 * 1000,
+    staleTime: STALE_TIME_SIX_HOURS,
     retry: 1,
   });
 

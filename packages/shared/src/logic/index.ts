@@ -29,5 +29,6 @@ export * from './portfolioSegmentation';
 export * from './institutionSchemas';
 export * from './capitalGains';
 export * from './xirr';
+export * from './dividendDetection';
 
 

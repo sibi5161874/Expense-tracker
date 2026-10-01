@@ -14,11 +14,16 @@ interface AccountRowProps {
   onDelete: (id: string) => void;
   isDeleting: boolean;
   fxRates: FxRates;
+  /** Opening balance + every transaction posted against this account since; undefined while
+   * the transaction history is still loading. */
+  currentBalance: number | undefined;
 }
 
-function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates }: AccountRowProps) {
+function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates, currentBalance }: AccountRowProps) {
   const isForeign = account.currency !== BASE_CURRENCY;
   const converted = isForeign ? convertToBaseCurrency(account.opening_balance, account.currency, fxRates) : null;
+  const convertedCurrent =
+    isForeign && currentBalance !== undefined ? convertToBaseCurrency(currentBalance, account.currency, fxRates) : null;
   const { requestDelete, dialog } = useConfirmDelete(
     onDelete,
     `Delete account "${account.name}"?`,
@@ -35,6 +40,20 @@ function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates }:
           <span className="text-muted-foreground ml-1.5 text-xs">
             {converted !== null ? `≈ ${formatINR(converted)}` : '(rate unavailable)'}
           </span>
+        )}
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        {currentBalance === undefined ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          <>
+            {formatCurrency(currentBalance, account.currency)}
+            {isForeign && (
+              <span className="text-muted-foreground ml-1.5 text-xs font-normal">
+                {convertedCurrent !== null ? `≈ ${formatINR(convertedCurrent)}` : '(rate unavailable)'}
+              </span>
+            )}
+          </>
         )}
       </TableCell>
       <TableCell>{account.currency}</TableCell>

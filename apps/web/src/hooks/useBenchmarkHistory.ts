@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import type { YahooHistoryPoint } from '@repo/shared/logic';
+import { STALE_TIME_SIX_HOURS } from '@/lib/queryStaleTimes';
 
 export type BenchmarkRange = '1mo' | '3mo' | '6mo' | '1y';
-
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
 /** Daily closing-price history for a benchmark ticker via /api/live-price/history. */
 export function useBenchmarkHistory(ticker: string, range: BenchmarkRange, enabled = true) {
@@ -16,6 +15,6 @@ export function useBenchmarkHistory(ticker: string, range: BenchmarkRange, enabl
       return data.points as YahooHistoryPoint[];
     },
     enabled,
-    staleTime: SIX_HOURS_MS,
+    staleTime: STALE_TIME_SIX_HOURS,
   });
 }

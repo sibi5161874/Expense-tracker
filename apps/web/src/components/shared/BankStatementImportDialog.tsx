@@ -14,8 +14,11 @@ import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { ColumnMapper, BANK_MAPPABLE_FIELDS } from '@/components/shared/ColumnMapper';
 import { ImportConfidenceNotice, needsReviewAcknowledgement } from '@/components/shared/ImportConfidenceNotice';
+import { DividendReviewList, type DividendRowState } from '@/components/shared/DividendReviewList';
+import { useImportDividends } from '@/hooks/useImportDividends';
 import { chunkCsv } from '@/lib/chunkCsv';
 import { findBank } from '@repo/shared/logic';
+import type { DividendEntryInput } from '@repo/shared/schemas';
 
 interface BankStatementImportDialogProps {
   onClose: () => void;
@@ -32,6 +35,7 @@ const REGIONS = Array.from(new Set(BANKS.map((b) => b.region ?? 'Other')));
 export function BankStatementImportDialog({ onClose }: BankStatementImportDialogProps) {
   const queryClient = useQueryClient();
   const { data: accounts } = useAccounts(true);
+  const { importDividends } = useImportDividends();
   const [step, setStep] = useState<Step>('options');
   const [bank, setBank] = useState<string>('HDFC');
   const [accountId, setAccountId] = useState<string>('');
@@ -45,12 +49,15 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   const [remainingChunks, setRemainingChunks] = useState<string[]>([]);
   const [remainingRowOffset, setRemainingRowOffset] = useState(0);
   const [remainingPreviousBalance, setRemainingPreviousBalance] = useState<number | null>(null);
+  const [dividendRowState, setDividendRowState] = useState<Record<number, DividendRowState>>({});
+  const [dividendSkipRows, setDividendSkipRows] = useState<number[]>([]);
 
   async function runImport(
     csv: string,
     commit: boolean,
     overrideMapping?: Record<string, string>,
-    previousBalance?: number | null
+    previousBalance?: number | null,
+    dividendSkipRows?: number[]
   ) {
     const res = await fetch('/api/import/bank-statement', {
       method: 'POST',
@@ -62,6 +69,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
         commit,
         mapping: overrideMapping,
         previous_balance: previousBalance ?? undefined,
+        dividend_skip_rows: dividendSkipRows,
       }),
     });
     const data = await res.json();
@@ -74,6 +82,22 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     }
     if (!res.ok) throw new Error(data.error ?? 'Import failed');
     return data as ImportResult;
+  }
+
+  /** Default row state for every newly detected dividend candidate — the linked account
+   * defaults to the statement's own account since that's usually where the dividend landed. */
+  function initDividendRowState(preview: ImportResult) {
+    const next: Record<number, DividendRowState> = {};
+    for (const c of preview.dividendCandidates ?? []) {
+      next[c.row] = {
+        symbol: '',
+        exchange: 'NSE',
+        linked_account_id: accountId,
+        asset_type: 'Stock',
+        skipped: false,
+      };
+    }
+    setDividendRowState(next);
   }
 
   async function handleFile(file: File) {
@@ -106,6 +130,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
       if (preview) {
         setResult(preview);
         setReviewAcknowledged(false);
+        initDividendRowState(preview);
         setStep('preview');
       }
     } catch (err) {
@@ -122,6 +147,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
       const preview = await runImport(csvText, false, mapping);
       if (preview) {
         setResult(preview);
+        initDividendRowState(preview);
         setStep('preview');
       }
     } catch (err) {
@@ -160,7 +186,8 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     chunks: string[],
     base: ImportResult,
     rowOffset: number,
-    previousBalance: number | null
+    previousBalance: number | null,
+    dividendSkipRowsOriginal: number[] = []
   ) {
     let accumulated = base;
     let offset = rowOffset;
@@ -170,8 +197,13 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     for (let i = 0; i < chunks.length; i++) {
       setProgress({ done: i, total: chunks.length });
       const chunkRowCount = chunks[i]!.split(/\r\n|\n/).filter((line) => line.length > 0).length - 1;
+      // Each chunk is parsed server-side as its own standalone file (see chunkCsv.ts), so its
+      // row numbers restart at 2 — translate this chunk's slice of the original file's row
+      // numbers (from the whole-file preview) into that chunk-local numbering by subtracting
+      // the same `offset` already used to translate error rows back the other way below.
+      const localSkipRows = dividendSkipRowsOriginal.map((r) => r - offset).filter((r) => r > 0);
       try {
-        const chunkResult = await runImport(chunks[i]!, true, mappingToSend, runningBalance);
+        const chunkResult = await runImport(chunks[i]!, true, mappingToSend, runningBalance, localSkipRows);
         if (!chunkResult) throw new Error('This file needs column mapping confirmed again before it can commit.');
 
         accumulated = {
@@ -208,17 +240,50 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   async function handleConfirm() {
     if (!csvText || !result) return;
     setErrorMessage(null);
+
+    const candidates = result.dividendCandidates ?? [];
+    const confirmedEntries: DividendEntryInput[] = [];
+    const skipRows: number[] = [];
+    for (const c of candidates) {
+      const state = dividendRowState[c.row];
+      if (!state) continue;
+      if (state.skipped) {
+        skipRows.push(c.row);
+      } else {
+        confirmedEntries.push({
+          date: c.date,
+          amount: c.amount,
+          symbol: state.symbol.trim(),
+          exchange: state.exchange.trim(),
+          linked_account_id: state.linked_account_id,
+          asset_type: state.asset_type,
+        });
+      }
+    }
+    setDividendSkipRows(skipRows);
+
+    if (confirmedEntries.length > 0) {
+      setStep('committing');
+      try {
+        await importDividends(confirmedEntries);
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'Failed to save dividends');
+        setStep('preview');
+        return;
+      }
+    }
+
     setStep('committing');
     const base: ImportResult = { ...result, committed: 0, errors: [], reconciliation: undefined };
     setResult(base);
-    await commitChunks(chunkCsv(csvText, COMMIT_CHUNK_SIZE), base, 0, null);
+    await commitChunks(chunkCsv(csvText, COMMIT_CHUNK_SIZE), base, 0, null, skipRows);
   }
 
   async function handleRetryRemaining() {
     if (!result) return;
     setErrorMessage(null);
     setStep('committing');
-    await commitChunks(remainingChunks, result, remainingRowOffset, remainingPreviousBalance);
+    await commitChunks(remainingChunks, result, remainingRowOffset, remainingPreviousBalance, dividendSkipRows);
   }
 
   const mappingComplete = !!mapping.date && !!mapping.description && (!!mapping.debit || !!mapping.credit || !!mapping.amount);
@@ -226,7 +291,17 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
     !!result &&
     result.mappingSource !== undefined &&
     needsReviewAcknowledgement(result.mappingSource, result.institutionConfidence ?? null);
-  const canConfirm = !!result && result.validCount > 0 && (!needsReview || reviewAcknowledged);
+  const dividendCandidates = result?.dividendCandidates ?? [];
+  const dividendRowsValid = dividendCandidates.every((c) => {
+    const state = dividendRowState[c.row];
+    if (!state) return false;
+    return state.skipped || (!!state.symbol.trim() && !!state.exchange.trim() && !!state.linked_account_id);
+  });
+  const canConfirm =
+    !!result &&
+    (result.validCount > 0 || dividendCandidates.length > 0) &&
+    (!needsReview || reviewAcknowledged) &&
+    dividendRowsValid;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -311,6 +386,17 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
           />
         )}
 
+        {step === 'preview' && dividendCandidates.length > 0 && (
+          <DividendReviewList
+            candidates={dividendCandidates}
+            rowState={dividendRowState}
+            onChange={(row, next) =>
+              setDividendRowState((prev) => ({ ...prev, [row]: { ...prev[row]!, ...next } }))
+            }
+            accounts={accounts}
+          />
+        )}
+
         {(step === 'preview' || step === 'committing' || step === 'partial' || step === 'done') && result && (
           <ImportResultSummary result={result} step={step} />
         )}
@@ -330,7 +416,8 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
           )}
           {step === 'preview' && (
             <Button onClick={handleConfirm} disabled={!canConfirm}>
-              Confirm Import ({result?.validCount ?? 0} rows)
+              Confirm Import ({result?.validCount ?? 0} transaction{result?.validCount === 1 ? '' : 's'}
+              {dividendCandidates.length > 0 ? `, ${dividendCandidates.length} dividend${dividendCandidates.length === 1 ? '' : 's'}` : ''})
             </Button>
           )}
           {step === 'committing' && <Button disabled>Importing…</Button>}
