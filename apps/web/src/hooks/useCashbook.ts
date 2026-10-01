@@ -14,6 +14,7 @@ import {
   CASHBOOK_PAGE_SIZE,
 } from '@repo/shared/queries/cashbook';
 import type { CashbookInput } from '@repo/shared/schemas';
+import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 
 /** Removes rows with the given ids from every cached `['cashbook', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -34,7 +35,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
       return getCashbook(supabase, userId, opts);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
@@ -46,7 +47,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
       return getCashbookCount(supabase, userId, { counterparty: opts.counterparty });
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const summaryQuery = useQuery({
@@ -56,7 +57,7 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
       return getCashbookSummary(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const createMutation = useMutation({
@@ -173,6 +174,6 @@ export function useAllCashbook() {
       return getCashbookForDedup(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }

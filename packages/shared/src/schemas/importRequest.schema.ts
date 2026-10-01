@@ -23,6 +23,10 @@ export const bankStatementImportSchema = importCsvSchema.extend({
    * chunk's returned `reconciliation.lastBalance`. Absent (or null) means "start fresh", the
    * correct behavior for a whole-file preview or the first chunk of a commit. */
   previous_balance: z.number().nullable().optional(),
+  /** Row numbers (1-indexed, header = row 1 — same numbering `buildBankStatementImportPlan`
+   * uses) the user explicitly confirmed are NOT dividends after review, so they import as
+   * normal transactions instead of being routed to the dividend review step again. */
+  dividend_skip_rows: z.array(z.number()).optional(),
 });
 
 export type BankStatementImportInput = z.infer<typeof bankStatementImportSchema>;

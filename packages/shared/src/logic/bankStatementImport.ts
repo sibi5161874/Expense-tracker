@@ -10,6 +10,7 @@ import {
 } from './csvImport';
 import { detectBankMapping, type DetectedMapping } from './columnHeuristics';
 import { BANKS, findBank } from './institutions';
+import { detectDividendCandidate } from './dividendDetection';
 
 export { BANKS, findBank };
 
@@ -252,15 +253,24 @@ export function checkBalanceReconciliation(
  * existing dedup key. Every row belongs to one account, chosen by the user
  * before upload — statements don't name the account they belong to.
  */
+export interface DividendCandidate {
+  row: number;
+  date: string;
+  description: string;
+  amount: number;
+}
+
 export function buildBankStatementImportPlan(
   mapping: BankColumnMapping,
   records: ImportRecord[],
   fromAccountId: string,
   categoryIndex: Map<string, string>,
-  existingKeys: string[]
-): ImportPlan<TransactionInput> {
+  existingKeys: string[],
+  dividendSkipRows?: Set<number>
+): ImportPlan<TransactionInput> & { dividendCandidates: DividendCandidate[] } {
   const errors: ImportRowError[] = [];
   const validRows: TransactionInput[] = [];
+  const dividendCandidates: DividendCandidate[] = [];
   let duplicateCount = 0;
   const isDuplicate = createDedupChecker(existingKeys);
 
@@ -278,6 +288,15 @@ export function buildBankStatementImportPlan(
     const type: TransactionType = credit > debit ? 'Income' : 'Expense';
     const amount = type === 'Income' ? credit : debit;
     const description = readField(record, mapping.description);
+
+    // A detected dividend row never becomes a transaction — it's routed to the import
+    // dialog's review step instead (see DividendReviewList.tsx), unless the user already
+    // dismissed it as a false positive via dividendSkipRows, in which case it falls through
+    // to the normal transaction path below exactly as any other row would.
+    if (!dividendSkipRows?.has(row) && detectDividendCandidate(description, type)) {
+      dividendCandidates.push({ row, date, description, amount });
+      continue;
+    }
 
     const guess = categorizeDescription(description);
     let categoryId: string | null = null;
@@ -308,5 +327,5 @@ export function buildBankStatementImportPlan(
     validRows.push(parsed.data);
   }
 
-  return { errors, validRows, duplicateCount };
+  return { errors, validRows, duplicateCount, dividendCandidates };
 }

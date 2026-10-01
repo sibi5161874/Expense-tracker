@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import { getPaymentEvents } from '@repo/shared/queries/payments';
+import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 
 /** Backs the Billing tab's "Payment history" section — the closest thing to a reconciliation
  * view this app has without inventing an admin-role system that doesn't exist anywhere else
@@ -18,6 +19,6 @@ export function usePaymentEvents() {
       return getPaymentEvents(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }

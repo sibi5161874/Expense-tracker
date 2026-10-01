@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { STALE_TIME_SIX_HOURS } from '@/lib/queryStaleTimes';
 
 export interface LivePriceResult {
   ticker: string;
   price: number;
   currency: string;
 }
-
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Live quote for any ticker via /api/live-price/universal — Pro-gated and 6-hour cached on
@@ -24,7 +23,7 @@ export function useLivePrice(ticker: string | null) {
       return data as LivePriceResult;
     },
     enabled: !!ticker,
-    staleTime: SIX_HOURS_MS,
-    refetchInterval: SIX_HOURS_MS,
+    staleTime: STALE_TIME_SIX_HOURS,
+    refetchInterval: STALE_TIME_SIX_HOURS,
   });
 }

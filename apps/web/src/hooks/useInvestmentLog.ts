@@ -13,6 +13,7 @@ import {
   INVESTMENT_LOG_PAGE_SIZE,
 } from '@repo/shared/queries/investmentLog';
 import type { InvestmentLogInput } from '@repo/shared/schemas';
+import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 
 /** Removes rows with the given ids from every cached `['investmentLog', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -33,7 +34,7 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number; pageSiz
       return getInvestmentLog(supabase, userId, opts);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
@@ -45,7 +46,7 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number; pageSiz
       return getInvestmentLogCount(supabase, userId, { symbol: opts.symbol });
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const createMutation = useMutation({
@@ -159,6 +160,6 @@ export function useAllInvestmentLog() {
       return getAllInvestmentLog(supabase, userId);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }

@@ -1,23 +1,34 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useFxRates } from '@/hooks/useFxRates';
+import { useAllTimeTransactions } from '@/hooks/useReportsData';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountRow } from '@/components/settings/AccountRow';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import type { Account } from '@repo/shared/types';
-import { BASE_CURRENCY } from '@repo/shared/logic';
+import { BASE_CURRENCY, calculateAccountBalances } from '@repo/shared/logic';
 
 export function AccountsTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const { data: accounts, isLoading, error, deleteAccount, isDeleting } = useAccounts();
+  const { data: transactions } = useAllTimeTransactions();
   const { rates: fxRates, isStale: fxRatesStale, fetchedAt: fxRatesFetchedAt } = useFxRates();
   const hasForeignAccount = (accounts ?? []).some((a) => a.currency !== BASE_CURRENCY);
+
+  // Opening balance never reflects reality once a single transaction has posted — this is the
+  // one place in the app where every account's running balance (opening + every transaction
+  // against it) is shown, reusing the same calculateAccountBalances the dashboard/reports
+  // already use rather than a second balance calculation.
+  const currentBalanceByAccountId = useMemo(() => {
+    if (!accounts || !transactions) return new Map<string, number>();
+    return new Map(calculateAccountBalances(accounts, transactions).map((b) => [b.accountId, b.balance]));
+  }, [accounts, transactions]);
 
   const handleDelete = useCallback((id: string) => deleteAccount(id), [deleteAccount]);
   const closeForm = useCallback(() => {
@@ -57,6 +68,7 @@ export function AccountsTab() {
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Opening Balance</TableHead>
+              <TableHead className="text-right">Current Balance</TableHead>
               <TableHead>Currency</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -71,11 +83,12 @@ export function AccountsTab() {
                 onDelete={handleDelete}
                 isDeleting={isDeleting}
                 fxRates={fxRates}
+                currentBalance={currentBalanceByAccountId.get(account.id)}
               />
             ))}
             {accounts?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground h-32 text-center">
+                <TableCell colSpan={7} className="text-muted-foreground h-32 text-center">
                   No accounts yet. Add your first account to start logging transactions.
                 </TableCell>
               </TableRow>

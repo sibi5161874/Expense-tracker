@@ -18,6 +18,7 @@ import {
   deleteTransactionsBulk,
 } from '@repo/shared/queries/transactions';
 import type { TransactionInput } from '@repo/shared/schemas';
+import { STALE_TIME_SHORT, STALE_TIME_LONG } from '@/lib/queryStaleTimes';
 
 /** Removes rows with the given ids from every cached `['transactions', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -38,7 +39,7 @@ export function useTransactions(opts: { month?: string; page?: number; pageSize?
       return getTransactions(supabase, userId, opts);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
@@ -51,7 +52,7 @@ export function useTransactions(opts: { month?: string; page?: number; pageSize?
       return getTransactionsCount(supabase, userId, { month: opts.month });
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const createMutation = useMutation({
@@ -164,7 +165,7 @@ export function useMonthlyOverview(month: string) {
       return getMonthlyTransactionSummary(supabase, userId, month);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const categoryQuery = useQuery({
@@ -174,7 +175,7 @@ export function useMonthlyOverview(month: string) {
       return getMonthlyCategoryBreakdown(supabase, userId, month);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 
   const overview = useMemo(() => {
@@ -213,7 +214,7 @@ export function useTransactionsForMonth(month: string) {
       return getAllTransactionsForMonth(supabase, userId, month);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }
 
@@ -238,7 +239,7 @@ export function useRecentExpensesForInsight() {
       return getRecentExpensesForInsight(supabase, userId, sinceDate);
     },
     enabled: !!userId,
-    staleTime: 5 * 60_000,
+    staleTime: STALE_TIME_LONG,
   });
 }
 
@@ -255,6 +256,6 @@ export function useTransactionsForDate(date: string) {
       return getTransactionsForDate(supabase, userId, date);
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_SHORT,
   });
 }

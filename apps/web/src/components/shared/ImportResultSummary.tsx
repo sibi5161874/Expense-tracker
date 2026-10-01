@@ -22,6 +22,9 @@ export interface ImportResult {
   /** Only present for bank/broker native imports — see ImportConfidenceNotice. */
   mappingSource?: 'exact' | 'heuristic' | 'manual';
   institutionConfidence?: 'verified' | 'partial' | 'heuristic' | null;
+  /** Only present for bank statement imports — rows excluded from validCount/preview above
+   * because they look like dividend payouts; see DividendReviewList. */
+  dividendCandidates?: { row: number; date: string; description: string; amount: number }[];
 }
 
 interface ImportResultSummaryProps {

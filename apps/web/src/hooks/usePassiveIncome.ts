@@ -1,7 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import { calculatePassiveIncome, type SymbolHolding, type StockFundamentals } from '@repo/shared/logic';
-
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+import { STALE_TIME_SIX_HOURS } from '@/lib/queryStaleTimes';
 
 /**
  * Annual/monthly passive-income projection across every held symbol. Batches one fundamentals
@@ -27,7 +26,7 @@ export function usePassiveIncome(holdings: SymbolHolding[]) {
           if (!res.ok) throw new Error(data.error ?? 'Failed to fetch fundamentals');
           return data;
         },
-        staleTime: SIX_HOURS_MS,
+        staleTime: STALE_TIME_SIX_HOURS,
       };
     }),
   });
