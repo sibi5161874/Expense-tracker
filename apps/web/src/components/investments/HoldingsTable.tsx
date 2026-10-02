@@ -13,9 +13,11 @@ interface HoldingsTableProps {
   holdings: SymbolHolding[];
   /** True only for the first successful load — never on refetch, so rows don't re-stagger. */
   animateRows?: boolean;
+  /** symbol -> currency its live price is quoted in (only non-INR ones are worth passing). */
+  foreignPriceCurrencies?: Record<string, string>;
 }
 
-export function HoldingsTable({ holdings, animateRows = false }: HoldingsTableProps) {
+export function HoldingsTable({ holdings, animateRows = false, foreignPriceCurrencies }: HoldingsTableProps) {
   const router = useRouter();
 
   return (
@@ -53,7 +55,19 @@ export function HoldingsTable({ holdings, animateRows = false }: HoldingsTablePr
                 )}
                 style={animateRows ? { animationDelay: `${index * 20}ms`, animationFillMode: 'both' } : undefined}
               >
-                <TableCell className="font-medium">{holding.symbol}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-1.5">
+                    {holding.symbol}
+                    {foreignPriceCurrencies?.[holding.symbol] && (
+                      <span
+                        title={`Live price is quoted in ${foreignPriceCurrencies[holding.symbol]} and is not converted to INR — portfolio totals add it at face value.`}
+                        className="bg-warning/10 text-warning rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                      >
+                        {foreignPriceCurrencies[holding.symbol]}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground">{holding.exchange}</TableCell>
                 <TableCell className={NUMERIC_CELL}>{holding.unitsHeld}</TableCell>
                 <TableCell className={NUMERIC_CELL}>

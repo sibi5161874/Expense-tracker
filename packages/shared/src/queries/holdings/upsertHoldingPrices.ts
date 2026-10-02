@@ -4,6 +4,8 @@ import type { Database } from '../../types';
 export interface HoldingPriceUpdate {
   symbol: string;
   live_price: number;
+  /** ISO currency the price is quoted in ("INR", "USD", ...), when the source reports one. */
+  live_currency?: string | null;
   display_name?: string | null;
 }
 
@@ -23,7 +25,14 @@ export async function upsertHoldingPrices(
   const { data, error } = await supabase
     .from('holdings')
     .upsert(
-      updates.map((u) => ({ user_id: userId, symbol: u.symbol, live_price: u.live_price })),
+      updates.map((u) => ({
+        user_id: userId,
+        symbol: u.symbol,
+        live_price: u.live_price,
+        // Only written when the source reported a currency, so an unknown one never overwrites a
+        // previously recorded value with null.
+        ...(u.live_currency ? { live_currency: u.live_currency } : {}),
+      })),
       { onConflict: 'user_id,symbol' }
     )
     .select();

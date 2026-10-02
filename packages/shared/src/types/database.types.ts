@@ -195,6 +195,7 @@ export interface Database {
           symbol: string;
           display_name: string | null;
           live_price: number;
+          live_currency: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -204,6 +205,7 @@ export interface Database {
           symbol: string;
           display_name?: string | null;
           live_price?: number;
+          live_currency?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["holdings"]["Insert"]>;
         Relationships: [];

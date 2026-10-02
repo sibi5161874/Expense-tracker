@@ -7,8 +7,10 @@ const DEFAULT_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x6
  * wrong, so retrying it would just fail identically. */
 export class TransientFetchError extends Error {}
 
+/** 429 is the source throttling us — worth backing off and retrying, and a sign it is unhappy,
+ * unlike a 404/400, which means it answered fine and the request itself was wrong. */
 function isTransientStatus(status: number): boolean {
-  return status >= 500;
+  return status >= 500 || status === 429;
 }
 
 async function sleep(ms: number) {
@@ -133,7 +135,10 @@ export function createResilientFetcher({
       } catch (e) {
         lastError = e;
         if (!(e instanceof TransientFetchError) || attempt === maxRetries) {
-          await recordFailure();
+          // Only "the source looks unhealthy" failures count toward the breaker. A 404 means the
+          // source answered and this one ticker is unknown/renamed — five of those in a refresh
+          // used to open the circuit and fail every valid ticker for the next minute.
+          if (e instanceof TransientFetchError) await recordFailure();
           throw e;
         }
         const backoff = retryBaseDelayMs * 2 ** attempt;
