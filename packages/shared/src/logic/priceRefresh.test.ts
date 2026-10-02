@@ -10,7 +10,140 @@ import {
   buildBenchmarkSeries,
   isMutualFund,
   buildRefreshSummary,
+  isAmbiguousMutualFundName,
+  extractYahooCurrency,
+  normalizeQuoteCurrency,
+  coinGeckoIdForSymbol,
+  extractCoinGeckoPrice,
 } from './priceRefresh';
+
+// Real lines from AMFI's live NAVAll.txt (2026-10-02): the current 8-column layout, where Plan and
+// Option sit between the scheme name and the NAV, plus fund-house headers and a "-" ISIN.
+const SAMPLE_AMFI_V2 = `Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+
+Open Ended Schemes(Equity Scheme - Flexi Cap Fund)
+
+PPFAS Mutual Fund
+
+122639;INF879O01027;-;Parag Parikh Flexi Cap Fund;Direct Plan;Growth;88.2569;01-Oct-2026
+153964;-;-;Parag Parikh Flexi Cap Fund;Direct Plan;Monthly IDCW Payout;88.2569;01-Oct-2026
+122640;INF879O01019;-;Parag Parikh Flexi Cap Fund;Regular Plan;Growth;80.3771;01-Oct-2026
+153965;-;-;Parag Parikh Flexi Cap Fund;Regular Plan;Monthly IDCW Payout;80.3769;01-Oct-2026
+
+Axis Mutual Fund
+
+135762;INF846K01WO1;-;Axis Children's Fund;Direct Plan;Growth Option;29.0001;01-Oct-2026
+`;
+
+describe('parseAmfiNavFile (current 8-column layout)', () => {
+  const rows = parseAmfiNavFile(SAMPLE_AMFI_V2);
+
+  it('reads the NAV from the Net Asset Value column, not the Plan column that now precedes it', () => {
+    expect(rows).toHaveLength(5);
+    expect(rows[0]).toMatchObject({
+      schemeCode: '122639',
+      isinGrowth: 'INF879O01027',
+      schemeName: 'Parag Parikh Flexi Cap Fund',
+      plan: 'Direct Plan',
+      option: 'Growth',
+      nav: 88.2569,
+      date: '01-Oct-2026',
+    });
+  });
+
+  it('locates columns from the header, so an extra column before the NAV does not shift anything', () => {
+    const shifted = parseAmfiNavFile(
+      'Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Category;Net Asset Value;Date\n' +
+        '1;INF000000001;-;Some Fund;Direct Plan;Growth;Equity;10.5;01-Oct-2026'
+    );
+    expect(shifted).toHaveLength(1);
+    expect(shifted[0]).toMatchObject({ schemeCode: '1', nav: 10.5, date: '01-Oct-2026' });
+  });
+
+  it('yields no rows (instead of wrong ones) when the NAV column cannot be found', () => {
+    const unknown = parseAmfiNavFile(
+      'Scheme Code;Scheme Name;Plan;Option;Price;Date\n1;Some Fund;Direct Plan;Growth;10.5;01-Oct-2026'
+    );
+    expect(unknown).toEqual([]);
+  });
+});
+
+describe('lookupMutualFundNav (current layout)', () => {
+  const index = buildAmfiIndex(parseAmfiNavFile(SAMPLE_AMFI_V2));
+
+  it('matches by scheme code and ISIN', () => {
+    expect(lookupMutualFundNav(index, '122640')).toBe(80.3771);
+    expect(lookupMutualFundNav(index, 'INF879O01027')).toBe(88.2569);
+  });
+
+  it('matches the full name a user would type, picking the right plan and option', () => {
+    expect(lookupMutualFundNav(index, 'Parag Parikh Flexi Cap Fund - Direct Plan - Growth')).toBe(88.2569);
+    expect(lookupMutualFundNav(index, 'Parag Parikh Flexi Cap Fund - Regular Plan - Growth')).toBe(80.3771);
+    expect(lookupMutualFundNav(index, 'Parag Parikh Flexi Cap Fund Regular Plan Monthly IDCW Payout')).toBe(80.3769);
+  });
+
+  it('trims the trailing "Option" so "Growth Option" matches "Growth"', () => {
+    expect(lookupMutualFundNav(index, "Axis Children's Fund - Direct Plan - Growth")).toBe(29.0001);
+  });
+
+  it('refuses a name shared by several schemes instead of guessing one', () => {
+    expect(lookupMutualFundNav(index, 'Parag Parikh Flexi Cap Fund')).toBeNull();
+    expect(isAmbiguousMutualFundName(index, 'Parag Parikh Flexi Cap Fund')).toBe(true);
+  });
+
+  it('accepts a bare name that only one scheme carries', () => {
+    expect(lookupMutualFundNav(index, "Axis Children's Fund")).toBe(29.0001);
+    expect(isAmbiguousMutualFundName(index, "Axis Children's Fund")).toBe(false);
+  });
+
+  it('does not index the "-" ISIN placeholder', () => {
+    expect(lookupMutualFundNav(index, '-')).toBeNull();
+  });
+});
+
+describe('toYahooTicker for crypto', () => {
+  it.each([
+    ['BTC', 'Crypto', 'BTC-USD'],
+    ['eth', 'crypto', 'ETH-USD'],
+    ['BTC-USD', 'Crypto', 'BTC-USD'],
+    ['BTC', 'Stock', 'BTC'],
+  ])('maps %s (%s) to %s', (symbol, assetType, want) => {
+    expect(toYahooTicker(symbol, '', assetType)).toBe(want);
+  });
+});
+
+describe('extractYahooCurrency / normalizeQuoteCurrency', () => {
+  it('reads the quote currency', () => {
+    expect(extractYahooCurrency({ chart: { result: [{ meta: { currency: 'USD' } }] } })).toBe('USD');
+    expect(extractYahooCurrency({})).toBeNull();
+    expect(extractYahooCurrency(null)).toBeNull();
+  });
+
+  it('converts London pence to pounds', () => {
+    expect(normalizeQuoteCurrency(1438.2, 'GBp')).toEqual({ price: 14.382, currency: 'GBP' });
+  });
+
+  it('leaves major currencies and unknown currencies untouched', () => {
+    expect(normalizeQuoteCurrency(330.32, 'USD')).toEqual({ price: 330.32, currency: 'USD' });
+    expect(normalizeQuoteCurrency(10459.74, 'GBP')).toEqual({ price: 10459.74, currency: 'GBP' });
+    expect(normalizeQuoteCurrency(5, null)).toEqual({ price: 5, currency: null });
+  });
+});
+
+describe('CoinGecko helpers', () => {
+  it('maps tickers with or without the -USD suffix to a CoinGecko id', () => {
+    expect(coinGeckoIdForSymbol('BTC')).toBe('bitcoin');
+    expect(coinGeckoIdForSymbol('eth-usd')).toBe('ethereum');
+    expect(coinGeckoIdForSymbol('NOTACOIN')).toBeNull();
+  });
+
+  it('reads the USD price and rejects missing or non-positive values', () => {
+    expect(extractCoinGeckoPrice({ bitcoin: { usd: 85963.17 } }, 'bitcoin')).toBe(85963.17);
+    expect(extractCoinGeckoPrice({ bitcoin: { usd: 0 } }, 'bitcoin')).toBeNull();
+    expect(extractCoinGeckoPrice({}, 'bitcoin')).toBeNull();
+    expect(extractCoinGeckoPrice(null, 'bitcoin')).toBeNull();
+  });
+});
 
 // Shaped like the real NAVAll.txt: fund-house headers and blank lines between
 // data rows, which the parser has to skip without erroring.

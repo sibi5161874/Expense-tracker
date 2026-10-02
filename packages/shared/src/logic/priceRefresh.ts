@@ -19,8 +19,68 @@ export interface AmfiNavRow {
   isinGrowth: string;
   isinReinvest: string;
   schemeName: string;
+  /** Only present in the current 8-column layout, where AMFI split these out of the name. */
+  plan?: string;
+  option?: string;
   nav: number;
   date: string;
+}
+
+/** Column positions for one AMFI file layout; `date: null` means "the last field". */
+interface AmfiColumns {
+  code: number;
+  isinGrowth: number;
+  isinReinvest: number;
+  name: number;
+  plan: number | null;
+  option: number | null;
+  nav: number;
+  date: number | null;
+}
+
+/** The pre-2026 six-column layout, used when a file has no recognizable header line. */
+const LEGACY_AMFI_COLUMNS: AmfiColumns = {
+  code: 0,
+  isinGrowth: 1,
+  isinReinvest: 2,
+  name: 3,
+  plan: null,
+  option: null,
+  nav: 4,
+  date: null,
+};
+
+/**
+ * Maps a header line's column names to positions instead of hard-coding them. AMFI inserted
+ * "Plan" and "Option" columns ahead of the NAV, which silently made a fixed-position parser read
+ * "Direct Plan" as the NAV and reject every row — reading by name means the next layout change
+ * either still works or yields zero rows (which the refresh route reports), never wrong fields.
+ */
+function resolveAmfiColumns(header: string[]): AmfiColumns | null {
+  const names = header.map((h) => h.trim().toLowerCase());
+  const find = (predicate: (n: string) => boolean) => {
+    const i = names.findIndex(predicate);
+    return i === -1 ? null : i;
+  };
+
+  const code = find((n) => n.startsWith('scheme code'));
+  const name = find((n) => n === 'scheme name');
+  const nav = find((n) => n.includes('net asset value'));
+  const date = find((n) => n === 'date');
+  const isinGrowth = find((n) => n.includes('isin') && (n.includes('growth') || n.includes('payout')));
+  const isinReinvest = find((n) => n.includes('isin') && n.includes('reinvest'));
+  if (code === null || name === null || nav === null || date === null) return null;
+
+  return {
+    code,
+    name,
+    nav,
+    date,
+    isinGrowth: isinGrowth ?? -1,
+    isinReinvest: isinReinvest ?? -1,
+    plan: find((n) => n === 'plan'),
+    option: find((n) => n === 'option'),
+  };
 }
 
 /**
@@ -28,28 +88,42 @@ export interface AmfiNavRow {
  * blank lines with data rows, so anything without the expected field count is
  * skipped rather than treated as an error.
  *
- * Layout: Scheme Code;ISIN Div Payout/Growth;ISIN Div Reinvestment;Scheme Name;NAV;Date
+ * Current layout: Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;
+ * Plan;Option;Net Asset Value;Date. Columns are located from the header line; a file with no
+ * header is read as the legacy six-column layout.
  */
 export function parseAmfiNavFile(text: string): AmfiNavRow[] {
   const rows: AmfiNavRow[] = [];
+  // Legacy positions apply only to a file with no header at all. A header we can't read means the
+  // layout changed in a way we don't understand — better to yield nothing (the refresh route then
+  // reports it) than to fall back to fixed positions and read the wrong fields.
+  let columns: AmfiColumns | null = LEGACY_AMFI_COLUMNS;
 
   for (const line of text.split(/\r?\n/)) {
     const parts = line.split(';');
-    // Header line is "Scheme Code;ISIN..." — skip it and any non-data line.
     if (parts.length < 6) continue;
-    if (parts[0]?.trim().toLowerCase() === 'scheme code') continue;
+    if (parts[0]?.trim().toLowerCase() === 'scheme code') {
+      columns = resolveAmfiColumns(parts);
+      continue;
+    }
+    if (!columns) continue;
 
-    const schemeCode = (parts[0] ?? '').trim();
-    const nav = Number((parts[4] ?? '').trim());
+    const cell = (i: number | null) => (i === null || i < 0 ? '' : (parts[i] ?? '').trim());
+    const schemeCode = cell(columns.code);
+    const nav = Number(cell(columns.nav));
     if (!schemeCode || !Number.isFinite(nav) || nav <= 0) continue;
 
+    const plan = cell(columns.plan);
+    const option = cell(columns.option);
     rows.push({
       schemeCode,
-      isinGrowth: (parts[1] ?? '').trim(),
-      isinReinvest: (parts[2] ?? '').trim(),
-      schemeName: (parts[3] ?? '').trim(),
+      isinGrowth: cell(columns.isinGrowth),
+      isinReinvest: cell(columns.isinReinvest),
+      schemeName: cell(columns.name),
+      ...(columns.plan !== null ? { plan } : {}),
+      ...(columns.option !== null ? { option } : {}),
       nav,
-      date: (parts[parts.length - 1] ?? '').trim(),
+      date: columns.date === null ? (parts[parts.length - 1] ?? '').trim() : cell(columns.date),
     });
   }
 
@@ -69,6 +143,8 @@ export interface AmfiIndex {
   byCode: Map<string, number>;
   byIsin: Map<string, number>;
   byName: Map<string, number>;
+  /** Normalized names shared by 2+ schemes (Direct/Regular x Growth/IDCW) — never matched. */
+  ambiguousNames: Set<string>;
 }
 
 /**
@@ -85,19 +161,45 @@ function isRealIsin(value: string): boolean {
 export function buildAmfiIndex(rows: AmfiNavRow[]): AmfiIndex {
   const byCode = new Map<string, number>();
   const byIsin = new Map<string, number>();
-  const byName = new Map<string, number>();
+  const nameNavs = new Map<string, Set<number>>();
+  const nameSchemes = new Map<string, Set<string>>();
+
+  const addName = (key: string, schemeCode: string, nav: number) => {
+    if (!key) return;
+    if (!nameSchemes.has(key)) nameSchemes.set(key, new Set());
+    nameSchemes.get(key)!.add(schemeCode);
+    if (!nameNavs.has(key)) nameNavs.set(key, new Set());
+    nameNavs.get(key)!.add(nav);
+  };
 
   for (const row of rows) {
     byCode.set(row.schemeCode, row.nav);
     if (isRealIsin(row.isinGrowth)) byIsin.set(row.isinGrowth.trim().toUpperCase(), row.nav);
     if (isRealIsin(row.isinReinvest)) byIsin.set(row.isinReinvest.trim().toUpperCase(), row.nav);
-    if (row.schemeName) byName.set(normalizeName(row.schemeName), row.nav);
+
+    // Current layout: the name no longer says Direct/Regular or Growth/IDCW, so the full name a
+    // user would type is name + plan + option ("Option" trimmed — "Growth Option" -> "Growth").
+    if (row.plan !== undefined || row.option !== undefined) {
+      const option = (row.option ?? '').replace(/\s+option$/i, '');
+      addName(normalizeName(`${row.schemeName} ${row.plan ?? ''} ${option}`), row.schemeCode, row.nav);
+    }
+    addName(normalizeName(row.schemeName), row.schemeCode, row.nav);
   }
 
-  return { byCode, byIsin, byName };
+  // A name resolves only when exactly one scheme carries it. "Parag Parikh Flexi Cap Fund" alone
+  // names four different schemes with four different NAVs — picking one would silently price a
+  // Regular holding off the Direct plan (or an IDCW fund off Growth).
+  const byName = new Map<string, number>();
+  const ambiguousNames = new Set<string>();
+  for (const [key, schemes] of nameSchemes) {
+    if (schemes.size === 1) byName.set(key, [...nameNavs.get(key)!][0]!);
+    else ambiguousNames.add(key);
+  }
+
+  return { byCode, byIsin, byName, ambiguousNames };
 }
 
-/** Exact-match only: scheme code, then ISIN, then normalized scheme name. */
+/** Exact-match only: scheme code, then ISIN, then a name that identifies exactly one scheme. */
 export function lookupMutualFundNav(index: AmfiIndex, symbol: string): number | null {
   const raw = symbol.trim();
   if (!raw) return null;
@@ -105,14 +207,23 @@ export function lookupMutualFundNav(index: AmfiIndex, symbol: string): number | 
   return index.byCode.get(raw) ?? index.byIsin.get(raw.toUpperCase()) ?? index.byName.get(normalizeName(raw)) ?? null;
 }
 
+/** True when `symbol` is a fund name that several schemes share — lets the caller say so. */
+export function isAmbiguousMutualFundName(index: AmfiIndex, symbol: string): boolean {
+  return index.ambiguousNames.has(normalizeName(symbol));
+}
+
 /**
  * Maps a stored symbol + exchange to a Yahoo Finance ticker.
  * Indian listings need a suffix: .NS for NSE, .BO for BSE. A symbol that already
  * carries a suffix is passed through so pre-formatted entries still work.
  */
-export function toYahooTicker(symbol: string, exchange: string): string {
+export function toYahooTicker(symbol: string, exchange: string, assetType?: string): string {
   const clean = symbol.trim().toUpperCase();
   if (/\.(NS|BO)$/.test(clean)) return clean;
+
+  // A bare crypto symbol on Yahoo is a different instrument ("BTC" is a Bitcoin ETF at ~$37, not
+  // Bitcoin) — crypto pairs are written "BTC-USD". A symbol already containing a pair is kept.
+  if (assetType?.trim().toLowerCase() === 'crypto' && !clean.includes('-')) return `${clean}-USD`;
 
   const ex = exchange.trim().toUpperCase();
   if (ex === 'BSE') return `${clean}.BO`;
@@ -149,6 +260,67 @@ export function extractYahooQuote(payload: unknown): YahooQuote | null {
   if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null;
   if (typeof currency !== 'string' || !currency) return null;
   return { price, currency };
+}
+
+/** The currency Yahoo reports for a quote, or null when it's absent. */
+export function extractYahooCurrency(payload: unknown): string | null {
+  const currency = (payload as { chart?: { result?: Array<{ meta?: { currency?: unknown } }> } })?.chart?.result?.[0]
+    ?.meta?.currency;
+  return typeof currency === 'string' && currency ? currency : null;
+}
+
+/**
+ * Yahoo quotes some exchanges in a minor unit — London in pence ("GBp"/"GBX": 1438.2 means
+ * £14.382), Johannesburg in cents ("ZAc"), Tel Aviv in agorot ("ILA"). Left alone, a London stock
+ * would read 100x too high, so these are converted to the major currency.
+ */
+const MINOR_UNIT_CURRENCIES: Record<string, { currency: string; divisor: number }> = {
+  GBp: { currency: 'GBP', divisor: 100 },
+  GBX: { currency: 'GBP', divisor: 100 },
+  ZAc: { currency: 'ZAR', divisor: 100 },
+  ILA: { currency: 'ILS', divisor: 100 },
+};
+
+export function normalizeQuoteCurrency(
+  price: number,
+  currency: string | null
+): { price: number; currency: string | null } {
+  const minor = currency ? MINOR_UNIT_CURRENCIES[currency] : undefined;
+  return minor ? { price: price / minor.divisor, currency: minor.currency } : { price, currency };
+}
+
+/** Crypto symbols CoinGecko can price, as the bare ticker a user would type. */
+const COINGECKO_IDS: Record<string, string> = {
+  BTC: 'bitcoin',
+  ETH: 'ethereum',
+  SOL: 'solana',
+  BNB: 'binancecoin',
+  XRP: 'ripple',
+  ADA: 'cardano',
+  DOGE: 'dogecoin',
+  DOT: 'polkadot',
+  LTC: 'litecoin',
+  AVAX: 'avalanche-2',
+  LINK: 'chainlink',
+  TRX: 'tron',
+  SHIB: 'shiba-inu',
+  TON: 'the-open-network',
+  XLM: 'stellar',
+  ATOM: 'cosmos',
+  USDT: 'tether',
+  USDC: 'usd-coin',
+};
+
+/** "BTC", "btc" and "BTC-USD" all map to CoinGecko's "bitcoin"; unknown symbols map to null. */
+export function coinGeckoIdForSymbol(symbol: string): string | null {
+  const base = symbol.trim().toUpperCase().replace(/-USD$/, '');
+  return COINGECKO_IDS[base] ?? null;
+}
+
+/** Reads the USD price out of CoinGecko's `simple/price?ids=<id>&vs_currencies=usd` response. */
+export function extractCoinGeckoPrice(payload: unknown, id: string): number | null {
+  const price = (payload as Record<string, { usd?: unknown } | undefined> | null)?.[id]?.usd;
+  return typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null;
 }
 
 export interface YahooHistoryPoint {

@@ -4,18 +4,22 @@ import { logError } from '@/lib/logger';
 import { getRequestId } from '@/lib/requestId';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { fetchYahooChart } from '@/lib/yahooFinance';
+import { fetchCoinGeckoUsdPrice } from '@/lib/coinGecko';
 import { createResilientFetcher } from '@/lib/fetchWithRetry';
 import {
   parseAmfiNavFile,
   buildAmfiIndex,
   lookupMutualFundNav,
+  isAmbiguousMutualFundName,
   toYahooTicker,
   extractYahooPrice,
+  extractYahooCurrency,
+  normalizeQuoteCurrency,
   isMutualFund,
   type PriceRefreshTarget,
 } from '@repo/shared/logic';
 import { getAllInvestmentLog } from '@repo/shared/queries/investmentLog';
-import { upsertHoldingPrices } from '@repo/shared/queries/holdings';
+import { upsertHoldingPrices, type HoldingPriceUpdate } from '@repo/shared/queries/holdings';
 
 /**
  * Live price refresh for the caller's holdings.
@@ -81,7 +85,7 @@ export async function POST(req: Request) {
     return NextResponse.json(empty);
   }
 
-  const priced: { symbol: string; live_price: number }[] = [];
+  const priced: HoldingPriceUpdate[] = [];
   const failed: string[] = [];
   const failedReasons: Record<string, string> = {};
 
@@ -92,17 +96,24 @@ export async function POST(req: Request) {
   if (funds.length > 0) {
     try {
       const res = await fetchAmfiResilient(AMFI_NAV_URL, 'NAV file');
-      const index = buildAmfiIndex(parseAmfiNavFile(await res.text()));
+      const navRows = parseAmfiNavFile(await res.text());
+      // The live file has ~14,000 schemes; zero means AMFI changed the layout (it did once, adding
+      // Plan/Option columns), not that every fund is missing — say so instead of blaming each symbol.
+      if (navRows.length === 0) {
+        throw new Error('AMFI NAV file parsed to 0 schemes — its layout has probably changed.');
+      }
+      const index = buildAmfiIndex(navRows);
 
       for (const fund of funds) {
         const nav = lookupMutualFundNav(index, fund.symbol);
         if (nav === null) {
           failed.push(fund.symbol);
-          failedReasons[fund.symbol] =
-            'Not found in AMFI NAV data — the symbol must be the scheme code, ISIN, or exact scheme name.';
+          failedReasons[fund.symbol] = isAmbiguousMutualFundName(index, fund.symbol)
+            ? 'This fund name is shared by several schemes (Direct/Regular, Growth/IDCW) — use the scheme code or ISIN instead.'
+            : 'Not found in AMFI NAV data — the symbol must be the scheme code, ISIN, or the full scheme name including plan and option.';
           continue;
         }
-        priced.push({ symbol: fund.symbol, live_price: nav });
+        priced.push({ symbol: fund.symbol, live_price: nav, live_currency: 'INR' });
       }
     } catch (e) {
       // AMFI being down must not stop listed prices from refreshing.
@@ -120,14 +131,29 @@ export async function POST(req: Request) {
     const batch = listed.slice(i, i + QUOTE_CONCURRENCY);
     await Promise.all(
       batch.map(async (target) => {
-        const ticker = toYahooTicker(target.symbol, target.exchange);
+        const ticker = toYahooTicker(target.symbol, target.exchange, target.assetType);
         try {
           const body = await fetchYahooChart(ticker, 'interval=1d&range=1d');
-          const price = extractYahooPrice(body);
-          if (price === null) throw new Error(`No usable price in the response for ${ticker}`);
+          const rawPrice = extractYahooPrice(body);
+          if (rawPrice === null) throw new Error(`No usable price in the response for ${ticker}`);
 
-          priced.push({ symbol: target.symbol, live_price: price });
+          // Pence-quoted exchanges (London) are converted to the major currency here.
+          const quote = normalizeQuoteCurrency(rawPrice, extractYahooCurrency(body));
+          priced.push({ symbol: target.symbol, live_price: quote.price, live_currency: quote.currency });
         } catch (e) {
+          // Crypto only: CoinGecko is the fallback, in USD so it matches Yahoo's BTC-USD quote.
+          // Any other asset class has no second source and just fails.
+          if (target.assetType.trim().toLowerCase() === 'crypto') {
+            try {
+              const price = await fetchCoinGeckoUsdPrice(target.symbol);
+              if (price !== null) {
+                priced.push({ symbol: target.symbol, live_price: price, live_currency: 'USD' });
+                return;
+              }
+            } catch {
+              // fall through to the original Yahoo failure below
+            }
+          }
           failed.push(target.symbol);
           failedReasons[target.symbol] = e instanceof Error ? e.message : String(e);
         }

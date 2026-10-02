@@ -49,6 +49,18 @@ export default function PortfolioPage() {
     () => Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price])),
     [holdingRows]
   );
+  // Symbols whose refreshed live price is quoted in a non-INR currency. holdings has no per-row
+  // conversion, so these are added into the INR totals at face value — flagged, not converted.
+  const foreignPriceCurrencies = useMemo(
+    () =>
+      Object.fromEntries(
+        (holdingRows ?? [])
+          .filter((h) => h.live_currency && h.live_currency !== 'INR')
+          .map((h) => [h.symbol, h.live_currency as string])
+      ),
+    [holdingRows]
+  );
+  const foreignCount = Object.keys(foreignPriceCurrencies).length;
   const lastUpdated = useMemo(() => {
     if (!holdingRows || holdingRows.length === 0) return null;
     const mostRecent = holdingRows.reduce((latest, h) => (h.updated_at > latest ? h.updated_at : latest), holdingRows[0]!.updated_at);
@@ -149,6 +161,17 @@ export default function PortfolioPage() {
       {/* Asset Class Breakdown Section */}
       <AssetClassBreakdownCard holdings={holdings} />
 
+      {foreignCount > 0 && (
+        <div className="border-warning/40 bg-warning/10 text-warning-foreground flex items-start gap-2 rounded-lg border p-3 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <p>
+            {foreignCount} holding{foreignCount === 1 ? ' is' : 's are'} priced in a foreign currency (
+            {[...new Set(Object.values(foreignPriceCurrencies))].join(', ')}). The totals below add those prices
+            at face value — they are not converted to INR.
+          </p>
+        </div>
+      )}
+
       {/* KPI Summary Grid */}
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -196,7 +219,11 @@ export default function PortfolioPage() {
             <h2 className="mb-3 text-sm font-semibold">
               Holdings ({filteredHoldings.length})
             </h2>
-            <HoldingsTable holdings={filteredHoldings} animateRows={shouldAnimateRows} />
+            <HoldingsTable
+              holdings={filteredHoldings}
+              animateRows={shouldAnimateRows}
+              foreignPriceCurrencies={foreignPriceCurrencies}
+            />
           </div>
           <div className="bg-card rounded-2xl p-5">
             <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
