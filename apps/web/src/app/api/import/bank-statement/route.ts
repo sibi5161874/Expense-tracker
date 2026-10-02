@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { enforceRateLimit } from '@/lib/rateLimit';
+import { enforceRateLimit, enforceImportPreviewLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
 import { getRequestId } from '@/lib/requestId';
 import { importFileTooLarge } from '@/lib/importLimits';
@@ -61,6 +61,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'File is too large — the max import size is 10MB.' }, { status: 413 });
   }
   const commit: boolean = body.commit === true;
+  // Counted on the preview only (see IMPORT_PREVIEWS_PER_HOUR): the commit batches that follow are
+  // many requests per import and stay under this route's 500/hour cap above.
+  if (!commit) {
+    const previewLimited = await enforceImportPreviewLimit('bank-statement', user.id);
+    if (previewLimited) return previewLimited;
+  }
   const bankId: string | undefined = body.bank;
 
   try {

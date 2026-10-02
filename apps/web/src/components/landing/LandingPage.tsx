@@ -337,7 +337,7 @@ export function LandingPage() {
                 <ul className="mt-6 flex-1 space-y-3 text-sm">
                   {[
                     'Everything in Free',
-                    'Live price refresh (stocks & mutual funds)',
+                    'Live quotes, benchmark chart & passive-income projections',
                     'Bank & broker statement import',
                     'Multi-currency accounts',
                     'PDF & Excel report exports',

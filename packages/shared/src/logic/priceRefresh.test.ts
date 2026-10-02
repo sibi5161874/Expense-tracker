@@ -15,6 +15,7 @@ import {
   normalizeQuoteCurrency,
   coinGeckoIdForSymbol,
   extractCoinGeckoPrice,
+  searchAmfiSchemes,
 } from './priceRefresh';
 
 // Real lines from AMFI's live NAVAll.txt (2026-10-02): the current 8-column layout, where Plan and
@@ -427,5 +428,45 @@ describe('buildBenchmarkSeries', () => {
   it('is empty when either input is empty', () => {
     expect(buildBenchmarkSeries([], history)).toEqual([]);
     expect(buildBenchmarkSeries(snapshots, [])).toEqual([]);
+  });
+});
+
+describe('searchAmfiSchemes', () => {
+  const rows = parseAmfiNavFile(SAMPLE_AMFI_V2);
+
+  it('finds every plan/option of a fund when the query is just its name', () => {
+    expect(searchAmfiSchemes(rows, 'parag parikh')).toHaveLength(4);
+  });
+
+  it('requires every typed word to match, narrowing to one scheme', () => {
+    const found = searchAmfiSchemes(rows, 'parag flexi regular growth');
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ schemeCode: '122640', nav: 80.3771, plan: 'Regular Plan' });
+  });
+
+  it('lists Direct and Growth schemes before Regular and IDCW ones', () => {
+    const found = searchAmfiSchemes(rows, 'parag parikh');
+    expect(found[0]!.schemeCode).toBe('122639');
+    expect(found[found.length - 1]!.option).toMatch(/IDCW/);
+  });
+
+  it('is case- and punctuation-insensitive', () => {
+    expect(searchAmfiSchemes(rows, "AXIS children's")).toHaveLength(1);
+  });
+
+  it('returns nothing for a query under 3 characters, or one that matches nothing', () => {
+    expect(searchAmfiSchemes(rows, 'pa')).toEqual([]);
+    expect(searchAmfiSchemes(rows, '   ')).toEqual([]);
+    expect(searchAmfiSchemes(rows, 'zzzz nothing')).toEqual([]);
+  });
+
+  it('looks a scheme up directly by a pasted scheme code or ISIN', () => {
+    expect(searchAmfiSchemes(rows, '122640').map((m) => m.schemeCode)).toEqual(['122640']);
+    expect(searchAmfiSchemes(rows, 'inf879o01027').map((m) => m.schemeCode)).toEqual(['122639']);
+    expect(searchAmfiSchemes(rows, '999999')).toEqual([]);
+  });
+
+  it('caps the result count', () => {
+    expect(searchAmfiSchemes(rows, 'fund', 2)).toHaveLength(2);
   });
 });

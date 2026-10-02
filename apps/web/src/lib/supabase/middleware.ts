@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@repo/shared/types";
 import { REQUEST_ID_HEADER } from "@/lib/requestId";
+import { enforceGlobalApiLimit, isGloballyRateLimitedPath } from "@/lib/globalRateLimit";
 
 // Prefix-matched against the pathname (see isPublicPath below) — "/" is handled
 // separately as an exact match so it doesn't accidentally prefix-match every route.
@@ -88,6 +89,17 @@ export async function updateSession(request: NextRequest) {
   const isPublicPath =
     request.nextUrl.pathname === "/" ||
     PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+
+  // Global per-user ceiling on API calls (see globalRateLimit.ts). Keyed by user id, or by IP when
+  // there's no cookie session (mobile's bearer-token calls, public routes).
+  if (isGloballyRateLimitedPath(request.nextUrl.pathname)) {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const limited = await enforceGlobalApiLimit(user?.id ?? `ip:${ip}`);
+    if (limited) {
+      limited.headers.set(REQUEST_ID_HEADER, requestId);
+      return limited;
+    }
+  }
 
   if (!user && !isPublicPath) {
     const loginUrl = request.nextUrl.clone();

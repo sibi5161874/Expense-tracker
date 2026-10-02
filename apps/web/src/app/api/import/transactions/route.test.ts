@@ -1,10 +1,19 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { POST } from './route';
 
-const { getUserMock, enforceRateLimitMock, getAccountsMock, getCategoriesMock, getTransactionsForDedupMock, createTransactionsBulkMock } =
+const {
+  getUserMock,
+  enforceRateLimitMock,
+  enforceImportPreviewLimitMock,
+  getAccountsMock,
+  getCategoriesMock,
+  getTransactionsForDedupMock,
+  createTransactionsBulkMock,
+} =
   vi.hoisted(() => ({
     getUserMock: vi.fn(),
     enforceRateLimitMock: vi.fn().mockResolvedValue(null),
+    enforceImportPreviewLimitMock: vi.fn().mockResolvedValue(null),
     getAccountsMock: vi.fn(),
     getCategoriesMock: vi.fn(),
     getTransactionsForDedupMock: vi.fn(),
@@ -14,7 +23,10 @@ const { getUserMock, enforceRateLimitMock, getAccountsMock, getCategoriesMock, g
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({ auth: { getUser: getUserMock } }),
 }));
-vi.mock('@/lib/rateLimit', () => ({ enforceRateLimit: enforceRateLimitMock }));
+vi.mock('@/lib/rateLimit', () => ({
+  enforceRateLimit: enforceRateLimitMock,
+  enforceImportPreviewLimit: enforceImportPreviewLimitMock,
+}));
 vi.mock('@repo/shared/queries/config', () => ({
   getAccounts: getAccountsMock,
   getCategories: getCategoriesMock,
@@ -38,6 +50,7 @@ describe('POST /api/import/transactions', () => {
   beforeEach(() => {
     getUserMock.mockReset().mockResolvedValue({ data: { user: { id: 'user_1' } } });
     enforceRateLimitMock.mockClear().mockResolvedValue(null);
+    enforceImportPreviewLimitMock.mockClear().mockResolvedValue(null);
     getAccountsMock.mockReset().mockResolvedValue([{ id: 'a0000000-0000-4000-8000-000000000001', name: 'HDFC Bank' }]);
     getCategoriesMock.mockReset().mockResolvedValue([{ id: 'a0000000-0000-4000-8000-000000000002', name: 'Groceries' }]);
     getTransactionsForDedupMock.mockReset().mockResolvedValue([]);
@@ -73,6 +86,25 @@ describe('POST /api/import/transactions', () => {
     expect(body.validCount).toBe(1);
     expect(body.committed).toBe(0);
     expect(createTransactionsBulkMock).not.toHaveBeenCalled();
+  });
+
+  it('counts a preview as a new import against the hourly limit, and stops when it is exceeded', async () => {
+    enforceImportPreviewLimitMock.mockResolvedValue(new Response(null, { status: 429 }));
+    const csv = `${HEADER}\n2026-07-01,Expense,Groceries,,1500,HDFC Bank,,`;
+
+    const res = await POST(makeRequest({ csv, commit: false }));
+
+    expect(res.status).toBe(429);
+    expect(enforceImportPreviewLimitMock).toHaveBeenCalledWith('transactions', 'user_1');
+  });
+
+  it('does not count the commit batches that follow a preview as new imports', async () => {
+    const csv = `${HEADER}\n2026-07-01,Expense,Groceries,,1500,HDFC Bank,,`;
+
+    await POST(makeRequest({ csv, commit: true }));
+
+    expect(enforceImportPreviewLimitMock).not.toHaveBeenCalled();
+    expect(createTransactionsBulkMock).toHaveBeenCalledTimes(1);
   });
 
   it('commits valid rows and reports the real inserted count when commit is true', async () => {

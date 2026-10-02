@@ -140,9 +140,9 @@ function normalizeName(value: string): string {
  * was entered or imported, so all three are indexed.
  */
 export interface AmfiIndex {
-  byCode: Map<string, number>;
-  byIsin: Map<string, number>;
-  byName: Map<string, number>;
+  byCode: Map<string, AmfiNavRow>;
+  byIsin: Map<string, AmfiNavRow>;
+  byName: Map<string, AmfiNavRow>;
   /** Normalized names shared by 2+ schemes (Direct/Regular x Growth/IDCW) — never matched. */
   ambiguousNames: Set<string>;
 }
@@ -159,40 +159,39 @@ function isRealIsin(value: string): boolean {
 }
 
 export function buildAmfiIndex(rows: AmfiNavRow[]): AmfiIndex {
-  const byCode = new Map<string, number>();
-  const byIsin = new Map<string, number>();
-  const nameNavs = new Map<string, Set<number>>();
+  const byCode = new Map<string, AmfiNavRow>();
+  const byIsin = new Map<string, AmfiNavRow>();
+  const nameRows = new Map<string, AmfiNavRow>();
   const nameSchemes = new Map<string, Set<string>>();
 
-  const addName = (key: string, schemeCode: string, nav: number) => {
+  const addName = (key: string, row: AmfiNavRow) => {
     if (!key) return;
     if (!nameSchemes.has(key)) nameSchemes.set(key, new Set());
-    nameSchemes.get(key)!.add(schemeCode);
-    if (!nameNavs.has(key)) nameNavs.set(key, new Set());
-    nameNavs.get(key)!.add(nav);
+    nameSchemes.get(key)!.add(row.schemeCode);
+    if (!nameRows.has(key)) nameRows.set(key, row);
   };
 
   for (const row of rows) {
-    byCode.set(row.schemeCode, row.nav);
-    if (isRealIsin(row.isinGrowth)) byIsin.set(row.isinGrowth.trim().toUpperCase(), row.nav);
-    if (isRealIsin(row.isinReinvest)) byIsin.set(row.isinReinvest.trim().toUpperCase(), row.nav);
+    byCode.set(row.schemeCode, row);
+    if (isRealIsin(row.isinGrowth)) byIsin.set(row.isinGrowth.trim().toUpperCase(), row);
+    if (isRealIsin(row.isinReinvest)) byIsin.set(row.isinReinvest.trim().toUpperCase(), row);
 
     // Current layout: the name no longer says Direct/Regular or Growth/IDCW, so the full name a
     // user would type is name + plan + option ("Option" trimmed — "Growth Option" -> "Growth").
     if (row.plan !== undefined || row.option !== undefined) {
       const option = (row.option ?? '').replace(/\s+option$/i, '');
-      addName(normalizeName(`${row.schemeName} ${row.plan ?? ''} ${option}`), row.schemeCode, row.nav);
+      addName(normalizeName(`${row.schemeName} ${row.plan ?? ''} ${option}`), row);
     }
-    addName(normalizeName(row.schemeName), row.schemeCode, row.nav);
+    addName(normalizeName(row.schemeName), row);
   }
 
   // A name resolves only when exactly one scheme carries it. "Parag Parikh Flexi Cap Fund" alone
   // names four different schemes with four different NAVs — picking one would silently price a
   // Regular holding off the Direct plan (or an IDCW fund off Growth).
-  const byName = new Map<string, number>();
+  const byName = new Map<string, AmfiNavRow>();
   const ambiguousNames = new Set<string>();
   for (const [key, schemes] of nameSchemes) {
-    if (schemes.size === 1) byName.set(key, [...nameNavs.get(key)!][0]!);
+    if (schemes.size === 1) byName.set(key, nameRows.get(key)!);
     else ambiguousNames.add(key);
   }
 
@@ -200,11 +199,67 @@ export function buildAmfiIndex(rows: AmfiNavRow[]): AmfiIndex {
 }
 
 /** Exact-match only: scheme code, then ISIN, then a name that identifies exactly one scheme. */
-export function lookupMutualFundNav(index: AmfiIndex, symbol: string): number | null {
+export function lookupMutualFundScheme(index: AmfiIndex, symbol: string): AmfiNavRow | null {
   const raw = symbol.trim();
   if (!raw) return null;
 
   return index.byCode.get(raw) ?? index.byIsin.get(raw.toUpperCase()) ?? index.byName.get(normalizeName(raw)) ?? null;
+}
+
+export function lookupMutualFundNav(index: AmfiIndex, symbol: string): number | null {
+  return lookupMutualFundScheme(index, symbol)?.nav ?? null;
+}
+
+export interface AmfiSchemeMatch {
+  schemeCode: string;
+  name: string;
+  plan: string;
+  option: string;
+  nav: number;
+  date: string;
+}
+
+/**
+ * Finds schemes for the investment form's fund picker: every word the user typed must appear in
+ * the scheme's name + plan + option (so "parag flexi direct growth" finds one scheme and
+ * "parag parikh" finds all four). Fewer than 3 characters returns nothing — a one-letter query
+ * would match most of the 14,000 schemes. Direct plans and Growth options sort first, since
+ * that's what most people hold.
+ */
+export function searchAmfiSchemes(rows: AmfiNavRow[], query: string, limit = 15): AmfiSchemeMatch[] {
+  const normalizedQuery = normalizeName(query);
+  if (normalizedQuery.length < 3) return [];
+  const tokens = normalizedQuery.split(' ');
+
+  const rank = (row: AmfiNavRow) =>
+    (/direct/i.test(row.plan ?? row.schemeName) ? 0 : 2) + (/growth/i.test(row.option ?? row.schemeName) ? 0 : 1);
+
+  // A pasted scheme code or ISIN looks the scheme up directly — also how the edit form recovers a
+  // saved fund's name from the code stored as its symbol.
+  const raw = query.trim();
+  const isCode = /^\d{4,}$/.test(raw);
+  const isIsin = /^INF[A-Z0-9]{9}$/i.test(raw);
+
+  return rows
+    .filter((row) => {
+      if (isCode) return row.schemeCode === raw;
+      if (isIsin) {
+        const upper = raw.toUpperCase();
+        return row.isinGrowth.toUpperCase() === upper || row.isinReinvest.toUpperCase() === upper;
+      }
+      const haystack = normalizeName(`${row.schemeName} ${row.plan ?? ''} ${row.option ?? ''}`);
+      return tokens.every((t) => haystack.includes(t));
+    })
+    .sort((a, b) => rank(a) - rank(b) || a.schemeName.length - b.schemeName.length)
+    .slice(0, limit)
+    .map((row) => ({
+      schemeCode: row.schemeCode,
+      name: row.schemeName,
+      plan: row.plan ?? '',
+      option: row.option ?? '',
+      nav: row.nav,
+      date: row.date,
+    }));
 }
 
 /** True when `symbol` is a fund name that several schemes share — lets the caller say so. */

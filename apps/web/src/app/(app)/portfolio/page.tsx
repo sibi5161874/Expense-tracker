@@ -1,20 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Wallet, LineChart, TrendingUp, Percent, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useInvestmentLog, useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { useHoldings } from '@/hooks/useHoldings';
 import { useRefreshPrices } from '@/hooks/useRefreshPrices';
-import { useEntitlements } from '@/hooks/useEntitlements';
+import { useAutoRefreshPrices } from '@/hooks/useAutoRefreshPrices';
 import { formatINR, formatRelativeTime } from '@repo/shared/utils';
 import { groupInvestmentsBySymbol, summarizeHoldings, filterAndSortHoldings } from '@repo/shared/logic';
 import type { FilterType, SortKey } from '@repo/shared/types';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { Button } from '@/components/ui/button';
-import { ProLockedButton } from '@/components/shared/ProGate';
 import { ExpenseBreakdownChart } from '@/components/shared/ExpenseBreakdownChart';
 import { HoldingsTable } from '@/components/investments/HoldingsTable';
 import { TaxLossHarvestingCard } from '@/components/investments/TaxLossHarvestingCard';
@@ -27,12 +25,12 @@ import { AmountText } from '@/components/shared/AmountText';
 import { cn } from '@/lib/utils';
 
 export default function PortfolioPage() {
-  const router = useRouter();
   const { data: allInvestments, isLoading, error } = useAllInvestmentLog();
   const { data: recentInvestments } = useInvestmentLog({ page: 0 });
   const { data: holdingRows } = useHoldings();
   const { refresh, isRefreshing } = useRefreshPrices();
-  const { hasFeature } = useEntitlements();
+  // Refreshes quietly when prices are over a day old; the button below stays for an on-demand refresh.
+  useAutoRefreshPrices();
 
   // Filter & sort state for holdings table
   const [selectedAssetTab, setSelectedAssetTab] = useState('All');
@@ -40,10 +38,13 @@ export default function PortfolioPage() {
   const [filterValue, setFilterValue] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  function goToUpgrade() {
-    toast.info('Live price refresh is a Pro feature — start your free trial to unlock it.');
-    router.push('/settings?tab=billing');
-  }
+  const displayNames = useMemo(
+    () =>
+      Object.fromEntries(
+        (holdingRows ?? []).filter((h) => h.display_name).map((h) => [h.symbol, h.display_name as string])
+      ),
+    [holdingRows]
+  );
 
   const livePriceOverrides = useMemo(
     () => Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price])),
@@ -139,18 +140,10 @@ export default function PortfolioPage() {
                 {formatRelativeTime(lastUpdated)}
               </span>
             )}
-            {hasFeature('livePriceRefresh') ? (
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-                <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh Prices'}
-              </Button>
-            ) : (
-              <ProLockedButton
-                label="Refresh Prices"
-                icon={<RefreshCw className="size-3.5" />}
-                onUpgradeClick={goToUpgrade}
-              />
-            )}
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Prices'}
+            </Button>
           </div>
         }
       />
@@ -223,6 +216,7 @@ export default function PortfolioPage() {
               holdings={filteredHoldings}
               animateRows={shouldAnimateRows}
               foreignPriceCurrencies={foreignPriceCurrencies}
+              displayNames={displayNames}
             />
           </div>
           <div className="bg-card rounded-2xl p-5">

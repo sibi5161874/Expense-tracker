@@ -7,6 +7,7 @@ import { investmentLogSchema, type InvestmentLogInput } from '@repo/shared/schem
 import { parseSupabaseError } from '@repo/shared/utils';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
+import { useRefreshPrices } from '@/hooks/useRefreshPrices';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -16,6 +17,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { AccountSelectField } from '@/components/shared/form-fields/AccountSelectField';
 import { NotesField } from '@/components/shared/form-fields/NotesField';
 import { InvestmentActionFields } from '@/components/investments/InvestmentActionFields';
+import { MutualFundPicker } from '@/components/investments/MutualFundPicker';
+
+type AssetType = InvestmentLogInput['asset_type'];
+
+/** Funds are priced from AMFI and crypto from a USD pair, so neither has an exchange to ask
+ * about — these values just satisfy the (required) exchange column and say where the price comes from. */
+const AUTO_EXCHANGE: Partial<Record<AssetType, string>> = { 'Mutual Fund': 'AMFI', Crypto: 'CRYPTO' };
 
 interface InvestmentFormProps {
   onSuccess: () => void;
@@ -26,18 +34,39 @@ interface InvestmentFormProps {
 export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormProps) {
   const { data: accounts } = useAccounts(true);
   const { createInvestmentLog, updateInvestmentLog } = useInvestmentLog();
+  const { refresh } = useRefreshPrices();
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<InvestmentLogInput>({
     resolver: zodResolver(investmentLogSchema),
     defaultValues: editing ?? {
       action: 'BUY',
+      asset_type: 'Stock',
       date: new Date().toISOString().split('T')[0],
       fees: 0,
     },
   });
 
   const action = form.watch('action');
+  const assetType = form.watch('asset_type');
+  const symbol = form.watch('symbol');
+  const isFund = assetType === 'Mutual Fund';
+  const isCrypto = assetType === 'Crypto';
+
+  function handleAssetTypeChange(next: AssetType) {
+    const prev = form.getValues('asset_type');
+    form.setValue('asset_type', next);
+    if (next === prev) return;
+
+    // A fund's symbol is an AMFI scheme code and everything else's is a ticker — neither is valid
+    // as the other, so switching across that line clears it rather than leaving a wrong value.
+    if (next === 'Mutual Fund' || prev === 'Mutual Fund') form.setValue('symbol', '');
+
+    const auto = AUTO_EXCHANGE[next];
+    const currentExchange = form.getValues('exchange');
+    if (auto) form.setValue('exchange', auto);
+    else if (currentExchange === 'AMFI' || currentExchange === 'CRYPTO') form.setValue('exchange', '');
+  }
 
   async function onSubmit(data: InvestmentLogInput) {
     setFormError(null);
@@ -46,6 +75,9 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
         await updateInvestmentLog({ id: editing.id, data });
       } else {
         await createInvestmentLog(data);
+        // A fund's name and NAV come from the price refresh, so fetch them now rather than leaving
+        // the new holding showing a bare scheme code until the next automatic refresh.
+        if (data.asset_type === 'Mutual Fund') refresh().catch(() => undefined);
       }
       onSuccess();
     } catch (error) {
@@ -78,13 +110,25 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
 
             <FormField
               control={form.control}
-              name="symbol"
+              name="asset_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Symbol</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., RELIANCE, HDFCBANK" {...field} />
-                  </FormControl>
+                  <FormLabel>Asset Type</FormLabel>
+                  <Select onValueChange={(v) => handleAssetTypeChange(v as AssetType)} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Stock">Stock</SelectItem>
+                      <SelectItem value="ETF">ETF</SelectItem>
+                      <SelectItem value="Mutual Fund">Mutual Fund</SelectItem>
+                      <SelectItem value="Crypto">Crypto</SelectItem>
+                      <SelectItem value="Bond">Bond</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -92,17 +136,49 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
 
             <FormField
               control={form.control}
-              name="exchange"
+              name="symbol"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Exchange</FormLabel>
+                  <FormLabel>{isFund ? 'Fund' : 'Symbol'}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., NSE, BSE" {...field} />
+                    {isFund ? (
+                      <MutualFundPicker
+                        value={symbol ?? ''}
+                        onSelect={(scheme) => {
+                          form.setValue('symbol', scheme.schemeCode, { shouldValidate: true });
+                          form.setValue('exchange', 'AMFI');
+                        }}
+                        onClear={() => form.setValue('symbol', '')}
+                      />
+                    ) : (
+                      <Input placeholder={isCrypto ? 'e.g., BTC, ETH' : 'e.g., RELIANCE, HDFCBANK'} {...field} />
+                    )}
                   </FormControl>
+                  {isCrypto && (
+                    <p className="text-muted-foreground text-xs">
+                      Priced in US dollars from the matching USD pair (BTC becomes BTC-USD).
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {!isFund && !isCrypto && (
+              <FormField
+                control={form.control}
+                name="exchange"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Exchange</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., NSE, BSE" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -130,39 +206,13 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
               )}
             />
 
-            <InvestmentActionFields control={form.control} action={action} />
+            <InvestmentActionFields control={form.control} action={action} assetType={assetType} />
 
             <AccountSelectField
               control={form.control}
               name="linked_account_id"
               label="Linked Account"
               accounts={accounts}
-            />
-
-            <FormField
-              control={form.control}
-              name="asset_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Asset Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Stock">Stock</SelectItem>
-                      <SelectItem value="ETF">ETF</SelectItem>
-                      <SelectItem value="Mutual Fund">Mutual Fund</SelectItem>
-                      <SelectItem value="Crypto">Crypto</SelectItem>
-                      <SelectItem value="Bond">Bond</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
             />
 
             <NotesField control={form.control} name="notes" />

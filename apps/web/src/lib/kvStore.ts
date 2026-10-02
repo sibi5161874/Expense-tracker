@@ -28,6 +28,16 @@ export async function kvGet<T>(key: string): Promise<T | null> {
   return (await redis.get<T>(key)) ?? null;
 }
 
+/** One round trip for many keys, in the same order as `keys` (null where absent). Null overall
+ * when Redis isn't configured, so the caller knows to use its own in-memory path. */
+export async function kvMGet<T>(keys: string[]): Promise<(T | null)[] | null> {
+  const redis = getClient();
+  if (!redis) return null;
+  if (keys.length === 0) return [];
+  const values = await redis.mget<(T | null)[]>(...keys);
+  return values.map((v) => v ?? null);
+}
+
 export async function kvSet<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
   const redis = getClient();
   if (!redis) return;

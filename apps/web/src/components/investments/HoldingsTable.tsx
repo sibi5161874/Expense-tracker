@@ -15,9 +15,16 @@ interface HoldingsTableProps {
   animateRows?: boolean;
   /** symbol -> currency its live price is quoted in (only non-INR ones are worth passing). */
   foreignPriceCurrencies?: Record<string, string>;
+  /** symbol -> real name (mutual funds, whose symbol is just an AMFI scheme code). */
+  displayNames?: Record<string, string>;
 }
 
-export function HoldingsTable({ holdings, animateRows = false, foreignPriceCurrencies }: HoldingsTableProps) {
+export function HoldingsTable({
+  holdings,
+  animateRows = false,
+  foreignPriceCurrencies,
+  displayNames,
+}: HoldingsTableProps) {
   const router = useRouter();
 
   return (
@@ -57,7 +64,14 @@ export function HoldingsTable({ holdings, animateRows = false, foreignPriceCurre
               >
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-1.5">
-                    {holding.symbol}
+                    {displayNames?.[holding.symbol] ? (
+                      <span>
+                        {displayNames[holding.symbol]}
+                        <span className="text-muted-foreground block text-xs font-normal">{holding.symbol}</span>
+                      </span>
+                    ) : (
+                      holding.symbol
+                    )}
                     {foreignPriceCurrencies?.[holding.symbol] && (
                       <span
                         title={`Live price is quoted in ${foreignPriceCurrencies[holding.symbol]} and is not converted to INR — portfolio totals add it at face value.`}

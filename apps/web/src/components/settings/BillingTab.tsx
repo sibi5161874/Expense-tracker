@@ -86,7 +86,7 @@ function PaymentHistorySection() {
 const FEATURE_LABELS: Record<string, string> = {
   bankStatementImport: 'Native bank statement import (18 banks)',
   brokerImport: 'Native broker import (Zerodha, Upstox & more)',
-  livePriceRefresh: 'Live price refresh (mutual funds + stocks)',
+  livePriceRefresh: 'Live quotes, benchmark chart & passive-income projections',
   multiCurrency: 'Multi-currency accounts',
   reportExport: 'PDF & Excel report export',
 };
