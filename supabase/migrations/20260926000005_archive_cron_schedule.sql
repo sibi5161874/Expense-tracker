@@ -2,7 +2,7 @@
 -- Runs at 3:00 AM IST (off-peak hours) with 15-minute intervals to avoid lock contention.
 
 -- Remove existing schedules with these names if any, to ensure idempotency
-do $$
+do $do$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     perform cron.unschedule('archive-transactions-nightly') where exists (select 1 from cron.job where jobname = 'archive-transactions-nightly');
@@ -35,4 +35,4 @@ begin
       $$ select public.archive_old_records('net_worth_snapshots'); $$
     );
   end if;
-end $$;
+end $do$;
