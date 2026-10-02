@@ -13,6 +13,11 @@ const buckets = new Map<string, { count: number; resetAt: number }>();
 
 function checkInMemory(key: string, limit: number, windowMs: number): { allowed: boolean; retryAfterSeconds: number } {
   const now = Date.now();
+  // Expired buckets are otherwise only replaced when the same key returns; with a per-user/IP
+  // global limiter that would grow without bound, so sweep them once the map gets large.
+  if (buckets.size > 5000) {
+    for (const [k, b] of buckets) if (b.resetAt <= now) buckets.delete(k);
+  }
   const bucket = buckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + windowMs });
@@ -27,7 +32,15 @@ function checkInMemory(key: string, limit: number, windowMs: number): { allowed:
 
 async function checkRateLimit(key: string, limit: number, windowMs: number): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
   const windowSeconds = Math.ceil(windowMs / 1000);
-  const redisCount = await kvIncrWithExpiry(`ratelimit:${key}`, windowSeconds);
+  let redisCount: number | null;
+  try {
+    redisCount = await kvIncrWithExpiry(`ratelimit:${key}`, windowSeconds);
+  } catch {
+    // Redis erroring (quota exhausted, network blip) must degrade to the per-instance limiter, not
+    // throw — otherwise every rate-limited route, and the global /api limiter in middleware, would
+    // start failing the moment Upstash does.
+    redisCount = null;
+  }
   if (redisCount === null) {
     return checkInMemory(key, limit, windowMs);
   }
@@ -47,11 +60,31 @@ async function checkRateLimit(key: string, limit: number, windowMs: number): Pro
  * `key` should include both the user and the route (e.g. `import:${user.id}`)
  * so limits are per-user-per-route, not a single global counter.
  */
-export async function enforceRateLimit(key: string, limit: number, windowMs: number): Promise<NextResponse | null> {
+export async function enforceRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  message = 'Too many requests — please wait a moment and try again.'
+): Promise<NextResponse | null> {
   const result = await checkRateLimit(key, limit, windowMs);
   if (result.allowed) return null;
   return NextResponse.json(
-    { error: 'Too many requests — please wait a moment and try again.' },
+    { error: message },
     { status: 429, headers: { 'Retry-After': String(result.retryAfterSeconds) } }
+  );
+}
+
+/** New imports allowed per user per hour, counted on each file's *preview* request only. A single
+ * import is many requests (it commits in 200-row batches), so capping requests at 5 would block any
+ * file over ~800 rows; capping previews limits how often imports can be *started* while the
+ * existing per-route 500/hour request cap still bounds the batches. */
+export const IMPORT_PREVIEWS_PER_HOUR = 5;
+
+export function enforceImportPreviewLimit(importName: string, userId: string): Promise<NextResponse | null> {
+  return enforceRateLimit(
+    `import:${importName}:preview:${userId}`,
+    IMPORT_PREVIEWS_PER_HOUR,
+    60 * 60_000,
+    `You can start ${IMPORT_PREVIEWS_PER_HOUR} imports per hour — please try again later.`
   );
 }

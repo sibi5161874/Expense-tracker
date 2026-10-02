@@ -11,6 +11,7 @@ import { useHoldings } from '@/hooks/useHoldings';
 import { useGoals } from '@/hooks/useGoals';
 import { useCashbook } from '@/hooks/useCashbook';
 import { useNetWorth } from '@/hooks/useNetWorth';
+import { useAutoRefreshPrices } from '@/hooks/useAutoRefreshPrices';
 import { formatMonth } from '@repo/shared/utils';
 import { groupInvestmentsBySymbol, summarizeHoldings } from '@repo/shared/logic';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -51,6 +52,8 @@ const HistoricalNetWorthChart = dynamic(
 );
 
 export default function DashboardPage() {
+  // Prices drive the portfolio and net-worth numbers below; refresh them quietly when over a day old.
+  useAutoRefreshPrices();
   const currentMonth = formatMonth(new Date());
   const {
     income: monthlyIncome,

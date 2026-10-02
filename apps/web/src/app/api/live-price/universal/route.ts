@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Live prices are a Pro feature.' }, { status: 403 });
   }
 
-  const limited = await enforceRateLimit(`live-price:universal:${user.id}`, 60, 10 * 60_000);
+  const limited = await enforceRateLimit(`live-price:universal:${user.id}`, 10, 60_000);
   if (limited) return limited;
 
   const ticker = new URL(req.url).searchParams.get('ticker')?.trim().toUpperCase();

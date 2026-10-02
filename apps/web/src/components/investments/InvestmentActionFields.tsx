@@ -6,10 +6,13 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 interface InvestmentActionFieldsProps {
   control: Control<InvestmentLogInput>;
   action: InvestmentLogInput['action'];
+  /** Mutual funds are bought in units at a NAV, not shares at a price. */
+  assetType?: InvestmentLogInput['asset_type'];
 }
 
 /** Quantity/price/dividend/bonus/fees fields — which ones show depends on the selected action. */
-export function InvestmentActionFields({ control, action }: InvestmentActionFieldsProps) {
+export function InvestmentActionFields({ control, action, assetType }: InvestmentActionFieldsProps) {
+  const isFund = assetType === 'Mutual Fund';
   return (
     <>
       {action !== 'DIVIDEND' && action !== 'BONUS' && action !== 'SPLIT' && (
@@ -19,7 +22,7 @@ export function InvestmentActionFields({ control, action }: InvestmentActionFiel
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantity</FormLabel>
+                <FormLabel>{isFund ? 'Units' : 'Quantity'}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -39,7 +42,7 @@ export function InvestmentActionFields({ control, action }: InvestmentActionFiel
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>{isFund ? 'NAV (price per unit)' : 'Price'}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"

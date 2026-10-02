@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Download, UploadCloud, Landmark, Pencil, Trash2 } from 'lucide-react';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
+import { useHoldings } from '@/hooks/useHoldings';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { InvestmentForm } from '@/components/InvestmentForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
@@ -50,6 +51,9 @@ export default function InvestmentsPage() {
     isDeleting,
   } = useInvestmentLog({ page, pageSize });
   const { hasFeature } = useEntitlements();
+  // A fund's symbol is its AMFI scheme code ("122639"); the refresh stores its real name on holdings.
+  const { data: holdingRows } = useHoldings();
+  const nameBySymbol = new Map((holdingRows ?? []).filter((h) => h.display_name).map((h) => [h.symbol, h.display_name!]));
 
   function goToUpgrade() {
     toast.info('Native broker import is a Pro feature — start your free trial to unlock it.');
@@ -113,7 +117,21 @@ export default function InvestmentsPage() {
 
   const columns: DataTableColumn<InvestmentLogEntry>[] = [
     { id: 'date', header: 'Date', cell: (i) => <span className="text-muted-foreground">{i.date}</span>, sortValue: (i) => i.date },
-    { id: 'symbol', header: 'Symbol', cell: (i) => <span className="font-medium">{i.symbol}</span> },
+    {
+      id: 'symbol',
+      header: 'Symbol',
+      cell: (i) => {
+        const name = nameBySymbol.get(i.symbol);
+        return name ? (
+          <span>
+            <span className="font-medium">{name}</span>
+            <span className="text-muted-foreground block text-xs">{i.symbol}</span>
+          </span>
+        ) : (
+          <span className="font-medium">{i.symbol}</span>
+        );
+      },
+    },
     { id: 'action', header: 'Action', cell: (i) => <StatusBadge tone={investmentActionTone(i.action)}>{i.action}</StatusBadge> },
     {
       id: 'quantity',
@@ -211,7 +229,7 @@ export default function InvestmentsPage() {
           columns={columns}
           getRowId={(i) => i.id}
           searchPlaceholder="Search symbol, account…"
-          searchableText={(i) => `${i.symbol} ${i.linked_account?.name ?? ''}`}
+          searchableText={(i) => `${i.symbol} ${nameBySymbol.get(i.symbol) ?? ''} ${i.linked_account?.name ?? ''}`}
           filters={filters}
           selectable
           bulkActions={(ids, clear) => (

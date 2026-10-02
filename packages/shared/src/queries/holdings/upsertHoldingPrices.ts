@@ -32,6 +32,8 @@ export async function upsertHoldingPrices(
         // Only written when the source reported a currency, so an unknown one never overwrites a
         // previously recorded value with null.
         ...(u.live_currency ? { live_currency: u.live_currency } : {}),
+        // Same rule for the name: only written when known (funds, from AMFI), never blanked.
+        ...(u.display_name ? { display_name: u.display_name } : {}),
       })),
       { onConflict: 'user_id,symbol' }
     )

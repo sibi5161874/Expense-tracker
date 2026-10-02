@@ -5,11 +5,12 @@ import { getRequestId } from '@/lib/requestId';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { fetchYahooChart } from '@/lib/yahooFinance';
 import { fetchCoinGeckoUsdPrice } from '@/lib/coinGecko';
-import { createResilientFetcher } from '@/lib/fetchWithRetry';
+import { getAmfiSchemes } from '@/lib/amfiCache';
+import { getCachedQuotes, setCachedQuote } from '@/lib/quoteCache';
+import { MF_NAV_TTL_SECONDS, QUOTE_TTL_SECONDS } from '@/lib/cacheTtls';
 import {
-  parseAmfiNavFile,
   buildAmfiIndex,
-  lookupMutualFundNav,
+  lookupMutualFundScheme,
   isAmbiguousMutualFundName,
   toYahooTicker,
   extractYahooPrice,
@@ -35,13 +36,13 @@ import { upsertHoldingPrices, type HoldingPriceUpdate } from '@repo/shared/queri
  *  - Mutual funds: AMFI's official daily NAV file, one request for all funds.
  *  - Stock/ETF:    Yahoo Finance's chart endpoint, one request per symbol.
  *
+ * Every price is cached globally (quoteCache.ts) — a ticker one user refreshed is a cache hit for
+ * everyone else for QUOTE_TTL_SECONDS (funds: MF_NAV_TTL_SECONDS), and when every fund is cached
+ * the AMFI file isn't downloaded at all. Public market data only, never anything per-user.
+ *
  * Server-side because Yahoo doesn't allow direct browser fetches (CORS), not to
  * hide a secret — there is no key involved.
  */
-
-// Live host as of Aug 2026. www.amfiindia.com now 302s here; using the final URL
-// directly avoids relying on redirect-following.
-const AMFI_NAV_URL = 'https://portal.amfiindia.com/spages/NAVAll.txt';
 
 /** Cap concurrent quote requests so a large portfolio doesn't hammer Yahoo. */
 const QUOTE_CONCURRENCY = 5;
@@ -54,10 +55,15 @@ interface RefreshResult {
   message?: string;
 }
 
-/** Same retry/circuit-breaker mechanics as yahooFinance.ts, own independent instance — AMFI
- * is a single once-per-refresh request, so a transient timeout used to fail every mutual fund
- * in the batch immediately with no retry at all. */
-const fetchAmfiResilient = createResilientFetcher({ label: 'AMFI', maxRetries: 3 });
+interface CachedListedQuote {
+  price: number;
+  currency: string | null;
+}
+
+interface CachedFundNav {
+  nav: number;
+  name: string;
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -92,46 +98,62 @@ export async function POST(req: Request) {
   const funds = targets.filter((t) => isMutualFund(t.assetType));
   const listed = targets.filter((t) => !isMutualFund(t.assetType));
 
-  // --- Mutual funds: one AMFI request covers every fund ---
+  // --- Mutual funds: shared cache first, then one AMFI load covers every miss ---
   if (funds.length > 0) {
-    try {
-      const res = await fetchAmfiResilient(AMFI_NAV_URL, 'NAV file');
-      const navRows = parseAmfiNavFile(await res.text());
-      // The live file has ~14,000 schemes; zero means AMFI changed the layout (it did once, adding
-      // Plan/Option columns), not that every fund is missing — say so instead of blaming each symbol.
-      if (navRows.length === 0) {
-        throw new Error('AMFI NAV file parsed to 0 schemes — its layout has probably changed.');
-      }
-      const index = buildAmfiIndex(navRows);
+    const fundKey = (symbol: string) => `nav:${symbol.trim().toLowerCase()}`;
+    const cachedFunds = await getCachedQuotes<CachedFundNav>(funds.map((f) => fundKey(f.symbol)));
+    const missing: PriceRefreshTarget[] = [];
+    for (const fund of funds) {
+      const hit = cachedFunds.get(fundKey(fund.symbol));
+      if (hit) priced.push({ symbol: fund.symbol, live_price: hit.nav, live_currency: 'INR', display_name: hit.name });
+      else missing.push(fund);
+    }
 
-      for (const fund of funds) {
-        const nav = lookupMutualFundNav(index, fund.symbol);
-        if (nav === null) {
-          failed.push(fund.symbol);
-          failedReasons[fund.symbol] = isAmbiguousMutualFundName(index, fund.symbol)
-            ? 'This fund name is shared by several schemes (Direct/Regular, Growth/IDCW) — use the scheme code or ISIN instead.'
-            : 'Not found in AMFI NAV data — the symbol must be the scheme code, ISIN, or the full scheme name including plan and option.';
-          continue;
+    if (missing.length > 0) {
+      try {
+        const index = buildAmfiIndex(await getAmfiSchemes());
+
+        for (const fund of missing) {
+          const scheme = lookupMutualFundScheme(index, fund.symbol);
+          if (scheme === null) {
+            failed.push(fund.symbol);
+            failedReasons[fund.symbol] = isAmbiguousMutualFundName(index, fund.symbol)
+              ? 'This fund name is shared by several schemes (Direct/Regular, Growth/IDCW) — use the scheme code or ISIN instead.'
+              : 'Not found in AMFI NAV data — pick the fund from the list when adding it, or use its scheme code or ISIN.';
+            continue;
+          }
+          const name = [scheme.schemeName, scheme.plan, scheme.option].filter(Boolean).join(' - ');
+          priced.push({ symbol: fund.symbol, live_price: scheme.nav, live_currency: 'INR', display_name: name });
+          await setCachedQuote<CachedFundNav>(fundKey(fund.symbol), { nav: scheme.nav, name }, MF_NAV_TTL_SECONDS);
         }
-        priced.push({ symbol: fund.symbol, live_price: nav, live_currency: 'INR' });
-      }
-    } catch (e) {
-      // AMFI being down must not stop listed prices from refreshing.
-      logError('prices.refresh.amfi', e, { userId: user.id, requestId: getRequestId(req) });
-      const message = e instanceof Error ? e.message : String(e);
-      for (const fund of funds) {
-        failed.push(fund.symbol);
-        failedReasons[fund.symbol] = `Couldn't fetch AMFI NAV data: ${message}`;
+      } catch (e) {
+        // AMFI being down must not stop listed prices from refreshing.
+        logError('prices.refresh.amfi', e, { userId: user.id, requestId: getRequestId(req) });
+        const message = e instanceof Error ? e.message : String(e);
+        for (const fund of missing) {
+          failed.push(fund.symbol);
+          failedReasons[fund.symbol] = `Couldn't fetch AMFI NAV data: ${message}`;
+        }
       }
     }
   }
 
-  // --- Stock/ETF: one Yahoo request per symbol, in small batches ---
-  for (let i = 0; i < listed.length; i += QUOTE_CONCURRENCY) {
-    const batch = listed.slice(i, i + QUOTE_CONCURRENCY);
+  // --- Stock/ETF/crypto: shared cache first, then one Yahoo request per miss, in small batches ---
+  const tickerOf = (t: PriceRefreshTarget) => toYahooTicker(t.symbol, t.exchange, t.assetType);
+  const listedKey = (t: PriceRefreshTarget) => `price:${tickerOf(t)}`;
+  const cachedListed = await getCachedQuotes<CachedListedQuote>(listed.map(listedKey));
+  const toFetch: PriceRefreshTarget[] = [];
+  for (const target of listed) {
+    const hit = cachedListed.get(listedKey(target));
+    if (hit) priced.push({ symbol: target.symbol, live_price: hit.price, live_currency: hit.currency });
+    else toFetch.push(target);
+  }
+
+  for (let i = 0; i < toFetch.length; i += QUOTE_CONCURRENCY) {
+    const batch = toFetch.slice(i, i + QUOTE_CONCURRENCY);
     await Promise.all(
       batch.map(async (target) => {
-        const ticker = toYahooTicker(target.symbol, target.exchange, target.assetType);
+        const ticker = tickerOf(target);
         try {
           const body = await fetchYahooChart(ticker, 'interval=1d&range=1d');
           const rawPrice = extractYahooPrice(body);
@@ -140,6 +162,11 @@ export async function POST(req: Request) {
           // Pence-quoted exchanges (London) are converted to the major currency here.
           const quote = normalizeQuoteCurrency(rawPrice, extractYahooCurrency(body));
           priced.push({ symbol: target.symbol, live_price: quote.price, live_currency: quote.currency });
+          await setCachedQuote<CachedListedQuote>(
+            listedKey(target),
+            { price: quote.price, currency: quote.currency },
+            QUOTE_TTL_SECONDS
+          );
         } catch (e) {
           // Crypto only: CoinGecko is the fallback, in USD so it matches Yahoo's BTC-USD quote.
           // Any other asset class has no second source and just fails.
@@ -148,6 +175,11 @@ export async function POST(req: Request) {
               const price = await fetchCoinGeckoUsdPrice(target.symbol);
               if (price !== null) {
                 priced.push({ symbol: target.symbol, live_price: price, live_currency: 'USD' });
+                await setCachedQuote<CachedListedQuote>(
+                  listedKey(target),
+                  { price, currency: 'USD' },
+                  QUOTE_TTL_SECONDS
+                );
                 return;
               }
             } catch {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { kvGet, kvSet } from '@/lib/kvStore';
 import { FX_RATES_URL } from '@repo/shared/config';
+import { FX_TTL_SECONDS } from '@/lib/cacheTtls';
 
 /**
  * Live FX rates, base INR. Free, no API key (see packages/shared/src/logic/fx.ts
@@ -16,7 +17,10 @@ import { FX_RATES_URL } from '@repo/shared/config';
 const REQUEST_TIMEOUT_MS = 10_000;
 
 const CACHE_KEY = 'fx:rates';
-const CACHE_TTL_SECONDS = 6 * 60 * 60;
+/** How long a copy is kept in Redis. Longer than the 24h freshness window on purpose: freshness is
+ * judged from fetchedAt, so an older copy is still there to serve as the last-known-good fallback when
+ * the provider is down. */
+const CACHE_RETENTION_SECONDS = 7 * 24 * 60 * 60;
 
 interface CachedRates {
   rates: Record<string, number>;
@@ -28,18 +32,37 @@ interface CachedRates {
 let memoryCache: CachedRates | null = null;
 
 async function readCache(): Promise<CachedRates | null> {
-  return (await kvGet<CachedRates>(CACHE_KEY)) ?? memoryCache;
+  try {
+    return (await kvGet<CachedRates>(CACHE_KEY)) ?? memoryCache;
+  } catch {
+    return memoryCache;
+  }
+}
+
+/** A cached copy younger than FX_TTL_SECONDS, served without calling the provider at all. Before
+ * this the cache was only read after a provider failure, so every request re-fetched. */
+async function readFreshCache(): Promise<CachedRates | null> {
+  const cached = await readCache();
+  if (!cached) return null;
+  return Date.now() - Date.parse(cached.fetchedAt) < FX_TTL_SECONDS * 1000 ? cached : null;
 }
 
 async function writeCache(entry: CachedRates): Promise<void> {
   memoryCache = entry;
-  await kvSet(CACHE_KEY, entry, CACHE_TTL_SECONDS);
+  try {
+    await kvSet(CACHE_KEY, entry, CACHE_RETENTION_SECONDS);
+  } catch {
+    // best-effort — the in-memory copy above still holds
+  }
 }
 
 export async function GET(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const limited = await enforceRateLimit(`fx-rates:${ip}`, 30, 10 * 60_000);
   if (limited) return limited;
+
+  const fresh = await readFreshCache();
+  if (fresh) return NextResponse.json({ base: 'INR', ...fresh, stale: false });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
