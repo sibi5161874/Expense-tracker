@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatINR } from "@repo/shared/utils";
+import { formatCurrency } from "@repo/shared/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { cn } from "@/lib/utils";
 
 interface AmountTextProps {
   value: number;
+  currency?: string;
   /** When set, colors by sign regardless of `sign`. Use for raw +/- amounts. */
   colorBySign?: boolean;
   /** Force a color independent of the numeric sign (e.g. Income always green even though stored positive). */
@@ -13,7 +15,9 @@ interface AmountTextProps {
   className?: string;
 }
 
-export function AmountText({ value, colorBySign = true, sign, className }: AmountTextProps) {
+export function AmountText({ value, currency, colorBySign = true, sign, className }: AmountTextProps) {
+  const { currency: defaultCurrency } = useCurrency();
+  const activeCurrency = currency ?? defaultCurrency;
   const resolvedSign = sign ?? (colorBySign ? (value > 0 ? "positive" : value < 0 ? "negative" : "neutral") : "neutral");
 
   // Fades a value change in place (e.g. after an edit) — never fires on initial mount, so a
@@ -45,7 +49,7 @@ export function AmountText({ value, colorBySign = true, sign, className }: Amoun
         className
       )}
     >
-      {formatINR(value)}
+      {formatCurrency(value, activeCurrency)}
     </span>
   );
 }

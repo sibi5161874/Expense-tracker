@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { ExternalLink } from 'lucide-react';
 import type { SymbolHolding } from '@repo/shared/logic';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,13 +20,43 @@ interface HoldingsTableProps {
   displayNames?: Record<string, string>;
 }
 
+export function getTradingViewUrl(symbol: string, exchange?: string, assetType?: string): string {
+  const cleanSymbol = symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const cleanExchange = (exchange || 'NSE').trim().toUpperCase();
+
+  if (assetType === 'Crypto' || cleanExchange === 'CRYPTO') {
+    return `https://in.tradingview.com/symbols/${cleanSymbol}USDT/`;
+  }
+
+  if (cleanExchange === 'BSE') {
+    return `https://in.tradingview.com/symbols/BSE-${cleanSymbol}/`;
+  }
+  if (cleanExchange === 'NASDAQ' || cleanExchange === 'NYSE') {
+    return `https://in.tradingview.com/symbols/${cleanExchange}-${cleanSymbol}/`;
+  }
+  // Default to NSE for Indian stocks and ETFs
+  return `https://in.tradingview.com/symbols/NSE-${cleanSymbol}/`;
+}
+
 export function HoldingsTable({
   holdings,
   animateRows = false,
   foreignPriceCurrencies,
   displayNames,
 }: HoldingsTableProps) {
-  const router = useRouter();
+  const handleHoldingClick = (holding: SymbolHolding) => {
+    const isTradingViewAsset =
+      holding.assetType === 'Stock' ||
+      holding.assetType === 'ETF' ||
+      holding.assetType === 'Crypto' ||
+      (!holding.assetType && holding.exchange !== 'AMFI');
+
+    if (isTradingViewAsset) {
+      const url = getTradingViewUrl(holding.symbol, holding.exchange, holding.assetType);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+    // For Mutual Fund, Bond, Other: keep on the same screen (no broken routing)
+  };
 
   return (
     <div className="bg-card overflow-hidden rounded-2xl">
@@ -50,13 +81,23 @@ export function HoldingsTable({
         <TableBody className="[&_tr:nth-child(even)]:bg-muted/40">
           {holdings.map((holding, index) => {
             const isLoss = holding.returnPct < 0 || holding.unrealisedPnl < 0;
+            const isTradingViewAsset =
+              holding.assetType === 'Stock' ||
+              holding.assetType === 'ETF' ||
+              holding.assetType === 'Crypto' ||
+              (!holding.assetType && holding.exchange !== 'AMFI');
 
             return (
               <TableRow
                 key={`${holding.symbol}-${holding.exchange}`}
-                onClick={() => router.push(`/portfolio/${encodeURIComponent(holding.symbol)}`)}
+                onClick={() => handleHoldingClick(holding)}
+                title={
+                  isTradingViewAsset
+                    ? `Open ${holding.symbol} on TradingView`
+                    : `${holding.symbol} (${holding.assetType || 'Holding'})`
+                }
                 className={cn(
-                  'hover:bg-accent/40 cursor-pointer transition-colors duration-150',
+                  'group hover:bg-accent/40 cursor-pointer transition-colors duration-150',
                   isLoss && 'border-l-2 border-destructive',
                   animateRows && 'animate-in fade-in-0 slide-in-from-bottom-1 duration-300'
                 )}
@@ -70,7 +111,10 @@ export function HoldingsTable({
                         <span className="text-muted-foreground block text-xs font-normal">{holding.symbol}</span>
                       </span>
                     ) : (
-                      holding.symbol
+                      <span>{holding.symbol}</span>
+                    )}
+                    {isTradingViewAsset && (
+                      <ExternalLink className="text-muted-foreground/60 size-3 opacity-0 group-hover:opacity-100 hover:text-foreground transition-opacity" />
                     )}
                     {foreignPriceCurrencies?.[holding.symbol] && (
                       <span

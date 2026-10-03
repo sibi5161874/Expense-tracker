@@ -11,6 +11,7 @@ import {
   updateCashbook,
   deleteCashbook,
   deleteCashbookBulk,
+  deleteCashbookByCounterparty,
   CASHBOOK_PAGE_SIZE,
 } from '@repo/shared/queries/cashbook';
 import type { CashbookInput } from '@repo/shared/schemas';
@@ -144,6 +145,20 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
     },
   });
 
+  const deleteCounterpartyMutation = useMutation({
+    mutationFn: async (counterparty: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await deleteCashbookByCounterparty(supabase, userId, counterparty);
+      await supabase.from('contacts').delete().eq('user_id', userId).eq('name', counterparty);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
+      queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      queryClient.invalidateQueries({ queryKey: ['contacts', userId] });
+    },
+  });
+
   return {
     ...query,
     summary: summaryQuery.data,
@@ -154,9 +169,10 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
     updateCashbook: updateMutation.mutateAsync,
     deleteCashbook: deleteMutation.mutate,
     deleteCashbookBulk: deleteBulkMutation.mutateAsync,
+    deleteCounterparty: deleteCounterpartyMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending || deleteBulkMutation.isPending,
+    isDeleting: deleteMutation.isPending || deleteBulkMutation.isPending || deleteCounterpartyMutation.isPending,
   };
 }
 

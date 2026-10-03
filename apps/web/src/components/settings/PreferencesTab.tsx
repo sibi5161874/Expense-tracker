@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { POPULAR_CURRENCIES } from '@repo/shared/utils/currency';
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
@@ -31,6 +33,7 @@ export function PreferencesTab() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState('en');
+  const { currency, setCurrency } = useCurrency();
   const { data: profile, saveProfile, isSaving: isSavingReportEmail } = useUserProfile();
   const { hasFeature } = useEntitlements();
   const canReceiveReportEmail = hasFeature('reportExport');
@@ -49,17 +52,7 @@ export function PreferencesTab() {
     }
   }
 
-  // Whether resolvedTheme is defined yet on the client's first render depends on the
-  // installed next-themes version's internal timing — in this project it's already defined
-  // by then, which doesn't match the server's render and causes a hydration mismatch. An
-  // explicit mounted flag is guaranteed false on both the server and the client's first pass
-  // regardless of any hook's internals, so it's the only version-safe way to gate this.
-  //
-  // localStorage also only exists client-side, so reading the saved language preference has
-  // to happen here too (React's own documented use for an effect — synchronizing with an
-  // external system) rather than during render.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
     setMounted(true);
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (stored) setLanguage(stored);
@@ -69,6 +62,15 @@ export function PreferencesTab() {
     if (!value) return;
     setLanguage(value);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, value);
+    const matched = LANGUAGES.find((l) => l.value === value);
+    toast.success(`Language preference set to ${matched?.label ?? value}.`);
+  }
+
+  function handleCurrencyChange(value: string | null) {
+    if (!value) return;
+    setCurrency(value);
+    const matched = POPULAR_CURRENCIES.find((c) => c.code === value);
+    toast.success(`Default currency set to ${matched?.name ?? value}.`);
   }
 
   return (
@@ -105,6 +107,31 @@ export function PreferencesTab() {
       </div>
 
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">Currency & Number Formatting</h2>
+        <p className="text-muted-foreground mt-1 mb-4 text-sm">
+          Choose your default reporting currency and symbol for amounts, totals, and input fields.
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Base Currency</span>
+          <Select value={currency} onValueChange={handleCurrencyChange}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select currency">
+                {POPULAR_CURRENCIES.find((c) => c.code === currency)?.name ?? currency}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {POPULAR_CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  <span className="font-mono font-semibold mr-2">{c.symbol}</span>
+                  <span>{c.name}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Language</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
           Choose your preferred language. Only English is fully translated today — other
@@ -113,8 +140,10 @@ export function PreferencesTab() {
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Language</span>
           <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-56">
-              <SelectValue />
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select language">
+                {LANGUAGES.find((l) => l.value === language)?.label ?? 'English'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {LANGUAGES.map((lang) => (

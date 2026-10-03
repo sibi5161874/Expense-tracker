@@ -13,6 +13,7 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -138,6 +139,9 @@ export function ProfileTab() {
       number_of_dependents: profile.number_of_dependents,
       onboarding_completed: true,
     });
+    if (profile.monthly_income != null || profile.date_of_birth != null || profile.onboarding_completed) {
+      setAnalysisPhase((prev) => (prev === 'analyzing' ? prev : 'done'));
+    }
   }, [profile, form]);
 
   useEffect(() => {
@@ -219,10 +223,7 @@ export function ProfileTab() {
                 <FormItem>
                   <FormLabel>Monthly Income</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                    <AmountInput
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                       value={field.value ?? ''}
@@ -240,10 +241,7 @@ export function ProfileTab() {
                 <FormItem>
                   <FormLabel>Monthly Expense (estimate)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                    <AmountInput
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                       value={field.value ?? ''}

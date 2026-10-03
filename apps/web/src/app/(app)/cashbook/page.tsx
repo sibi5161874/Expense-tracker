@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Download, UploadCloud, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Download, UploadCloud, Pencil, Trash2, BookOpen } from 'lucide-react';
 import { useCashbook } from '@/hooks/useCashbook';
 import { CashbookForm } from '@/components/CashbookForm';
 import { CounterpartySummaryCard } from '@/components/cashbook/CounterpartySummaryCard';
@@ -17,6 +17,7 @@ import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/QueryState';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { cashbookFlowTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
 import { CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
@@ -31,6 +32,8 @@ export default function CashbookPage() {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CashbookEntry | null>(null);
+  const [counterpartyToDelete, setCounterpartyToDelete] = useState<string | null>(null);
+
   const {
     data: cashbook,
     summary,
@@ -41,8 +44,21 @@ export default function CashbookPage() {
     createCashbookBulk,
     deleteCashbook,
     deleteCashbookBulk,
+    deleteCounterparty,
     isDeleting,
   } = useCashbook({ page, pageSize });
+
+  const sortedSummaryEntries = useMemo(() => {
+    if (!summary) return [];
+    return Object.entries(summary).sort((a, b) => {
+      const countA = a[1].transactionCount ?? 0;
+      const countB = b[1].transactionCount ?? 0;
+      if (countB !== countA) return countB - countA;
+      const volA = (a[1].totalGiven ?? 0) + (a[1].totalReceived ?? 0);
+      const volB = (b[1].totalGiven ?? 0) + (b[1].totalReceived ?? 0);
+      return volB - volA;
+    });
+  }, [summary]);
 
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
   const handleEdit = useCallback((entry: CashbookEntry) => setEditingEntry(entry), []);
@@ -164,12 +180,30 @@ export default function CashbookPage() {
         <CashbookCalendarView />
       ) : error ? (
         <ErrorState error={error} />
+      ) : !isLoading && cashbook?.length === 0 && page === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No cashbook entries yet"
+          description="Track personal lending, money borrowed, or debts owed to you in one organized cashbook."
+          action={
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Add Cashbook Entry
+            </Button>
+          }
+        />
       ) : (
         <>
-          {summary && Object.keys(summary).length > 0 && (
-            <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(summary).map(([counterparty, item]) => (
-                <CounterpartySummaryCard key={counterparty} counterparty={counterparty} {...item} />
+          {sortedSummaryEntries.length > 0 && (
+            <div className="mb-6 flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin">
+              {sortedSummaryEntries.map(([counterparty, item]) => (
+                <CounterpartySummaryCard
+                  key={counterparty}
+                  counterparty={counterparty}
+                  {...item}
+                  onRemove={(name) => setCounterpartyToDelete(name)}
+                  isRemoving={isDeleting}
+                />
               ))}
             </div>
           )}
@@ -286,6 +320,24 @@ export default function CashbookPage() {
             });
           }
           setPendingBulkDelete(null);
+        }}
+      />
+      <ConfirmDialog
+        open={counterpartyToDelete !== null}
+        onOpenChange={(open) => !open && setCounterpartyToDelete(null)}
+        title={`Remove contact "${counterpartyToDelete}"?`}
+        description={`This will delete all cashbook entries and contact records for ${counterpartyToDelete}.`}
+        isConfirming={isDeleting}
+        onConfirm={async () => {
+          if (counterpartyToDelete) {
+            try {
+              await deleteCounterparty(counterpartyToDelete);
+              toast.success(`Removed ${counterpartyToDelete} and associated entries.`);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Failed to remove contact.');
+            }
+          }
+          setCounterpartyToDelete(null);
         }}
       />
     </div>

@@ -308,6 +308,22 @@ export function DataTable<T>({
                 </TableCell>
               </TableRow>
             )}
+            {filtered.length > 0 && pageSize && filtered.length < pageSize && (
+              Array.from({ length: pageSize - filtered.length }).map((_, i) => (
+                <TableRow
+                  key={`empty-placeholder-${i}`}
+                  className="h-[49px] border-border/30 hover:bg-transparent pointer-events-none select-none"
+                  aria-hidden="true"
+                >
+                  <TableCell
+                    colSpan={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)}
+                    className="h-[49px] py-0 text-transparent"
+                  >
+                    &nbsp;
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

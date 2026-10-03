@@ -10,6 +10,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -134,10 +135,7 @@ export function RecurringTransactionForm({ onSuccess, onCancel, editing }: Recur
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                    <AmountInput
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                       value={field.value ?? ''}

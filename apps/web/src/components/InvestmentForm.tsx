@@ -21,6 +21,61 @@ import { MutualFundPicker } from '@/components/investments/MutualFundPicker';
 
 type AssetType = InvestmentLogInput['asset_type'];
 
+interface AssetFieldConfig {
+  symbolLabel: string;
+  symbolPlaceholder: string;
+  exchangeLabel: string;
+  exchangePlaceholder: string;
+  showExchange: boolean;
+  helperText?: string;
+}
+
+const ASSET_CONFIG: Record<AssetType, AssetFieldConfig> = {
+  Stock: {
+    symbolLabel: 'Stock / Ticker Symbol',
+    symbolPlaceholder: 'e.g., RELIANCE, HDFCBANK, AAPL',
+    exchangeLabel: 'Exchange',
+    exchangePlaceholder: 'e.g., NSE, BSE, NASDAQ',
+    showExchange: true,
+  },
+  ETF: {
+    symbolLabel: 'ETF Symbol / Name',
+    symbolPlaceholder: 'e.g., NIFTYBEES, GOLDBEES, SPY',
+    exchangeLabel: 'Exchange',
+    exchangePlaceholder: 'e.g., NSE, BSE',
+    showExchange: true,
+  },
+  'Mutual Fund': {
+    symbolLabel: 'Scheme / Fund Name',
+    symbolPlaceholder: 'e.g., Parag Parikh Flexi Cap, Quant Small Cap',
+    exchangeLabel: 'AMC / Registrar',
+    exchangePlaceholder: 'e.g., HDFC MF, CAMS, AMFI',
+    showExchange: false,
+  },
+  Crypto: {
+    symbolLabel: 'Coin / Token Symbol',
+    symbolPlaceholder: 'e.g., BTC, ETH, SOL, USDT',
+    exchangeLabel: 'Exchange / Wallet',
+    exchangePlaceholder: 'e.g., Binance, CoinDCX, Ledger',
+    showExchange: true,
+    helperText: 'Priced from USD pair (e.g. BTC becomes BTC-USD).',
+  },
+  Bond: {
+    symbolLabel: 'Bond / Security Name',
+    symbolPlaceholder: 'e.g., 7.18% GS 2033, SGB 2028, Sovereign Gold Bond',
+    exchangeLabel: 'Issuer / Category',
+    exchangePlaceholder: 'e.g., RBI, Govt of India, Corporate',
+    showExchange: true,
+  },
+  Other: {
+    symbolLabel: 'Asset Name / Description',
+    symbolPlaceholder: 'e.g., 24K Digital Gold, 2BHK Rental Flat',
+    exchangeLabel: 'Location / Platform',
+    exchangePlaceholder: 'e.g., MMTC-PAMP, City / Registry',
+    showExchange: true,
+  },
+};
+
 /** Funds are priced from AMFI and crypto from a USD pair, so neither has an exchange to ask
  * about — these values just satisfy the (required) exchange column and say where the price comes from. */
 const AUTO_EXCHANGE: Partial<Record<AssetType, string>> = { 'Mutual Fund': 'AMFI', Crypto: 'CRYPTO' };
@@ -48,10 +103,10 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
   });
 
   const action = form.watch('action');
-  const assetType = form.watch('asset_type');
+  const assetType = form.watch('asset_type') ?? 'Stock';
   const symbol = form.watch('symbol');
   const isFund = assetType === 'Mutual Fund';
-  const isCrypto = assetType === 'Crypto';
+  const currentAssetConfig = ASSET_CONFIG[assetType] ?? ASSET_CONFIG.Stock;
 
   function handleAssetTypeChange(next: AssetType) {
     const prev = form.getValues('asset_type');
@@ -126,7 +181,7 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
                       <SelectItem value="Mutual Fund">Mutual Fund</SelectItem>
                       <SelectItem value="Crypto">Crypto</SelectItem>
                       <SelectItem value="Bond">Bond</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Other">Other (Gold / Real Estate)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -139,7 +194,7 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
               name="symbol"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{isFund ? 'Fund' : 'Symbol'}</FormLabel>
+                  <FormLabel>{currentAssetConfig.symbolLabel}</FormLabel>
                   <FormControl>
                     {isFund ? (
                       <MutualFundPicker
@@ -151,12 +206,12 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
                         onClear={() => form.setValue('symbol', '')}
                       />
                     ) : (
-                      <Input placeholder={isCrypto ? 'e.g., BTC, ETH' : 'e.g., RELIANCE, HDFCBANK'} {...field} />
+                      <Input placeholder={currentAssetConfig.symbolPlaceholder} {...field} />
                     )}
                   </FormControl>
-                  {isCrypto && (
+                  {currentAssetConfig.helperText && (
                     <p className="text-muted-foreground text-xs">
-                      Priced in US dollars from the matching USD pair (BTC becomes BTC-USD).
+                      {currentAssetConfig.helperText}
                     </p>
                   )}
                   <FormMessage />
@@ -164,15 +219,15 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
               )}
             />
 
-            {!isFund && !isCrypto && (
+            {currentAssetConfig.showExchange && (
               <FormField
                 control={form.control}
                 name="exchange"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Exchange</FormLabel>
+                    <FormLabel>{currentAssetConfig.exchangeLabel}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., NSE, BSE" {...field} />
+                      <Input placeholder={currentAssetConfig.exchangePlaceholder} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
