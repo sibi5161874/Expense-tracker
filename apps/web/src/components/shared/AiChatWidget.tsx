@@ -11,7 +11,6 @@ import {
   CheckCheck,
   Copy,
   Check,
-  Bot,
   Plus,
   HelpCircle,
 } from 'lucide-react';
@@ -162,34 +161,30 @@ export function AiChatWidget() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-24 right-4 z-50 flex h-[32rem] sm:h-[36rem] w-[calc(100vw-2rem)] max-w-[24rem] sm:max-w-[26rem] flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl sm:bottom-24 sm:right-6"
+            className="fixed bottom-20 right-4 z-50 flex h-[min(31rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[22.5rem] sm:max-w-[24rem] flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl sm:bottom-22 sm:right-6"
           >
             {/* Header Redesign */}
-            <div className="relative border-b border-border/60 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-4 py-3.5 backdrop-blur-md">
+            <div className="relative border-b border-border/60 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-4 py-3 backdrop-blur-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div className="relative">
-                    <div className="relative size-10 rounded-full border-2 border-primary/30 bg-primary/10 overflow-hidden shadow-xs flex items-center justify-center">
+                    <div className="relative size-9 rounded-full border border-border/60 bg-muted overflow-hidden shadow-xs flex items-center justify-center shrink-0">
                       <Image
                         src="/images/chatbot.png"
                         alt="AI Assistant"
-                        width={40}
-                        height={40}
+                        width={36}
+                        height={36}
                         className="size-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
                       />
-                      <Bot className="size-5 text-primary absolute" />
                     </div>
                     {/* Live Green Online Badge */}
-                    <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-background ring-offset-0 animate-pulse" />
+                    <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1.5">
                       <h3 className="text-sm font-semibold text-foreground tracking-tight">AI Assistant</h3>
-                      <Sparkles className="size-3.5 text-primary fill-primary/20" />
+                      <Sparkles className="size-3 text-primary fill-primary/20" />
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -225,28 +220,24 @@ export function AiChatWidget() {
             {/* Chat Body Canvas */}
             <div
               ref={scrollRef}
-              className="flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-muted-foreground/20"
+              className="flex-1 space-y-3.5 overflow-y-auto p-3.5 scrollbar-thin scrollbar-thumb-muted-foreground/20"
             >
               {/* Empty / Welcome State */}
               {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center pt-3 pb-2 space-y-4">
-                  <div className="relative size-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+                <div className="flex flex-col items-center justify-center text-center pt-2 pb-1 space-y-3">
+                  <div className="relative size-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner overflow-hidden">
                     <Image
                       src="/images/chatbot.png"
                       alt="AI Assistant"
-                      width={52}
-                      height={52}
-                      className="size-13 object-cover rounded-full"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
+                      width={56}
+                      height={56}
+                      className="size-full object-cover"
                     />
-                    <Bot className="size-8 text-primary absolute" />
                   </div>
 
                   <div className="space-y-1">
-                    <h4 className="text-base font-semibold text-foreground">Hello! 👋</h4>
-                    <p className="text-xs text-muted-foreground max-w-[20rem]">
+                    <h4 className="text-sm font-semibold text-foreground">Hello! 👋</h4>
+                    <p className="text-xs text-muted-foreground max-w-[18rem]">
                       How can I help you today? Ask me about your transactions, net worth, budgets, or investments.
                     </p>
                   </div>
@@ -288,11 +279,7 @@ export function AiChatWidget() {
                           width={28}
                           height={28}
                           className="size-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
                         />
-                        <Bot className="size-3.5 text-primary absolute" />
                       </div>
                     )}
 
@@ -450,53 +437,54 @@ export function AiChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Floating Launcher Button */}
-      <motion.button
-        type="button"
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.94 }}
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close AI chat' : 'Open AI chat'}
-        className="fixed bottom-20 right-4 z-50 flex size-14 items-center justify-center overflow-hidden rounded-full shadow-xl transition-all sm:bottom-6 sm:right-6 bg-gradient-to-tr from-primary to-primary/85 text-primary-foreground border-2 border-background ring-4 ring-primary/10 hover:ring-primary/25"
-      >
-        <AnimatePresence mode="wait">
-          {open ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <X className="size-6" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="open"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="relative size-full flex items-center justify-center"
-            >
-              <Image
-                src="/images/chatbot.png"
-                alt="AI Assistant"
-                width={56}
-                height={56}
-                className="size-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              <Bot className="size-7 text-primary-foreground absolute" />
-              {/* Pulsing indicator ring */}
-              <span className="absolute top-1 right-1 size-3 rounded-full bg-emerald-400 border-2 border-primary animate-ping opacity-75" />
-              <span className="absolute top-1 right-1 size-3 rounded-full bg-emerald-400 border-2 border-primary" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
+      {/* Floating Launcher Button Container */}
+      <div className="fixed bottom-20 right-4 z-50 sm:bottom-6 sm:right-6">
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? 'Close AI chat' : 'Open AI chat'}
+          className="relative flex size-14 items-center justify-center overflow-hidden rounded-full shadow-xl transition-all bg-primary text-primary-foreground border-2 border-background ring-4 ring-primary/10 hover:ring-primary/25"
+        >
+          <AnimatePresence mode="wait">
+            {open ? (
+              <motion.div
+                key="close"
+                initial={{ rotate: -90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: 90, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <X className="size-6" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="open"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="size-full flex items-center justify-center"
+              >
+                <Image
+                  src="/images/chatbot.png"
+                  alt="AI Assistant"
+                  width={56}
+                  height={56}
+                  className="size-full object-cover"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
+        {!open && (
+          <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center">
+            <span className="absolute size-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+            <span className="relative size-3.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+          </span>
+        )}
+      </div>
     </>
   );
 }

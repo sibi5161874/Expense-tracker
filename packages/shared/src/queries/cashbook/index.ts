@@ -5,3 +5,4 @@ export * from './createCashbookBulk';
 export * from './updateCashbook';
 export * from './deleteCashbook';
 export * from './deleteCashbookBulk';
+export * from './deleteCashbookByCounterparty';

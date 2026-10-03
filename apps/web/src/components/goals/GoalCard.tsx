@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { goalStatusTone } from '@/lib/badgeTones';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 
+import { extractEmoji } from '@/components/GoalForm';
+
 interface GoalCardProps {
   goal: Goal;
   onEdit: (goal: Goal) => void;
@@ -17,6 +19,8 @@ interface GoalCardProps {
 }
 
 function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps) {
+  const { emoji, cleanText } = extractEmoji(goal.goal_name);
+  const displayName = cleanText || goal.goal_name;
   const progressPct = calculateProgressPct(goal.saved_amount, goal.target_amount);
   const status = calculateGoalStatus(goal.saved_amount, goal.target_amount, goal.target_date);
   const { requestDelete, dialog } = useConfirmDelete(onDelete, 'Delete goal?', "This can't be undone.");
@@ -25,12 +29,12 @@ function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps
     <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-accent text-accent-foreground flex size-9 items-center justify-center rounded-full">
-            <Target className="size-4.5" />
+          <div className="bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-2xl text-xl shadow-inner ring-1 ring-border/50">
+            {emoji ? <span>{emoji}</span> : <Target className="text-primary size-5" />}
           </div>
           <div>
-            <h3 className="font-semibold">{goal.goal_name}</h3>
-            <p className="text-muted-foreground text-sm">{goal.category}</p>
+            <h3 className="font-semibold">{displayName}</h3>
+            <p className="text-muted-foreground text-xs">{goal.category}</p>
           </div>
         </div>
         <StatusBadge tone={goalStatusTone(status)}>{status}</StatusBadge>

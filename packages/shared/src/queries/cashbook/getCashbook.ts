@@ -93,10 +93,10 @@ export async function getCashbookSummary(supabase: SupabaseClient<Database>, use
 
   if (error) throw error;
 
-  // Group by counterparty and calculate net balance
+  // Group by counterparty and calculate net balance and transaction count
   const summary: Record<
     string,
-    { totalGiven: number; totalReceived: number; netBalance: number; hasOverdue: boolean }
+    { totalGiven: number; totalReceived: number; netBalance: number; hasOverdue: boolean; transactionCount: number }
   > = {};
 
   const today = new Date().toISOString().slice(0, 10);
@@ -108,11 +108,14 @@ export async function getCashbookSummary(supabase: SupabaseClient<Database>, use
         totalReceived: 0,
         netBalance: 0,
         hasOverdue: false,
+        transactionCount: 0,
       };
     }
 
     const counterpartySummary = summary[entry.counterparty];
     if (!counterpartySummary) continue;
+
+    counterpartySummary.transactionCount += 1;
 
     if (entry.flow === 'Gave') {
       counterpartySummary.totalGiven += Number(entry.amount);

@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Download, UploadCloud, Landmark, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Download, UploadCloud, Landmark, Pencil, Trash2, TrendingUp } from 'lucide-react';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
 import { useHoldings } from '@/hooks/useHoldings';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -22,6 +22,7 @@ import { AmountText } from '@/components/shared/AmountText';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/QueryState';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { investmentActionTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
 import { INVESTMENT_LOG_TEMPLATE_COLUMNS, INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
@@ -235,6 +236,18 @@ export default function InvestmentsPage() {
         <InvestmentLogCalendarView />
       ) : error ? (
         <ErrorState error={error} />
+      ) : !isLoading && investments?.length === 0 && page === 0 ? (
+        <EmptyState
+          icon={TrendingUp}
+          title="No investment entries yet"
+          description="Track your stock trades, mutual funds, SIPs, and dividends to view your portfolio analytics."
+          action={
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Add Investment
+            </Button>
+          }
+        />
       ) : (
         <DataTable
           data={investments}
