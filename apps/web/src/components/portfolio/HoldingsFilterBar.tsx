@@ -21,6 +21,19 @@ interface HoldingsFilterBarProps {
   onSearchChange: (value: string) => void;
 }
 
+const FILTER_OPTIONS: { label: string; value: FilterType }[] = [
+  { label: 'All Holdings', value: 'all' },
+  { label: 'Profit Only', value: 'profit' },
+  { label: 'Loss Only', value: 'loss' },
+];
+
+const SORT_OPTIONS: { label: string; value: SortKey }[] = [
+  { label: 'Value (High → Low)', value: 'currentValue_desc' },
+  { label: 'Return % (High → Low)', value: 'returnPct_desc' },
+  { label: 'Return % (Low → High)', value: 'returnPct_asc' },
+  { label: 'Invested (High → Low)', value: 'invested_desc' },
+];
+
 export function HoldingsFilterBar({
   sortValue,
   onSortChange,
@@ -49,16 +62,16 @@ export function HoldingsFilterBar({
   }, [localSearch, searchQuery, onSearchChange]);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row">
       {/* Search Input */}
       <div className="relative flex-1">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
         <Input
           type="text"
           placeholder="Search symbol or name…"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="pl-9 h-10 w-full"
+          className="h-10 w-full pl-9"
         />
       </div>
 
@@ -68,13 +81,17 @@ export function HoldingsFilterBar({
           value={filterValue}
           onValueChange={(val) => onFilterChange(val as FilterType)}
         >
-          <SelectTrigger className="w-36 h-10">
-            <SelectValue placeholder="Filter" />
+          <SelectTrigger className="h-10 w-36">
+            <SelectValue placeholder="Filter">
+              {FILTER_OPTIONS.find((opt) => opt.value === filterValue)?.label ?? 'Filter'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Holdings</SelectItem>
-            <SelectItem value="profit">Profit Only</SelectItem>
-            <SelectItem value="loss">Loss Only</SelectItem>
+            {FILTER_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -83,14 +100,17 @@ export function HoldingsFilterBar({
           value={sortValue}
           onValueChange={(val) => onSortChange(val as SortKey)}
         >
-          <SelectTrigger className="w-48 h-10">
-            <SelectValue placeholder="Sort by" />
+          <SelectTrigger className="h-10 w-52">
+            <SelectValue placeholder="Sort by">
+              {SORT_OPTIONS.find((opt) => opt.value === sortValue)?.label ?? 'Sort by'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="currentValue_desc">Value (High → Low)</SelectItem>
-            <SelectItem value="returnPct_desc">Return % (High → Low)</SelectItem>
-            <SelectItem value="returnPct_asc">Return % (Low → High)</SelectItem>
-            <SelectItem value="invested_desc">Invested (High → Low)</SelectItem>
+            {SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

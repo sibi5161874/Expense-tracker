@@ -10,6 +10,7 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { InvestmentForm } from '@/components/InvestmentForm';
 import { ImportDialog } from '@/components/shared/ImportDialog';
 import { BrokerImportDialog } from '@/components/shared/BrokerImportDialog';
+import { InstitutionLogo } from '@/components/shared/InstitutionLogo';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
@@ -154,7 +155,19 @@ export default function InvestmentsPage() {
       cell: (i) => <AmountText value={i.quantity * i.price + (i.fees || 0)} colorBySign={false} />,
       sortValue: (i) => i.quantity * i.price + (i.fees || 0),
     },
-    { id: 'account', header: 'Account', cell: (i) => i.linked_account?.name ?? '-' },
+    {
+      id: 'account',
+      header: 'Account',
+      cell: (i) =>
+        i.linked_account ? (
+          <div className="flex items-center gap-1.5">
+            <InstitutionLogo name={i.linked_account.name} className="size-4 shrink-0 rounded-sm" />
+            <span className="truncate">{i.linked_account.name}</span>
+          </div>
+        ) : (
+          '-'
+        ),
+    },
   ];
 
   const filters: DataTableFilter<InvestmentLogEntry>[] = [

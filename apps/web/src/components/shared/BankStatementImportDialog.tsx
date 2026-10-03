@@ -333,7 +333,7 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
                         <p className="text-muted-foreground px-2 py-1.5 text-xs font-medium">{region}</p>
                         {BANKS.filter((b) => (b.region ?? 'Other') === region).map((b) => (
                           <SelectItem key={b.id} value={b.id}>
-                            <InstitutionLogo domain={b.domain} />
+                            <InstitutionLogo institutionId={b.id} domain={b.domain} logo={b.logo} />
                             {b.label}
                           </SelectItem>
                         ))}

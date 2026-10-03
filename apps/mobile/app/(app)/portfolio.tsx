@@ -167,27 +167,13 @@ export default function PortfolioScreen() {
           <AppText className="text-sm text-destructive">{error.message}</AppText>
         ) : (
           <>
-            {/* Loss-Making Holdings Section */}
-            <LossMakingHoldingsCard holdings={holdings} />
-
-            {/* Asset Class Breakdown Section */}
-            <AssetClassBreakdownCard holdings={holdings} />
-
+            {/* 1. KPI Summary Grid */}
             {summary && <KpiGrid items={kpis} />}
 
-            {holdings.length > 0 && (
-              <ReportExportBar title="Portfolio Summary" description="Current value, invested amount, and P&L per holding." sheets={sheets} />
-            )}
+            {/* 2. Asset Class Breakdown Section */}
+            <AssetClassBreakdownCard holdings={holdings} />
 
-            {holdings.length > 0 && <TaxLossHarvestingCard holdings={holdings} />}
-
-            {allocation.length > 0 && (
-              <View className="gap-3 rounded-2xl bg-card p-4">
-                <AppText className="text-sm font-semibold">Allocation by symbol</AppText>
-                <CategoryBarList data={allocation} />
-              </View>
-            )}
-
+            {/* 3. Asset Holdings & Allocation */}
             <View className="gap-3">
               <AssetClassTabs
                 holdings={holdings}
@@ -212,6 +198,23 @@ export default function PortfolioScreen() {
 
               <HoldingsList holdings={filteredHoldings} />
             </View>
+
+            {allocation.length > 0 && (
+              <View className="gap-3 rounded-2xl bg-card p-4">
+                <AppText className="text-sm font-semibold">Allocation by symbol</AppText>
+                <CategoryBarList data={allocation} />
+              </View>
+            )}
+
+            {/* 4. Loss-Making Holdings Section */}
+            <LossMakingHoldingsCard holdings={holdings} />
+
+            {/* 5. Tax-Loss Harvesting Opportunity */}
+            {holdings.length > 0 && <TaxLossHarvestingCard holdings={holdings} />}
+
+            {holdings.length > 0 && (
+              <ReportExportBar title="Portfolio Summary" description="Current value, invested amount, and P&L per holding." sheets={sheets} />
+            )}
           </>
         )}
       </ScrollView>

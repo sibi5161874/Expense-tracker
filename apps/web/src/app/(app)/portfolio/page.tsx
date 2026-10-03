@@ -148,12 +148,6 @@ export default function PortfolioPage() {
         }
       />
 
-      {/* Loss-Making Holdings Section */}
-      <LossMakingHoldingsCard holdings={holdings} />
-
-      {/* Asset Class Breakdown Section */}
-      <AssetClassBreakdownCard holdings={holdings} />
-
       {foreignCount > 0 && (
         <div className="border-warning/40 bg-warning/10 text-warning-foreground flex items-start gap-2 rounded-lg border p-3 text-sm">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -165,7 +159,7 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* KPI Summary Grid */}
+      {/* 1. KPI Summary Grid */}
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Total Invested" value={formatINR(summary.totalInvested)} icon={Wallet} />
@@ -185,10 +179,10 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* Tax-Loss Harvesting Opportunity */}
-      <TaxLossHarvestingCard holdings={holdings} />
+      {/* 2. Asset Class Breakdown Section */}
+      <AssetClassBreakdownCard holdings={holdings} />
 
-      {/* Main Holdings Table & Allocation Grid */}
+      {/* 3. Main Holdings Table & Allocation Grid */}
       <div className="space-y-4">
         {/* Asset Class Filter Tabs */}
         <AssetClassTabs
@@ -226,18 +220,30 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* 4. Recent Transactions */}
       <div>
         <h2 className="mb-3 text-sm font-semibold">Recent transactions</h2>
-        <div className="bg-card overflow-hidden rounded-2xl">
+        <div className="bg-card divide-border overflow-hidden rounded-2xl divide-y">
           {recentInvestments?.slice(0, 10).map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between px-5 py-4 text-sm">
+            <div key={inv.id} className="hover:bg-muted/40 flex items-center justify-between px-5 py-3.5 text-sm transition-colors">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="text-muted-foreground w-20 shrink-0">{inv.date}</span>
-                <span className="font-medium">{inv.symbol}</span>
-                <span className="text-muted-foreground">{inv.action}</span>
+                <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">{inv.date}</span>
+                <span
+                  className={cn(
+                    'rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider',
+                    inv.action.toUpperCase() === 'BUY' || inv.action.toUpperCase() === 'SIP'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  )}
+                >
+                  {inv.action}
+                </span>
+                <span className="truncate font-medium">{inv.symbol}</span>
+                <span className="text-muted-foreground hidden text-xs sm:inline">
+                  {inv.quantity} @ {formatINR(inv.price)}
+                </span>
               </div>
-              <AmountText value={inv.quantity * inv.price} colorBySign={false} />
+              <AmountText value={inv.quantity * inv.price} colorBySign={false} className="ml-4 shrink-0 font-medium" />
             </div>
           ))}
           {(!recentInvestments || recentInvestments.length === 0) && (
@@ -245,6 +251,12 @@ export default function PortfolioPage() {
           )}
         </div>
       </div>
+
+      {/* 5. Loss-Making Holdings Section */}
+      <LossMakingHoldingsCard holdings={holdings} />
+
+      {/* 6. Tax-Loss Harvesting Opportunity */}
+      <TaxLossHarvestingCard holdings={holdings} />
     </div>
   );
 }
