@@ -210,7 +210,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
                   <SelectContent>
                     {BROKERS.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        <InstitutionLogo domain={b.domain} />
+                        <InstitutionLogo institutionId={b.id} domain={b.domain} logo={b.logo} />
                         {b.label}
                       </SelectItem>
                     ))}

@@ -134,20 +134,6 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
 
             <AccountSelectField control={form.control} name="account_used_id" label="Account Used" accounts={accounts} />
 
-            <FormField
-              control={form.control}
-              name="loan_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Linked Loan (optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Optional loan reference" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <NotesField control={form.control} name="notes" />
 
             {formError && <p className="text-destructive text-sm">{formError}</p>}
