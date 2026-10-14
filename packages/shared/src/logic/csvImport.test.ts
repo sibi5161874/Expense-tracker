@@ -125,8 +125,23 @@ describe('normalizeDate', () => {
     expect(normalizeDate('2026-07-19')).toBe('2026-07-19');
   });
 
-  it('rejects any other format', () => {
-    expect(normalizeDate('19-07-2026')).toBeNull();
+  it('accepts an unambiguous DD-MM-YYYY date (one component > 12)', () => {
+    // Excel often re-exports a typed date in the system's locale short-date format on save —
+    // this is the case from the user's own Investment Log screenshot (a day >12 proves it's
+    // not month-first, so it's safe to resolve without guessing).
+    expect(normalizeDate('19-07-2026')).toBe('2026-07-19');
+  });
+
+  it('accepts an Excel date serial number', () => {
+    expect(normalizeDate('45941')).toBe('2025-10-11');
+  });
+
+  it('rejects a genuinely ambiguous slash/dash date rather than guessing', () => {
+    expect(normalizeDate('03-04-2026')).toBeNull();
+    expect(normalizeDate('03/04/2026')).toBeNull();
+  });
+
+  it('rejects other unparseable formats', () => {
     expect(normalizeDate('2026/07/19')).toBeNull();
     expect(normalizeDate('not a date')).toBeNull();
   });
@@ -191,7 +206,9 @@ describe('buildTransactionImportPlan', () => {
   it('reports a row-numbered error for an invalid date instead of throwing', () => {
     const plan = buildTransactionImportPlan([row({ Date: 'bad' })], accounts, categories, []);
     expect(plan.validRows).toHaveLength(0);
-    expect(plan.errors).toEqual([{ row: 2, reason: 'Invalid or missing Date (expected YYYY-MM-DD)' }]);
+    expect(plan.errors).toHaveLength(1);
+    expect(plan.errors[0]).toMatchObject({ row: 2 });
+    expect(plan.errors[0]!.reason).toContain('Invalid or missing Date "bad"');
   });
 
   it('reports an error when the account name does not resolve', () => {

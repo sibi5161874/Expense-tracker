@@ -11,6 +11,7 @@ import {
 import { detectBankMapping, type DetectedMapping } from './columnHeuristics';
 import { BANKS, findBank } from './institutions';
 import { detectDividendCandidate } from './dividendDetection';
+import { parseIsoDate, parseDayMonthYearDate } from './dateParsing';
 
 export { BANKS, findBank };
 
@@ -90,24 +91,8 @@ export function detectBankFormat(headers: string[]): string | null {
 /** Bank exports use DD/MM/YYYY, DD/MM/YY, DD-MM-YYYY, or ISO — normalize to YYYY-MM-DD. */
 export function parseBankDate(value: string): string | null {
   const trimmed = value.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-
-  const isoWithTime = trimmed.match(/^(\d{4}-\d{2}-\d{2})[ T]/);
-  if (isoWithTime) return isoWithTime[1]!;
-
-  // 4-digit year is tried BEFORE 2-digit: the pattern is unanchored at the end
-  // (so a trailing timestamp is tolerated), which means a `\d{2}` branch listed
-  // first would match "20" out of "2026" and silently yield the year 2020.
-  const match = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})(?!\d)/);
-  if (!match) return null;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const yearPart = match[3]!;
-  const year = yearPart.length === 2 ? 2000 + Number(yearPart) : Number(yearPart);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (!trimmed) return null;
+  return parseIsoDate(trimmed) ?? parseDayMonthYearDate(trimmed, 'day-first');
 }
 
 interface CategoryGuess {

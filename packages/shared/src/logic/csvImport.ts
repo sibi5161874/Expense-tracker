@@ -2,6 +2,7 @@ import { EXAMPLE_ROW_MARKER } from '../importTemplates';
 import { transactionSchema, type TransactionInput } from '../schemas/transaction.schema';
 import { investmentLogSchema, type InvestmentLogInput } from '../schemas/investmentLog.schema';
 import { cashbookSchema, type CashbookInput } from '../schemas/cashbook.schema';
+import { parseIsoDate, parseDayMonthYearDate, parseExcelSerialDate } from './dateParsing';
 
 export interface ImportRowError {
   row: number;
@@ -108,9 +109,21 @@ export function parseAmount(value: string): number | null {
   return isParenthesisedNegative ? -Math.abs(n) : n;
 }
 
+/**
+ * Accepts ISO `YYYY-MM-DD`, unambiguous `D-M-Y`/`D/M/Y` dates (where one component is >12, so
+ * there's only one valid reading regardless of which locale exported the file), and Excel date
+ * serial numbers. A genuinely ambiguous slash/dash date (both components <=12, e.g. 03/04/2025)
+ * is rejected rather than guessed — the source spreadsheet's locale is unknown, and a wrong
+ * guess would silently corrupt the date instead of surfacing an error. See dateParsing.ts.
+ */
 export function normalizeDate(value: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
-  return value.trim();
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return parseIsoDate(trimmed) ?? parseDayMonthYearDate(trimmed, 'reject') ?? parseExcelSerialDate(trimmed);
+}
+
+function invalidDateReason(raw: string | undefined, field = 'Date'): string {
+  return `Invalid or missing ${field} "${raw ?? ''}" (expected YYYY-MM-DD; DD-MM-YYYY and Excel date cells also work — but an ambiguous date like 03/04/2025 must be written as YYYY-MM-DD)`;
 }
 
 /**
@@ -158,7 +171,7 @@ export function buildTransactionImportPlan(
   for (const { row, record } of records) {
     const date = normalizeDate(record['Date'] ?? '');
     if (!date) {
-      errors.push({ row, reason: 'Invalid or missing Date (expected YYYY-MM-DD)' });
+      errors.push({ row, reason: invalidDateReason(record['Date']) });
       continue;
     }
 
@@ -243,7 +256,7 @@ export function buildInvestmentLogImportPlan(
   for (const { row, record } of records) {
     const date = normalizeDate(record['Date'] ?? '');
     if (!date) {
-      errors.push({ row, reason: 'Invalid or missing Date (expected YYYY-MM-DD)' });
+      errors.push({ row, reason: invalidDateReason(record['Date']) });
       continue;
     }
 
@@ -345,7 +358,7 @@ export function buildCashbookImportPlan(
   for (const { row, record } of records) {
     const date = normalizeDate(record['Date'] ?? '');
     if (!date) {
-      errors.push({ row, reason: 'Invalid or missing Date (expected YYYY-MM-DD)' });
+      errors.push({ row, reason: invalidDateReason(record['Date']) });
       continue;
     }
 
@@ -371,7 +384,7 @@ export function buildCashbookImportPlan(
     if (record['Due Date']) {
       const normalized = normalizeDate(record['Due Date']!);
       if (!normalized) {
-        errors.push({ row, reason: `Invalid Due Date "${record['Due Date']}" (expected YYYY-MM-DD)` });
+        errors.push({ row, reason: invalidDateReason(record['Due Date'], 'Due Date') });
         continue;
       }
       dueDate = normalized;
