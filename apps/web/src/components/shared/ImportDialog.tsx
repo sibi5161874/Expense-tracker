@@ -180,12 +180,22 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, assetT
           )}
 
           {step === 'select' && (
-            <FileDropzone
-              onFile={handleFile}
-              accept=".csv"
-              title="Click to choose a CSV file"
-              subtitle="or drag and drop"
-            />
+            <>
+              <FileDropzone
+                onFile={handleFile}
+                accept=".csv"
+                title="Click to choose a CSV file"
+                subtitle="or drag and drop"
+              />
+              <p className="text-muted-foreground mt-3 text-xs">
+                Dates in <code>YYYY-MM-DD</code> (e.g. 2026-07-19) always work, and common
+                formats like <code>DD-MM-YYYY</code> are accepted too. If Excel shows a date
+                like <code>03/04/2026</code> where both parts could be the day or the month,
+                it&apos;s ambiguous and will be rejected — retype that cell as{' '}
+                <code>YYYY-MM-DD</code>. If Excel asks &ldquo;Keep Using This Format?&rdquo; when
+                you save as CSV, it&apos;s safe to click <strong>Yes</strong>.
+              </p>
+            </>
           )}
 
           {step === 'previewing' && (
