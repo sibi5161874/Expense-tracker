@@ -10,6 +10,7 @@ import { APP_BRANDING } from '@repo/shared/config';
 
 const LINKS = [
   { href: '/features', label: 'Features' },
+  { href: '/how-it-works', label: 'How It Works' },
   { href: '/reports-overview', label: 'Reports' },
   { href: '/pricing', label: 'Pricing' },
 ];
