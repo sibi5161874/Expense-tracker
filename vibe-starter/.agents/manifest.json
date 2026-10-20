@@ -1,0 +1,71 @@
+{
+  "project": {
+    "name": "KashMap",
+    "repo": "Expense-tracker",
+    "domain": "Privacy-first personal finance / net-worth tracker for Indian users",
+    "tenancy": "single-user-per-account — Supabase RLS scoped by user_id (auth.uid()), NOT multi-tenant/org-based",
+    "actors": ["end user (owns all their own rows)", "solo developer/operator (edits tierConfig.ts directly, no admin UI)"],
+    "monetization": "freemium — free tier, 30-day trial, one-time lifetime unlock. PAID_TIER_ENABLED is currently false (packages/shared/src/config/tierConfig.ts) — app runs 100% free for everyone until Razorpay is wired live.",
+    "platforms": ["apps/web — Next.js 16 App Router, Turbopack", "apps/mobile — Expo Router, React Native"],
+    "origin": "live, solo-developer-run product — not a from-scratch build"
+  },
+  "stack": {
+    "monorepo": "pnpm workspaces + Turborepo",
+    "frontend_web": "Next.js 16 (App Router, Turbopack)",
+    "frontend_mobile": "Expo (Expo Router)",
+    "shared": "packages/shared — Zod schemas, Supabase query functions, pure business logic; wildcard subpath exports (./queries/*, ./logic/*)",
+    "database": "Supabase PostgreSQL, RLS per-user (not self-hosted, not org-scoped)",
+    "auth": "Supabase Auth",
+    "payments": "Razorpay — create-order (user session) + webhook (service_role) both funnel through apps/web/src/lib/applyPaymentCapture.ts so a payment is never applied twice",
+    "pdf_export": "jsPDF + jspdf-autotable, table-driven — never a DOM screenshot (RULES.md §4)",
+    "mobile_export": "expo-print / xlsx (not jsPDF)",
+    "tests": "Vitest (packages/shared), Playwright (apps/web e2e)",
+    "hosting": "Vercel (web) — see root README.md for mobile distribution"
+  },
+  "readingOrder": [
+    "../CLAUDE.md",
+    "../RULES.md",
+    "../UI_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/DATA_MODEL.md",
+    "docs/STATUS.md",
+    "docs/GLOSSARY.md",
+    "../MOBILE_ROADMAP.md"
+  ],
+  "skillsAlreadyDefined": {
+    "location": ".claude/skills/",
+    "list": [
+      "add-feature — standard workflow for adding any new feature, web or mobile",
+      "add-asset-class — add a new tracked asset type (14th+ asset class)",
+      "fix-import-bug — diagnose/fix a bank/broker CSV import failure or misparse",
+      "plan-large-feature — when/how to use Plan Mode for anything touching >3 files or a new table",
+      "review-before-merge — pre-merge checklist: verification, RLS, entitlement gating, secrets"
+    ],
+    "note": "Use these instead of re-deriving a workflow. vibe-starter/prompts/*.md are short pointers to them, not replacements."
+  },
+  "verification": {
+    "perCommit": ["pnpm typecheck", "pnpm lint (web only today)"],
+    "perFeature": [
+      "new table has RLS policy (user_id = auth.uid()) and a migration under supabase/migrations",
+      "new input validated with a Zod schema in packages/shared/src/schemas",
+      "Pro-gated feature checked via FEATURE_GATES in tierConfig.ts, enforced server-side",
+      "pnpm --filter web verify:rls passes if RLS changed",
+      "CHANGELOG-equivalent: update .agents/_session.md with what shipped"
+    ]
+  },
+  "constraints": {
+    "never": [
+      "query a user's table without a user_id/auth.uid() filter — see RULES.md §1",
+      "use the service_role key outside a webhook/admin server context — see RULES.md §2",
+      "screenshot-based PDF export — see RULES.md §4",
+      "hardcode a price, limit, or feature gate outside tierConfig.ts — see root CLAUDE.md",
+      "commit directly without running pnpm typecheck first"
+    ],
+    "always": [
+      "cite a RULES.md section number (§1–§19) when a rule is in tension with a request",
+      "check MOBILE_ROADMAP.md before assuming a feature is 'web-only' or 'missing on mobile' — most parity gaps are already closed",
+      "update .agents/_session.md at the end of a work session"
+    ]
+  },
+  "bootstrap": "vibe-starter/.agents/bootstrap.md"
+}
