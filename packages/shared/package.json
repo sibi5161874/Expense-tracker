@@ -18,7 +18,8 @@
     "./utils": "./src/utils/index.ts",
     "./utils/*": "./src/utils/*.ts",
     "./hooks": "./src/hooks/index.ts",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./i18n": "./src/i18n/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

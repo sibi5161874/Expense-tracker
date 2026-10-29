@@ -220,6 +220,7 @@ export interface Database {
           saved_amount: number;
           target_date: string;
           priority: GoalPriority;
+          icon: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -232,6 +233,7 @@ export interface Database {
           saved_amount?: number;
           target_date: string;
           priority: GoalPriority;
+          icon?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["goals"]["Insert"]>;
         Relationships: [];

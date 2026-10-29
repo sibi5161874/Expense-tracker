@@ -7,6 +7,7 @@ export const goalSchema = z.object({
   saved_amount: z.number().nonnegative("Saved amount must be non-negative"),
   target_date: z.string().min(1, "Target date is required"),
   priority: z.enum(["High", "Medium", "Low"]),
+  icon: z.string().nullable().optional(),
 });
 
 export type GoalInput = z.infer<typeof goalSchema>;

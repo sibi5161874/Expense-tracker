@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useNetWorthSnapshots } from '@/hooks/useNetWorthSnapshots';
 import { useBenchmarkHistory, type BenchmarkRange } from '@/hooks/useBenchmarkHistory';
@@ -14,6 +14,12 @@ import { ProBlurredPreview } from '@/components/shared/ProGate';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
+
+const BENCHMARK_CONFIG: ChartConfig = {
+  netWorth: { label: 'Your net worth', color: 'var(--success)' },
+  benchmark: { label: 'Nifty 50 (scaled)', color: 'var(--chart-2)' },
+};
 
 // Static, no network — purely a visual stand-in shown blurred to free-tier users. The real
 // chart's data (net worth snapshots + Nifty history) is gated server-side, so mounting the
@@ -35,43 +41,38 @@ const RANGE_OPTIONS: { value: BenchmarkRange; label: string }[] = [
 
 function BenchmarkAreaChart({ series }: { series: BenchmarkPoint[] }) {
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={series}>
-        <defs>
-          <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--success)" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="benchmarkGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.2} />
-            <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-          tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
-          width={48}
-        />
-        <Tooltip
-          cursor={{ stroke: 'var(--border)' }}
-          contentStyle={{
-            background: 'var(--popover)',
-            color: 'var(--popover-foreground)',
-            border: '1px solid var(--border)',
-            borderRadius: '0.5rem',
-            fontSize: 12,
-          }}
-          formatter={(value, name) => [formatINR(Number(value)), name]}
-        />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Area type="monotone" dataKey="netWorth" name="Your Net Worth" stroke="var(--success)" fill="url(#netWorthGradient)" strokeWidth={2} />
-        <Area type="monotone" dataKey="benchmark" name="Nifty 50 (scaled)" stroke="var(--chart-2)" fill="url(#benchmarkGradient)" strokeWidth={2} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <ChartContainer
+      config={BENCHMARK_CONFIG}
+      height={280}
+      chart={
+        <AreaChart data={series}>
+          <defs>
+            <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--success)" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="benchmarkGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+          <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+            tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
+            width={48}
+          />
+          <ChartTooltip cursor={{ stroke: 'var(--border)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+          <Area type="monotone" dataKey="netWorth" stroke="var(--success)" fill="url(#netWorthGradient)" strokeWidth={2} />
+          <Area type="monotone" dataKey="benchmark" stroke="var(--chart-2)" fill="url(#benchmarkGradient)" strokeWidth={2} />
+        </AreaChart>
+      }
+    >
+      <ChartLegendContent items={['netWorth', 'benchmark']} />
+    </ChartContainer>
   );
 }
 
@@ -94,7 +95,7 @@ function LiveBenchmarkChart() {
         </div>
 
         {snapshotsLoading || historyLoading ? (
-          <LoadingState label="Loading benchmark..." />
+          <LoadingState label="Loading benchmark…" />
         ) : snapshotsError || historyError ? (
           <ErrorState error={(snapshotsError ?? historyError)!} />
         ) : (snapshots ?? []).length === 0 ? (
@@ -104,7 +105,7 @@ function LiveBenchmarkChart() {
             </p>
             <Link
               href="/reports/net-worth"
-              className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold transition-all hover:brightness-95 active:scale-[0.98]"
+              className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold transition-[filter,transform] motion-reduce:transition-none hover:brightness-95 active:scale-[0.98]"
             >
               Take a Snapshot
             </Link>
@@ -139,7 +140,7 @@ export function PortfolioBenchmarkChart() {
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
-    toast.info('Comparing your net worth against Nifty 50 is a Pro feature — start your free trial to unlock it.');
+    toast.info('Comparing your net worth against Nifty 50 is a Pro feature. Start your free trial to unlock it.');
     router.push('/settings?tab=billing');
   }
 

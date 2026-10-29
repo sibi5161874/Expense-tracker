@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Search, ArrowUp, ArrowDown, ArrowUpDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, SearchX, ArrowUp, ArrowDown, ArrowUpDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,7 +37,20 @@ interface DataTableProps<T> {
   bulkActions?: (selectedIds: string[], clearSelection: () => void) => React.ReactNode;
   rowActions?: (row: T) => React.ReactNode;
   emptyMessage?: string;
-  /** Server-side pagination passthrough — search/sort/filter apply only within the currently loaded page. */
+  /**
+   * Controlled search — when provided (together with `onSearchChange`), the search box stops
+   * filtering `data` client-side (it's assumed to already be the server-filtered page) and
+   * instead reports the typed text upward, debounced, for the caller to pass into its own
+   * query. Required whenever `data` is one server-paginated page rather than the full dataset
+   * — filtering only that page client-side is exactly the "search only finds 3 of 23 rows"
+   * bug this prop exists to prevent.
+   */
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  /** Same controlled/uncontrolled split as `search`, per filter id, for the Select filters. */
+  filterValues?: Record<string, string>;
+  onFilterChange?: (filterId: string, value: string) => void;
+  /** Server-side pagination passthrough. */
   page?: number;
   onPageChange?: (page: number) => void;
   hasNextPage?: boolean;
@@ -54,6 +67,11 @@ interface DataTableProps<T> {
 }
 
 type SortDirection = 'asc' | 'desc';
+
+// Module-level so it's referentially stable across renders — a fresh `{}` as the fallback for
+// an unset `filterValues` would otherwise make the `filtered` useMemo below recompute (and,
+// transitively, the dependent effects re-run) on every render.
+const EMPTY_FILTERS: Record<string, string> = {};
 
 /**
  * Numbered-pagination range with ellipsis gaps — always keeps the first and last page
@@ -94,6 +112,10 @@ export function DataTable<T>({
   bulkActions,
   rowActions,
   emptyMessage = 'No results.',
+  search: controlledSearch,
+  onSearchChange,
+  filterValues: controlledFilterValues,
+  onFilterChange,
   page,
   onPageChange,
   hasNextPage,
@@ -103,23 +125,54 @@ export function DataTable<T>({
   pageSizeOptions = [10, 25, 50, 100],
   animateRows = false,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const isSearchControlled = onSearchChange !== undefined;
+  const isFilterControlled = onFilterChange !== undefined;
+
+  const [uncontrolledSearch, setUncontrolledSearch] = useState('');
+  const [uncontrolledFilters, setUncontrolledFilters] = useState<Record<string, string>>({});
   const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const search = isSearchControlled ? (controlledSearch ?? '') : uncontrolledSearch;
+  const activeFilters = isFilterControlled ? (controlledFilterValues ?? EMPTY_FILTERS) : uncontrolledFilters;
+
+  // Local state for the input itself so typing stays instant; the debounced effect below is
+  // what actually calls the (likely network-triggering) onSearchChange. Synced to the
+  // controlled `search` value via React's documented "adjusting state when a prop changes"
+  // pattern (comparing against the last-seen value during render) rather than an effect —
+  // same technique Sidebar.tsx and HoldingsFilterBar.tsx already use in this codebase.
+  const [localSearch, setLocalSearch] = useState(search);
+  const [lastSearch, setLastSearch] = useState(search);
+  if (search !== lastSearch) {
+    setLastSearch(search);
+    setLocalSearch(search);
+  }
+  useEffect(() => {
+    if (!isSearchControlled) return;
+    const timer = setTimeout(() => {
+      if (localSearch !== search) onSearchChange(localSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the typed value changes; re-running on `search`/onSearchChange identity would refire the debounce mid-type
+  }, [localSearch]);
 
   const filtered = useMemo(() => {
     let rows = data ?? [];
 
-    if (search.trim() && searchableText) {
+    // Controlled mode: `data` is already the caller's server-filtered page — searching/filtering
+    // it again client-side would only ever narrow that one page, which is the exact "search
+    // only finds results on the current page" bug this split exists to prevent.
+    if (!isSearchControlled && search.trim() && searchableText) {
       const q = search.trim().toLowerCase();
       rows = rows.filter((row) => searchableText(row).toLowerCase().includes(q));
     }
 
-    for (const filter of filters) {
-      const selected = activeFilters[filter.id];
-      if (selected) {
-        rows = rows.filter((row) => filter.getValue(row) === selected);
+    if (!isFilterControlled) {
+      for (const filter of filters) {
+        const selected = activeFilters[filter.id];
+        if (selected) {
+          rows = rows.filter((row) => filter.getValue(row) === selected);
+        }
       }
     }
 
@@ -136,7 +189,7 @@ export function DataTable<T>({
     }
 
     return rows;
-  }, [data, search, activeFilters, filters, sort, columns, searchableText]);
+  }, [data, search, activeFilters, filters, sort, columns, searchableText, isSearchControlled, isFilterControlled]);
 
   function toggleSort(columnId: string) {
     setSort((prev) => {
@@ -165,18 +218,39 @@ export function DataTable<T>({
   const clearSelection = () => setSelectedIds(new Set());
   const hasActiveFilters = search.trim() !== '' || Object.values(activeFilters).some(Boolean);
 
+  function setFilterValue(filterId: string, value: string) {
+    if (isFilterControlled) {
+      onFilterChange(filterId, value);
+    } else {
+      setUncontrolledFilters((prev) => ({ ...prev, [filterId]: value }));
+    }
+  }
+
+  function clearSearchAndFilters() {
+    setLocalSearch('');
+    if (isSearchControlled) onSearchChange('');
+    else setUncontrolledSearch('');
+    if (isFilterControlled) {
+      for (const filter of filters) onFilterChange(filter.id, '');
+    } else {
+      setUncontrolledFilters({});
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {searchableText && (
+        {(searchableText || isSearchControlled) && (
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={localSearch}
+              onChange={(e) => {
+                setLocalSearch(e.target.value);
+                if (!isSearchControlled) setUncontrolledSearch(e.target.value);
+              }}
               placeholder={searchPlaceholder}
               className="pl-8"
-              disabled={isLoading}
             />
           </div>
         )}
@@ -185,9 +259,7 @@ export function DataTable<T>({
           <Select
             key={filter.id}
             value={activeFilters[filter.id] ?? ''}
-            onValueChange={(value) =>
-              setActiveFilters((prev) => ({ ...prev, [filter.id]: (value as string) ?? '' }))
-            }
+            onValueChange={(value) => setFilterValue(filter.id, (value as string) ?? '')}
             disabled={isLoading}
           >
             <SelectTrigger className="w-fit">
@@ -205,14 +277,7 @@ export function DataTable<T>({
         ))}
 
         {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSearch('');
-              setActiveFilters({});
-            }}
-          >
+          <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
             <X className="size-3.5" />
             Clear
           </Button>
@@ -246,7 +311,7 @@ export function DataTable<T>({
                 <TableHead
                   key={col.id}
                   className={cn(
-                    'text-xs font-semibold tracking-wide text-muted-foreground uppercase',
+                    'text-xs font-medium text-muted-foreground',
                     col.className,
                     col.sortValue && 'cursor-pointer select-none'
                   )}
@@ -276,7 +341,7 @@ export function DataTable<T>({
               return (
                 <TableRow
                   key={id}
-                  className={cn(animateRows && 'animate-in fade-in slide-in-from-bottom-1')}
+                  className={cn(animateRows && 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1')}
                   style={animateRows ? { animationDelay: `${index * 20}ms`, animationDuration: '300ms' } : undefined}
                   data-state={selectedIds.has(id) ? 'selected' : undefined}
                 >
@@ -302,9 +367,21 @@ export function DataTable<T>({
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)}
-                  className="text-muted-foreground h-32 text-center"
+                  className="h-32 text-center"
                 >
-                  {emptyMessage}
+                  {hasActiveFilters ? (
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <SearchX className="text-muted-foreground size-6" aria-hidden="true" />
+                      <span className="text-muted-foreground text-sm">
+                        No results{search.trim() ? ` for "${search.trim()}"` : ''}.
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
+                        Clear search
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">{emptyMessage}</span>
+                  )}
                 </TableCell>
               </TableRow>
             )}

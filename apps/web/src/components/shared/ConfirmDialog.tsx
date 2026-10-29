@@ -3,6 +3,7 @@
 import { Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LocaleContext';
 import {
   Dialog,
   DialogContent,
@@ -38,13 +39,17 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Delete',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive = true,
   onConfirm,
   isConfirming = false,
-  confirmingLabel = 'Deleting…',
+  confirmingLabel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t('common.delete');
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
+  const resolvedConfirmingLabel = confirmingLabel ?? t('common.deleting');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -64,7 +69,7 @@ export function ConfirmDialog({
         </DialogHeader>
         <DialogFooter className="sm:flex-row sm:justify-stretch">
           <Button className="flex-1" variant="outline" onClick={() => onOpenChange(false)} disabled={isConfirming}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             className="flex-1"
@@ -72,7 +77,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={isConfirming}
           >
-            {isConfirming ? confirmingLabel : confirmLabel}
+            {isConfirming ? resolvedConfirmingLabel : resolvedConfirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

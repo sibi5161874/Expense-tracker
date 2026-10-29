@@ -54,7 +54,7 @@ export function LossMakingHoldingsCard({ holdings }: LossMakingHoldingsCardProps
         </div>
         <ChevronDown
           className={cn(
-            'size-4 text-destructive transition-transform duration-200',
+            'size-4 text-destructive transition-transform duration-200 motion-reduce:transition-none',
             isExpanded && 'rotate-180'
           )}
         />
@@ -66,7 +66,7 @@ export function LossMakingHoldingsCard({ holdings }: LossMakingHoldingsCardProps
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-destructive/20 text-xs font-semibold uppercase tracking-wide text-destructive/80">
+                <tr className="border-b border-destructive/20 text-xs font-medium text-destructive/80">
                   <th className="py-2 pr-3">Symbol</th>
                   <th className="py-2 px-3">Asset</th>
                   <th className="py-2 px-3 text-right">Invested</th>
@@ -96,7 +96,7 @@ export function LossMakingHoldingsCard({ holdings }: LossMakingHoldingsCardProps
 
           {overflowCount > 0 && (
             <p className="text-xs text-destructive/80 font-medium pt-1">
-              + {overflowCount} more — view full list below
+              + {overflowCount} more, view full list below
             </p>
           )}
 
@@ -126,7 +126,7 @@ export function LossMakingHoldingsCard({ holdings }: LossMakingHoldingsCardProps
                 href="/reports/portfolio-summary"
                 className="text-xs text-primary hover:underline inline-block mt-0.5"
               >
-                View Tax-Loss Harvesting Report →
+                View tax-loss harvesting report
               </Link>
             </div>
           </div>

@@ -80,6 +80,10 @@ describe('TransactionsPage delete/undo', () => {
     toastFn.mockClear();
   });
 
+  // Explicit 15s timeout on both tests below: fast in isolation (~1s) but the default 5s
+  // budget is too tight when turbo's pre-commit hook runs the whole monorepo's tests in
+  // parallel and this worker gets CPU-starved — not a real hang, confirmed by repeated
+  // isolated passes.
   it('deletes a single row and restores its exact fields when Undo is clicked', async () => {
     const user = userEvent.setup();
     render(<TransactionsPage />);
@@ -104,7 +108,7 @@ describe('TransactionsPage delete/undo', () => {
       to_account_id: undefined,
       notes: 'Groceries',
     });
-  });
+  }, 15000);
 
   it('bulk-deletes selected rows and restores all of them via Undo', async () => {
     const user = userEvent.setup();
@@ -147,5 +151,5 @@ describe('TransactionsPage delete/undo', () => {
         notes: 'Salary',
       },
     ]);
-  });
+  }, 15000);
 });

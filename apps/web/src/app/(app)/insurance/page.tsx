@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useInsurancePolicies } from '@/hooks/useInsurancePolicies';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { InsuranceForm } from '@/components/InsuranceForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,7 +26,8 @@ export default function InsurancePage() {
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<InsurancePolicy | null>(null);
 
-  const { requestDelete, dialog } = useConfirmDelete(deleteInsurancePolicy, 'Delete policy?', "This can't be undone.");
+  const { t } = useTranslation();
+  const { requestDelete, dialog } = useConfirmDelete(deleteInsurancePolicy, t('confirm.deletePolicy.title'), t('common.cannotBeUndone'));
 
   function closeForm() {
     setShowForm(false);

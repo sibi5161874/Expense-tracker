@@ -55,7 +55,7 @@ function PaymentHistorySection() {
         </div>
       ) : !events || events.length === 0 ? (
         <p className="text-muted-foreground py-4 text-center text-sm">
-          No payments yet — your trial and purchase charges will show up here.
+          No payments yet. Your trial and purchase charges will show up here.
         </p>
       ) : (
       <ul className="divide-border/60 divide-y">
@@ -115,7 +115,7 @@ export function BillingTab() {
   async function handleStartTrial() {
     await startCheckout({
       purpose: 'trial_verification',
-      description: `${PRICING.trial.label} — refundable verification charge`,
+      description: `${PRICING.trial.label}: refundable verification charge`,
       userEmail: user?.email,
       onSuccess: async () => {
         await refreshProfile();
@@ -127,7 +127,7 @@ export function BillingTab() {
   async function handlePurchaseLifetime() {
     await startCheckout({
       purpose: 'lifetime_purchase',
-      description: `${PRICING.lifetime.label} — one-time purchase`,
+      description: `${PRICING.lifetime.label}: one-time purchase`,
       userEmail: user?.email,
       onSuccess: async () => {
         await refreshProfile();
@@ -144,7 +144,7 @@ export function BillingTab() {
             <div>
               <h2 className="text-sm font-semibold">Current Plan</h2>
               <p className="text-muted-foreground mt-1 text-sm">
-                Everything is free while paid plans are being set up — no trial, no purchase needed.
+                Everything is free while paid plans are being set up: no trial, no purchase needed.
               </p>
             </div>
             <StatusBadge tone="neutral">Free</StatusBadge>
@@ -173,8 +173,8 @@ export function BillingTab() {
           <div>
             <h2 className="text-sm font-semibold">Current Plan</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              {tier === 'pro' && "You're on Pro — thanks for supporting the app."}
-              {tier === 'trial' && `You're on a Pro trial — ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} left.`}
+              {tier === 'pro' && "You're on Pro, thanks for supporting the app."}
+              {tier === 'trial' && `You're on a Pro trial, ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} left.`}
               {tier === 'free' && "You're on the Free plan."}
             </p>
           </div>
@@ -196,7 +196,7 @@ export function BillingTab() {
               </div>
               <p className="text-muted-foreground mb-4 text-sm">
                 Try every Pro feature for {PRICING.trial.days} days. A refundable ₹
-                {PRICING.trial.verificationChargePaise / 100} charge verifies your payment method — refunded
+                {PRICING.trial.verificationChargePaise / 100} charge verifies your payment method, refunded
                 automatically within moments of your trial starting.
               </p>
               <Button
@@ -235,7 +235,7 @@ export function BillingTab() {
       )}
 
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold">What Pro unlocks</h2>
+        <h2 className="mb-3 text-sm font-semibold">What Pro includes</h2>
         <ul className="space-y-2 text-sm">
           {PRO_ONLY_FEATURE_KEYS.map((key) => (
             <li key={key} className="flex items-center gap-2">

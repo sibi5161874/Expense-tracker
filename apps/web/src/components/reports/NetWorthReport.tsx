@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { AlertTriangle } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import { useNetWorthRawData } from '@/hooks/useNetWorthRawData';
 import { useFxRates } from '@/hooks/useFxRates';
 import {
@@ -17,6 +18,11 @@ import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
 import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { NetWorthSnapshotHistory } from '@/components/reports/NetWorthSnapshotHistory';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+
+const NET_WORTH_BREAKDOWN_CONFIG: ChartConfig = {
+  value: { label: 'Value', color: 'var(--success)' },
+};
 
 interface NetWorthRow {
   label: string;
@@ -108,18 +114,21 @@ export function NetWorthReport() {
       chartRef={chartRef}
     >
       {conversion && conversion.unconvertedCurrencies.length > 0 && (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
-          ⚠ Couldn&apos;t fetch a live rate for {conversion.unconvertedCurrencies.join(', ')} — accounts in{' '}
-          {conversion.unconvertedCurrencies.length === 1 ? 'that currency are' : 'those currencies are'} excluded
-          from the totals below until rates are available.
+        <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <span>
+            Couldn&apos;t fetch a live rate for {conversion.unconvertedCurrencies.join(', ')}: accounts in{' '}
+            {conversion.unconvertedCurrencies.length === 1 ? 'that currency are' : 'those currencies are'} excluded
+            from the totals below until rates are available.
+          </span>
         </div>
       )}
 
       {fxRatesStale && fxRatesFetchedAt && (
         <div className="text-muted-foreground text-xs">
           Exchange rates as of{' '}
-          {new Date(fxRatesFetchedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{' '}
-          — the live rate provider is unreachable, so foreign-currency conversions below use the last successful fetch.
+          {new Date(fxRatesFetchedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+          : the live rate provider is unreachable, so foreign-currency conversions below use the last successful fetch.
         </div>
       )}
 
@@ -132,29 +141,23 @@ export function NetWorthReport() {
 
       <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Breakdown</h2>
-        <ResponsiveContainer width="100%" height={340}>
-          <BarChart data={chartData} layout="vertical" margin={{ left: 16 }}>
-            <CartesianGrid horizontal={false} stroke="var(--border)" />
-            <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-            <YAxis type="category" dataKey="label" width={100} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-            <Tooltip
-              cursor={{ fill: 'var(--muted)' }}
-              contentStyle={{
-                background: 'var(--popover)',
-                color: 'var(--popover-foreground)',
-                border: '1px solid var(--border)',
-                borderRadius: '0.5rem',
-                fontSize: 12,
-              }}
-              formatter={(value) => formatINR(Number(value))}
-            />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {chartData.map((d) => (
-                <Cell key={d.label} fill={d.value >= 0 ? 'var(--success)' : 'var(--destructive)'} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <ChartContainer
+          config={NET_WORTH_BREAKDOWN_CONFIG}
+          height={340}
+          chart={
+            <BarChart data={chartData} layout="vertical" margin={{ left: 16 }}>
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.6} />
+              <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+              <YAxis type="category" dataKey="label" width={100} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+              <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                {chartData.map((d) => (
+                  <Cell key={d.label} fill={d.value >= 0 ? 'var(--success)' : 'var(--destructive)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          }
+        />
       </div>
 
       <DataTable data={tableRows} columns={columns} getRowId={(r) => r.label} />

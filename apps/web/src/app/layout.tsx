@@ -3,6 +3,7 @@ import { Inter, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
@@ -40,13 +41,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
               <CurrencyProvider>
-                {children}
-                <Toaster />
+                <LocaleProvider>
+                  {children}
+                  <Toaster />
+                </LocaleProvider>
               </CurrencyProvider>
             </AuthProvider>
           </QueryProvider>

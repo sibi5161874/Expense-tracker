@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useBudgetLimits } from '@/hooks/useBudgetLimits';
 import { useMonthlyOverview } from '@/hooks/useTransactions';
 import { calculateBudgetStatus } from '@repo/shared/logic';
@@ -13,6 +13,12 @@ import { DataTable, type DataTableColumn, type DataTableFilter } from '@/compone
 import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
 import { budgetStatusTone } from '@/lib/badgeTones';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
+
+const BUDGET_CONFIG: ChartConfig = {
+  limit: { label: 'Budget', color: 'var(--chart-2)' },
+  actual: { label: 'Actual', color: 'var(--chart-3)' },
+};
 
 interface BudgetRow {
   category: string;
@@ -81,31 +87,27 @@ export function BudgetVsActualReport() {
         <>
           <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold">Budget vs Actual</h2>
-            <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 50)}>
-              <BarChart data={rows} layout="vertical" margin={{ left: 24 }}>
-                <CartesianGrid horizontal={false} stroke="var(--border)" />
-                <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                <YAxis
-                  type="category"
-                  dataKey="category"
-                  width={110}
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--muted)' }}
-                  contentStyle={{
-                    background: 'var(--popover)',
-                    color: 'var(--popover-foreground)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.5rem',
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => formatINR(Number(value))}
-                />
-                <Bar dataKey="limit" name="Budget" fill="var(--chart-2)" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="actual" name="Actual" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartContainer
+              config={BUDGET_CONFIG}
+              height={Math.max(200, rows.length * 50)}
+              chart={
+                <BarChart data={rows} layout="vertical" margin={{ left: 24 }}>
+                  <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.6} />
+                  <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="category"
+                    width={110}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                  />
+                  <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+                  <Bar dataKey="limit" fill="var(--chart-2)" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                  <Bar dataKey="actual" fill="var(--chart-3)" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                </BarChart>
+              }
+            >
+              <ChartLegendContent items={['limit', 'actual']} />
+            </ChartContainer>
           </div>
 
           <DataTable

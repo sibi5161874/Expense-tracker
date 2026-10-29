@@ -89,7 +89,7 @@ export function CashbookCalendarView() {
           <>
             <div className="grid grid-cols-7 gap-0.5">
               {WEEKDAY_LABELS.map((label, i) => (
-                <div key={i} className="text-muted-foreground py-1 text-center text-[0.65rem] font-semibold uppercase">
+                <div key={i} className="text-muted-foreground py-1 text-center text-[0.65rem] font-semibold">
                   {label}
                 </div>
               ))}

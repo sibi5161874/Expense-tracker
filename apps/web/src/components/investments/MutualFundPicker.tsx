@@ -123,7 +123,7 @@ export function MutualFundPicker({ value, onSelect, onClear }: MutualFundPickerP
       {error && <p className="text-destructive text-xs">{error}</p>}
       {searching && <p className="text-muted-foreground text-xs">Searching…</p>}
       {!searching && query.trim().length >= 3 && results.length === 0 && !error && (
-        <p className="text-muted-foreground text-xs">No funds found — try fewer or different words.</p>
+        <p className="text-muted-foreground text-xs">No funds found. Try fewer or different words.</p>
       )}
 
       {results.length > 0 && (

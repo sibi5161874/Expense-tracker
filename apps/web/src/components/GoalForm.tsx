@@ -7,7 +7,7 @@ import { goalSchema, type GoalInput } from '@repo/shared/schemas';
 import { parseSupabaseError } from '@repo/shared/utils';
 import { useGoals } from '@/hooks/useGoals';
 import { GoalInflationHelper } from '@/components/GoalInflationHelper';
-import { GoalEmojiPicker } from '@/components/goals/GoalEmojiPicker';
+import { GoalIconPicker } from '@/components/goals/GoalIconPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -22,6 +22,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+/** Goals created before the dedicated `icon` column (2026-10-29) stored an emoji as a
+ * literal prefix on `goal_name` instead — this still strips that off for display/editing
+ * so pre-migration goals keep rendering correctly. New goals never write this format. */
 export function extractEmoji(str?: string): { emoji: string | null; cleanText: string } {
   if (!str) return { emoji: null, cleanText: '' };
   const match = str.match(/^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83E[\uDD00-\uDDFF])\s*(.*)$/u);
@@ -40,25 +43,24 @@ interface GoalFormProps {
 export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
   const { createGoal, updateGoal } = useGoals();
   const [formError, setFormError] = useState<string | null>(null);
-  const initialParsed = extractEmoji(editing?.goal_name);
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(initialParsed.emoji);
+  const legacyEmoji = extractEmoji(editing?.goal_name).emoji;
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(editing?.icon ?? null);
 
   const form = useForm<GoalInput>({
     resolver: zodResolver(goalSchema),
-    defaultValues: editing ?? {
-      priority: 'Medium',
-      saved_amount: 0,
-    },
+    defaultValues: editing
+      ? { ...editing, goal_name: legacyEmoji ? extractEmoji(editing.goal_name).cleanText : editing.goal_name }
+      : {
+          priority: 'Medium',
+          saved_amount: 0,
+        },
   });
 
   const targetDate = form.watch('target_date');
 
-  function handleSelectEmoji(emoji: string) {
-    setSelectedEmoji(emoji);
-    const currentName = form.getValues('goal_name') || '';
-    const { cleanText } = extractEmoji(currentName);
-    const nextName = cleanText ? `${emoji} ${cleanText}` : `${emoji} `;
-    form.setValue('goal_name', nextName, { shouldValidate: true });
+  function handleSelectIcon(iconName: string) {
+    setSelectedIcon(iconName);
+    form.setValue('icon', iconName, { shouldValidate: true });
   }
 
   async function onSubmit(data: GoalInput) {
@@ -91,20 +93,9 @@ export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
                 <FormItem>
                   <FormLabel>Goal Name & Icon</FormLabel>
                   <div className="flex gap-2">
-                    <GoalEmojiPicker
-                      selectedEmoji={selectedEmoji}
-                      onSelect={handleSelectEmoji}
-                    />
+                    <GoalIconPicker selectedIcon={selectedIcon} onSelect={handleSelectIcon} />
                     <FormControl className="flex-1">
-                      <Input
-                        placeholder="e.g., Buy a Car, Vacation, Dream House"
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          const parsed = extractEmoji(e.target.value);
-                          if (parsed.emoji) setSelectedEmoji(parsed.emoji);
-                        }}
-                      />
+                      <Input placeholder="e.g., Buy a Car, Vacation, Dream House" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />

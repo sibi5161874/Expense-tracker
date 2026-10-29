@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useTransactionsInRange, monthsAgo } from '@/hooks/useReportsData';
 import { formatINR } from '@repo/shared/utils/currency';
 import { formatMonth } from '@repo/shared/utils';
@@ -10,6 +10,12 @@ import { AmountText } from '@/components/shared/AmountText';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
 import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
+
+const ACCOUNT_FLOW_CONFIG: ChartConfig = {
+  in: { label: 'In', color: 'var(--chart-1)' },
+  out: { label: 'Out', color: 'var(--chart-3)' },
+};
 
 interface AccountFlowRow {
   name: string;
@@ -75,26 +81,22 @@ export function AccountFlowReport() {
     >
       <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Net Flow per Account</h2>
-        <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 45)}>
-          <BarChart data={rows} layout="vertical" margin={{ left: 16 }}>
-            <CartesianGrid horizontal={false} stroke="var(--border)" />
-            <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-            <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-            <Tooltip
-              cursor={{ fill: 'var(--muted)' }}
-              contentStyle={{
-                background: 'var(--popover)',
-                color: 'var(--popover-foreground)',
-                border: '1px solid var(--border)',
-                borderRadius: '0.5rem',
-                fontSize: 12,
-              }}
-              formatter={(value) => formatINR(Number(value))}
-            />
-            <Bar dataKey="in" name="In" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
-            <Bar dataKey="out" name="Out" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <ChartContainer
+          config={ACCOUNT_FLOW_CONFIG}
+          height={Math.max(200, rows.length * 45)}
+          chart={
+            <BarChart data={rows} layout="vertical" margin={{ left: 16 }}>
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.6} />
+              <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+              <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+              <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+              <Bar dataKey="in" fill="var(--chart-1)" radius={[0, 4, 4, 0]} maxBarSize={24} />
+              <Bar dataKey="out" fill="var(--chart-3)" radius={[0, 4, 4, 0]} maxBarSize={24} />
+            </BarChart>
+          }
+        >
+          <ChartLegendContent items={['in', 'out']} />
+        </ChartContainer>
       </div>
 
       <DataTable

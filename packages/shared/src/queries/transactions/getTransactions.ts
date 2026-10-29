@@ -11,6 +11,39 @@ export interface GetTransactionsOptions {
   pageSize?: number;
   type?: 'Income' | 'Expense' | 'Transfer';
   category_id?: string;
+  /** Free-text match against `notes` — combined with `categoryIds`/`accountIds` below via OR,
+   * so a search box backed by this option matches on notes OR a matching category/account
+   * name, without ever doing an embedded-table OR filter (PostgREST would require an inner
+   * join for that, which would silently drop every transaction with no category assigned). */
+  search?: string;
+  /** Category ids whose name matched `search`, resolved client-side (categories are a small,
+   * already-cached list) and passed in here rather than filtered via an embedded join. */
+  categoryIds?: string[];
+  /** Account ids whose name matched `search`, matched against either side of the transaction
+   * (from_account_id or to_account_id) — same reasoning as categoryIds. */
+  accountIds?: string[];
+}
+
+/** Builds the shared `.or(...)` search clause so getTransactions and getTransactionsCount can
+ * never drift apart on what "search" means. Returns null when there's nothing to search by. */
+function buildSearchOrClause(opts: Pick<GetTransactionsOptions, 'search' | 'categoryIds' | 'accountIds'>): string | null {
+  const clauses: string[] = [];
+  const search = opts.search?.trim();
+  if (search) {
+    // Escape PostgREST's own special characters in an ilike pattern so a literal "%" or ","
+    // typed by the user can't widen the match or break the filter string.
+    const escaped = search.replace(/[%,()]/g, (c) => `\\${c}`);
+    clauses.push(`notes.ilike.%${escaped}%`);
+  }
+  if (opts.categoryIds?.length) {
+    clauses.push(`category_id.in.(${opts.categoryIds.join(',')})`);
+  }
+  if (opts.accountIds?.length) {
+    const ids = opts.accountIds.join(',');
+    clauses.push(`from_account_id.in.(${ids})`);
+    clauses.push(`to_account_id.in.(${ids})`);
+  }
+  return clauses.length > 0 ? clauses.join(',') : null;
 }
 
 export async function getTransactions(
@@ -41,6 +74,11 @@ export async function getTransactions(
     query = query.eq('category_id', opts.category_id);
   }
 
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
+
   const page = opts.page ?? 0;
   const pageSize = opts.pageSize ?? PAGE_SIZE;
   const from = page * pageSize;
@@ -60,7 +98,7 @@ export async function getTransactions(
 export async function getTransactionsCount(
   supabase: SupabaseClient<Database>,
   userId: string,
-  opts: Pick<GetTransactionsOptions, 'month' | 'type' | 'category_id'> = {}
+  opts: Pick<GetTransactionsOptions, 'month' | 'type' | 'category_id' | 'search' | 'categoryIds' | 'accountIds'> = {}
 ) {
   let query = supabase
     .from('transactions')
@@ -78,6 +116,11 @@ export async function getTransactionsCount(
 
   if (opts.category_id) {
     query = query.eq('category_id', opts.category_id);
+  }
+
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
   }
 
   const { count, error } = await query;

@@ -22,6 +22,7 @@ import { AssetClassTabs } from '@/components/portfolio/AssetClassTabs';
 import { HoldingsFilterBar } from '@/components/portfolio/HoldingsFilterBar';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import { AmountText } from '@/components/shared/AmountText';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { cn } from '@/lib/utils';
 
 export default function PortfolioPage() {
@@ -29,6 +30,7 @@ export default function PortfolioPage() {
   const { data: recentInvestments } = useInvestmentLog({ page: 0 });
   const { data: holdingRows } = useHoldings();
   const { refresh, isRefreshing } = useRefreshPrices();
+  const { t } = useTranslation();
   // Refreshes quietly when prices are over a day old; the button below stays for an on-demand refresh.
   useAutoRefreshPrices();
 
@@ -109,10 +111,10 @@ export default function PortfolioPage() {
           description: firstFailureReason,
         });
       } else {
-        toast.info(result.message ?? 'No Stock/ETF holdings to refresh.');
+        toast.info(result.message ?? t('toast.prices.noHoldings'));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to refresh prices.');
+      toast.error(e instanceof Error ? e.message : t('toast.prices.refreshFailed'));
     }
   }
 
@@ -162,11 +164,23 @@ export default function PortfolioPage() {
       {/* 1. KPI Summary Grid */}
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Invested" value={formatINR(summary.totalInvested)} icon={Wallet} />
-          <StatCard label="Current Value" value={formatINR(summary.currentValue)} icon={LineChart} tone="info" />
+          <StatCard
+            label="Total Invested"
+            value={formatINR(summary.totalInvested)}
+            compactValue={summary.totalInvested}
+            icon={Wallet}
+          />
+          <StatCard
+            label="Current Value"
+            value={formatINR(summary.currentValue)}
+            compactValue={summary.currentValue}
+            icon={LineChart}
+            tone="info"
+          />
           <StatCard
             label="Total P&L"
             value={formatINR(summary.totalPnl)}
+            compactValue={summary.totalPnl}
             icon={TrendingUp}
             tone={summary.totalPnl >= 0 ? 'success' : 'destructive'}
           />
@@ -230,13 +244,13 @@ export default function PortfolioPage() {
                 <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">{inv.date}</span>
                 <span
                   className={cn(
-                    'rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider',
+                    'rounded px-1.5 py-0.5 text-xs font-medium',
                     inv.action.toUpperCase() === 'BUY' || inv.action.toUpperCase() === 'SIP'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      ? 'bg-success-subtle text-success'
+                      : 'bg-destructive-subtle text-destructive'
                   )}
                 >
-                  {inv.action}
+                  {inv.action.charAt(0).toUpperCase() + inv.action.slice(1).toLowerCase()}
                 </span>
                 <span className="truncate font-medium">{inv.symbol}</span>
                 <span className="text-muted-foreground hidden text-xs sm:inline">

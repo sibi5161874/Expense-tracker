@@ -1,19 +1,27 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart } from "recharts";
 import { formatINR } from "@repo/shared/utils";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { AmountText } from "@/components/shared/AmountText";
 
-const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+const COLOR_KEYS = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"] as const;
+const COLORS = COLOR_KEYS.map((k) => `var(--${k})`);
 
 interface ExpenseBreakdownChartProps {
   data: Array<{ name: string; value: number }>;
+  /** Abbreviates the center total and legend amounts (₹12.5L…) with the full figure on hover —
+   * for glanceable "spending this month" overviews. Leave off (the default) wherever the exact
+   * number matters, e.g. an allocation-by-holding breakdown someone is using to size a trade. */
+  compact?: boolean;
 }
 
-export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
+export function ExpenseBreakdownChart({ data, compact = false }: ExpenseBreakdownChartProps) {
   const sorted = [...data].sort((a, b) => b.value - a.value);
   const top = sorted.slice(0, 4);
   const otherTotal = sorted.slice(4).reduce((sum, d) => sum + d.value, 0);
   const slices = otherTotal > 0 ? [...top, { name: "Other", value: otherTotal }] : top;
+  const total = slices.reduce((sum, d) => sum + d.value, 0);
 
   if (slices.length === 0) {
     return (
@@ -23,27 +31,39 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
     );
   }
 
+  const config: ChartConfig = Object.fromEntries(
+    slices.map((entry, i) => [entry.name, { label: entry.name, color: COLORS[i % COLORS.length] }])
+  );
+
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <ResponsiveContainer width="100%" height={200} className="sm:max-w-[200px]">
-        <PieChart>
-          <Pie data={slices} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={2}>
-            {slices.map((entry, i) => (
-              <Cell key={entry.name} fill={COLORS[i % COLORS.length]} stroke="none" />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              background: "var(--popover)",
-              color: "var(--popover-foreground)",
-              border: "1px solid var(--border)",
-              borderRadius: "0.5rem",
-              fontSize: 12,
-            }}
-            formatter={(value) => formatINR(Number(value))}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      <div className="relative w-full sm:max-w-[200px]">
+        <ChartContainer
+          config={config}
+          height={200}
+          chart={
+            <PieChart>
+              <Pie data={slices} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={2}>
+                {slices.map((entry, i) => (
+                  <Cell key={entry.name} fill={COLORS[i % COLORS.length]} stroke="none" />
+                ))}
+              </Pie>
+              <ChartTooltip content={<ChartTooltipContent formatter={formatINR} hideLabel />} />
+            </PieChart>
+          }
+        />
+        {/* Center total — the hero figure a donut earns once it has a real sum to show. */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-muted-foreground text-[11px] font-medium">Total</span>
+          {compact ? (
+            <span className="pointer-events-auto">
+              <AmountText value={total} compact colorBySign={false} className="text-lg font-semibold" />
+            </span>
+          ) : (
+            <span className="text-foreground text-lg font-semibold tabular-nums">{formatINR(total)}</span>
+          )}
+        </div>
+      </div>
       <ul className="w-full space-y-2">
         {slices.map((entry, i) => (
           <li key={entry.name} className="flex items-center justify-between gap-3 text-sm">
@@ -54,7 +74,11 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
               />
               <span className="truncate">{entry.name}</span>
             </span>
-            <span className="tabular-nums font-medium">{formatINR(entry.value)}</span>
+            {compact ? (
+              <AmountText value={entry.value} compact colorBySign={false} className="font-medium" />
+            ) : (
+              <span className="tabular-nums font-medium">{formatINR(entry.value)}</span>
+            )}
           </li>
         ))}
       </ul>

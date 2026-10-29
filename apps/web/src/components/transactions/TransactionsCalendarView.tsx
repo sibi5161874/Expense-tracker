@@ -62,14 +62,14 @@ export function TransactionsCalendarView() {
         </div>
 
         {isLoading ? (
-          <LoadingState label="Loading transactions..." />
+          <LoadingState label="Loading transactions…" />
         ) : error ? (
           <ErrorState error={error} />
         ) : (
           <>
             <div className="grid grid-cols-7 gap-0.5">
               {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="text-muted-foreground py-1 text-center text-[0.65rem] font-semibold uppercase">
+                <div key={label} className="text-muted-foreground py-1 text-center text-[0.65rem] font-semibold">
                   {label[0]}
                 </div>
               ))}

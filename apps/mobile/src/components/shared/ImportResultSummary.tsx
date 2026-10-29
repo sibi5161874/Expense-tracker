@@ -1,4 +1,5 @@
 import { ScrollView, View } from "react-native";
+import { CheckCircle2, AlertTriangle } from "lucide-react-native";
 import { AppText } from "@/components/common/AppText";
 import { useThemeColor } from "@/lib/colors";
 
@@ -45,20 +46,26 @@ function ReconciliationBanner({ reconciliation }: { reconciliation: ImportReconc
 
   if (reconciliation.mismatches === 0) {
     return (
-      <AppText className="text-xs" style={{ color: success }}>
-        ✓ Self-check passed — every row&apos;s amount matches the file&apos;s own running balance (
-        {reconciliation.totalChecked} row{reconciliation.totalChecked === 1 ? "" : "s"} checked).
-      </AppText>
+      <View className="flex-row items-start gap-1.5">
+        <CheckCircle2 size={14} color={success} style={{ marginTop: 1 }} />
+        <AppText className="flex-1 text-xs" style={{ color: success }}>
+          Self-check passed — every row&apos;s amount matches the file&apos;s own running balance (
+          {reconciliation.totalChecked} row{reconciliation.totalChecked === 1 ? "" : "s"} checked).
+        </AppText>
+      </View>
     );
   }
 
   return (
     <View className="gap-1 rounded-2xl bg-warning-subtle p-3">
-      <AppText className="text-sm font-medium" style={{ color: warningForeground }}>
-        ⚠ Self-check found {reconciliation.mismatches} of {reconciliation.totalChecked} row
-        {reconciliation.totalChecked === 1 ? "" : "s"} don&apos;t match this file&apos;s own running balance
-        {reconciliation.firstMismatchRow ? ` (first at row ${reconciliation.firstMismatchRow})` : ""}.
-      </AppText>
+      <View className="flex-row items-start gap-1.5">
+        <AlertTriangle size={14} color={warningForeground} style={{ marginTop: 1 }} />
+        <AppText className="flex-1 text-sm font-medium" style={{ color: warningForeground }}>
+          Self-check found {reconciliation.mismatches} of {reconciliation.totalChecked} row
+          {reconciliation.totalChecked === 1 ? "" : "s"} don&apos;t match this file&apos;s own running balance
+          {reconciliation.firstMismatchRow ? ` (first at row ${reconciliation.firstMismatchRow})` : ""}.
+        </AppText>
+      </View>
       <AppText className="text-xs text-muted-foreground">
         This usually means a column was mapped to the wrong field. Review the preview below carefully, or go
         back and adjust the mapping, before confirming.

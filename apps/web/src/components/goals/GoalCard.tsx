@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Pencil, Target, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import type { Goal } from '@repo/shared/types';
 import { calculateProgressPct, calculateGoalStatus } from '@repo/shared/logic';
 import { formatINR } from '@repo/shared/utils/currency';
@@ -8,6 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { goalStatusTone } from '@/lib/badgeTones';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { resolveGoalIcon } from '@/components/goals/goalIcons';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 import { extractEmoji } from '@/components/GoalForm';
 
@@ -19,18 +21,24 @@ interface GoalCardProps {
 }
 
 function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps) {
-  const { emoji, cleanText } = extractEmoji(goal.goal_name);
-  const displayName = cleanText || goal.goal_name;
+  // Pre-migration goals stored an emoji as a goal_name prefix instead of the icon column.
+  const { emoji: legacyEmoji, cleanText } = extractEmoji(goal.goal_name);
+  const displayName = legacyEmoji ? cleanText || goal.goal_name : goal.goal_name;
+  // resolveGoalIcon looks up a stable component reference from a fixed Map (never constructs
+  // one) — the compiler's static-components check can't verify that, so it's disabled here.
+  const Icon = legacyEmoji ? null : resolveGoalIcon(goal.icon);
   const progressPct = calculateProgressPct(goal.saved_amount, goal.target_amount);
   const status = calculateGoalStatus(goal.saved_amount, goal.target_amount, goal.target_date);
-  const { requestDelete, dialog } = useConfirmDelete(onDelete, 'Delete goal?', "This can't be undone.");
+  const { t } = useTranslation();
+  const { requestDelete, dialog } = useConfirmDelete(onDelete, t('confirm.deleteGoal.title'), t('common.cannotBeUndone'));
 
   return (
     <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-2xl text-xl shadow-inner ring-1 ring-border/50">
-            {emoji ? <span>{emoji}</span> : <Target className="text-primary size-5" />}
+            {/* eslint-disable-next-line react-hooks/static-components -- Icon is a stable lookup from a fixed Map, not constructed per render */}
+            {Icon ? <Icon className="size-5" /> : <span>{legacyEmoji}</span>}
           </div>
           <div>
             <h3 className="font-semibold">{displayName}</h3>

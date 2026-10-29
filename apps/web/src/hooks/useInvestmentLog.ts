@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
@@ -14,6 +15,8 @@ import {
 } from '@repo/shared/queries/investmentLog';
 import type { InvestmentLogInput } from '@repo/shared/schemas';
 import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useHoldings } from '@/hooks/useHoldings';
 
 /** Removes rows with the given ids from every cached `['investmentLog', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -21,17 +24,49 @@ function removeFromInvestmentLogCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useInvestmentLog(opts: { symbol?: string; page?: number; pageSize?: number } = {}) {
+export function useInvestmentLog(
+  opts: {
+    symbol?: string;
+    page?: number;
+    pageSize?: number;
+    action?: 'BUY' | 'SELL' | 'SIP' | 'DIVIDEND' | 'BONUS' | 'SPLIT';
+    search?: string;
+  } = {}
+) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
 
+  // Same reasoning as useTransactions/useCashbook: a fund's display name ("Parag Parikh Flexi
+  // Cap") isn't a column on investment_log, only its symbol/scheme-code is, so a name match
+  // is resolved to symbols client-side (via the holdings list, already cached) instead of an
+  // embedded-join OR filter. Account-name matches are resolved the same way. `useHoldings`
+  // dedupes against whatever else on the page already called it — React Query keys on the
+  // query, not the call site.
+  const { data: holdings } = useHoldings();
+  const { data: allAccounts } = useAccounts();
+  const search = opts.search?.trim();
+  const { symbols, accountIds } = useMemo(() => {
+    if (!search) return { symbols: undefined, accountIds: undefined };
+    const q = search.toLowerCase();
+    const symbols = (holdings ?? [])
+      .filter((h) => h.display_name?.toLowerCase().includes(q))
+      .map((h) => h.symbol);
+    const accountIds = (allAccounts ?? []).filter((a) => a.name.toLowerCase().includes(q)).map((a) => a.id);
+    return {
+      symbols: symbols.length > 0 ? symbols : undefined,
+      accountIds: accountIds.length > 0 ? accountIds : undefined,
+    };
+  }, [search, holdings, allAccounts]);
+
+  const searchOpts = { ...opts, search, symbols, accountIds };
+
   const query = useQuery({
-    queryKey: ['investmentLog', userId, opts],
+    queryKey: ['investmentLog', userId, searchOpts],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getInvestmentLog(supabase, userId, opts);
+      return getInvestmentLog(supabase, userId, searchOpts);
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,
@@ -40,10 +75,10 @@ export function useInvestmentLog(opts: { symbol?: string; page?: number; pageSiz
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
   // views can render "Page X of Y" without adding a count to every page's payload.
   const countQuery = useQuery({
-    queryKey: ['investmentLogCount', userId, opts.symbol],
+    queryKey: ['investmentLogCount', userId, opts.symbol, opts.action, search, symbols, accountIds],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getInvestmentLogCount(supabase, userId, { symbol: opts.symbol });
+      return getInvestmentLogCount(supabase, userId, { symbol: opts.symbol, action: opts.action, search, symbols, accountIds });
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,

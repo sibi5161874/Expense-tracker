@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { transactionTypeTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { TRANSACTIONS_TEMPLATE_COLUMNS, TRANSACTIONS_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
 import type { getTransactions } from '@repo/shared/queries/transactions';
 
@@ -31,6 +32,8 @@ export default function TransactionsPage() {
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -48,8 +51,17 @@ export default function TransactionsPage() {
     deleteTransaction,
     deleteTransactionsBulk,
     isDeleting,
-  } = useTransactions({ page, pageSize });
+  } = useTransactions({
+    page,
+    pageSize,
+    search: search || undefined,
+    type: typeFilter ? (typeFilter as 'Income' | 'Expense' | 'Transfer') : undefined,
+  });
   const { hasFeature } = useEntitlements();
+  // Renamed from the usual `t` — this file's own `Transaction` row variables are already named
+  // `t` throughout (see the column defs and callbacks below), so the translation function uses
+  // a different name here to avoid shadowing.
+  const { t: translate } = useTranslation();
 
   function goToUpgrade() {
     toast.info('Native bank import is a Pro feature — start your free trial to unlock it.');
@@ -91,17 +103,17 @@ export default function TransactionsPage() {
   const handleDeleteWithUndo = useCallback(
     (t: Transaction) => {
       deleteTransaction(t.id);
-      toast('Transaction deleted.', {
+      toast(translate('toast.transaction.deleted'), {
         duration: 6000,
         action: {
-          label: 'Undo',
+          label: translate('common.undo'),
           onClick: () => {
-            createTransaction(toTransactionInput(t)).catch(() => toast.error("Couldn't restore that transaction."));
+            createTransaction(toTransactionInput(t)).catch(() => toast.error(translate('toast.transaction.restoreFailed')));
           },
         },
       });
     },
-    [deleteTransaction, createTransaction, toTransactionInput]
+    [deleteTransaction, createTransaction, toTransactionInput, translate]
   );
 
   const closeForm = useCallback(() => {
@@ -211,7 +223,7 @@ export default function TransactionsPage() {
         <TransactionsCalendarView />
       ) : error ? (
         <ErrorState error={error} />
-      ) : !isLoading && transactions?.length === 0 && page === 0 ? (
+      ) : !isLoading && transactions?.length === 0 && page === 0 && !search && !typeFilter ? (
         <EmptyState
           icon={Receipt}
           title="No transactions yet"
@@ -230,8 +242,17 @@ export default function TransactionsPage() {
           columns={columns}
           getRowId={(t) => t.id}
           searchPlaceholder="Search category, account, notes…"
-          searchableText={(t) => `${t.category?.name ?? ''} ${t.from_account?.name ?? ''} ${t.notes ?? ''}`}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(0);
+          }}
           filters={filters}
+          filterValues={{ type: typeFilter }}
+          onFilterChange={(_filterId, value) => {
+            setTypeFilter(value);
+            setPage(0);
+          }}
           selectable
           bulkActions={(ids, clear) => (
             <Button
@@ -261,7 +282,7 @@ export default function TransactionsPage() {
                 className="text-muted-foreground hover:text-destructive size-8"
                 onClick={() => setPendingDelete(t)}
                 disabled={isDeleting}
-                aria-label="Delete transaction"
+                aria-label={translate('aria.deleteTransaction')}
               >
                 <Trash2 className="size-4" />
               </Button>
@@ -317,8 +338,8 @@ export default function TransactionsPage() {
       <ConfirmDialog
         open={pendingDelete !== null}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-        title="Delete transaction?"
-        description="You can undo this for a few seconds after deleting."
+        title={translate('confirm.deleteTransaction.title')}
+        description={translate('common.undoableForSeconds')}
         isConfirming={isDeleting}
         onConfirm={() => {
           if (pendingDelete) handleDeleteWithUndo(pendingDelete);
@@ -329,8 +350,8 @@ export default function TransactionsPage() {
       <ConfirmDialog
         open={pendingBulkDelete !== null}
         onOpenChange={(open) => !open && setPendingBulkDelete(null)}
-        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} transaction${pendingBulkDelete?.ids.length === 1 ? '' : 's'}?`}
-        description="This can't be undone."
+        title={translate('confirm.deleteTransactionsCount.title', { count: pendingBulkDelete?.ids.length ?? 0 })}
+        description={translate('common.cannotBeUndone')}
         isConfirming={isDeleting}
         onConfirm={async () => {
           if (pendingBulkDelete) {
@@ -341,13 +362,13 @@ export default function TransactionsPage() {
             const deletedRows = (transactions ?? []).filter((t) => ids.includes(t.id));
             await deleteTransactionsBulk(ids);
             clear();
-            toast(`${deletedRows.length} transaction${deletedRows.length === 1 ? '' : 's'} deleted.`, {
+            toast(translate('toast.transactionsCount.deleted', { count: deletedRows.length }), {
               duration: 6000,
               action: {
-                label: 'Undo',
+                label: translate('common.undo'),
                 onClick: () => {
                   createTransactionsBulk(deletedRows.map(toTransactionInput)).catch(() =>
-                    toast.error("Couldn't restore those transactions.")
+                    toast.error(translate('toast.transactions.restoreFailed'))
                   );
                 },
               },

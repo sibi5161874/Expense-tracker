@@ -46,25 +46,34 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { useTranslation } from "@/contexts/LocaleContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { REPORTS, type ReportMeta } from "@/lib/reportsRegistry";
 import { isReportEnabled } from "@repo/shared/logic";
 import { APP_BRANDING } from "@repo/shared/config";
+import type { TranslationKey } from "@repo/shared/i18n";
 
 interface NavLeaf {
   href: string;
+  /** English fallback, and the only label for dynamic report entries (never translated — see
+   * `labelKey`). */
   label: string;
+  /** When set, resolved via `t()` instead of `label` — every entry in this file's own static
+   * taxonomy has one; only the report registry's dynamic titles fall back to `label`. */
+  labelKey?: TranslationKey;
   icon?: typeof LayoutDashboard;
 }
 
 interface NavSubGroup {
   label: string;
+  labelKey?: TranslationKey;
   items: NavLeaf[];
 }
 
 interface NavGroup {
   label: string;
+  labelKey?: TranslationKey;
   icon: typeof LayoutDashboard;
   /** Every child, flat — still needed for "is a route inside this group active" checks even
    * when `subGroups` below is what actually renders. */
@@ -81,49 +90,59 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
+function navLabel(entry: { label: string; labelKey?: TranslationKey }, t: (key: TranslationKey) => string): string {
+  return entry.labelKey ? t(entry.labelKey) : entry.label;
+}
+
 const ASSET_CHILDREN: NavLeaf[] = [
-  { href: "/assets?tab=fd", label: "Fixed Deposits", icon: PiggyBank },
-  { href: "/assets?tab=gold", label: "Gold", icon: Coins },
-  { href: "/assets?tab=loans", label: "Loans & Liabilities", icon: HandCoins },
-  { href: "/assets?tab=epf", label: "EPF", icon: Building2 },
-  { href: "/assets?tab=nps", label: "NPS", icon: FileStack },
-  { href: "/assets?tab=ssy", label: "SSY", icon: Baby },
-  { href: "/assets?tab=sgb", label: "SGB", icon: Banknote },
-  { href: "/assets?tab=ulip", label: "ULIP", icon: Umbrella },
-  { href: "/assets?tab=realestate", label: "Real Estate", icon: Home },
-  { href: "/assets?tab=ppf", label: "PPF", icon: Landmark },
-  { href: "/assets?tab=rd", label: "Recurring Deposits", icon: CalendarClock },
-  { href: "/assets?tab=nsc", label: "NSC", icon: ScrollText },
-  { href: "/assets?tab=vehicles", label: "Vehicles", icon: Car },
-  { href: "/assets?tab=crypto", label: "Crypto", icon: Coins },
+  { href: "/assets?tab=fd", label: "Fixed Deposits", labelKey: "sidebar.assets.fixedDeposits", icon: PiggyBank },
+  { href: "/assets?tab=gold", label: "Gold", labelKey: "sidebar.assets.gold", icon: Coins },
+  { href: "/assets?tab=loans", label: "Loans & Liabilities", labelKey: "sidebar.assets.loans", icon: HandCoins },
+  { href: "/assets?tab=epf", label: "EPF", labelKey: "sidebar.assets.epf", icon: Building2 },
+  { href: "/assets?tab=nps", label: "NPS", labelKey: "sidebar.assets.nps", icon: FileStack },
+  { href: "/assets?tab=ssy", label: "SSY", labelKey: "sidebar.assets.ssy", icon: Baby },
+  { href: "/assets?tab=sgb", label: "SGB", labelKey: "sidebar.assets.sgb", icon: Banknote },
+  { href: "/assets?tab=ulip", label: "ULIP", labelKey: "sidebar.assets.ulip", icon: Umbrella },
+  { href: "/assets?tab=realestate", label: "Real Estate", labelKey: "sidebar.assets.realEstate", icon: Home },
+  { href: "/assets?tab=ppf", label: "PPF", labelKey: "sidebar.assets.ppf", icon: Landmark },
+  { href: "/assets?tab=rd", label: "Recurring Deposits", labelKey: "sidebar.assets.recurringDeposits", icon: CalendarClock },
+  { href: "/assets?tab=nsc", label: "NSC", labelKey: "sidebar.assets.nsc", icon: ScrollText },
+  { href: "/assets?tab=vehicles", label: "Vehicles", labelKey: "sidebar.assets.vehicles", icon: Car },
+  { href: "/assets?tab=crypto", label: "Crypto", labelKey: "sidebar.assets.crypto", icon: Coins },
 ];
 
 
 const CONFIG_CHILDREN: NavLeaf[] = [
-  { href: "/config?tab=accounts", label: "Accounts", icon: Wallet },
-  { href: "/config?tab=categories", label: "Categories & Sub-Categories", icon: Tags },
-  { href: "/config?tab=budgets", label: "Budgets", icon: SquareStack },
-  { href: "/config?tab=recurring", label: "Recurring", icon: Repeat },
+  { href: "/config?tab=accounts", label: "Accounts", labelKey: "sidebar.config.accounts", icon: Wallet },
+  { href: "/config?tab=categories", label: "Categories & Sub-Categories", labelKey: "sidebar.config.categories", icon: Tags },
+  { href: "/config?tab=budgets", label: "Budgets", labelKey: "sidebar.config.budgets", icon: SquareStack },
+  { href: "/config?tab=recurring", label: "Recurring", labelKey: "sidebar.config.recurring", icon: Repeat },
 ];
 
 const SETTINGS_CHILDREN: NavLeaf[] = [
-  { href: "/settings?tab=profile", label: "Profile", icon: User },
-  { href: "/settings?tab=billing", label: "Billing", icon: Crown },
-  { href: "/settings?tab=preferences", label: "Preferences", icon: SlidersHorizontal },
-  { href: "/settings?tab=data", label: "Data & Privacy", icon: ShieldCheck },
+  { href: "/settings?tab=profile", label: "Profile", labelKey: "sidebar.settings.profile", icon: User },
+  { href: "/settings?tab=billing", label: "Billing", labelKey: "sidebar.settings.billing", icon: Crown },
+  { href: "/settings?tab=preferences", label: "Preferences", labelKey: "sidebar.settings.preferences", icon: SlidersHorizontal },
+  { href: "/settings?tab=data", label: "Data & Privacy", labelKey: "sidebar.settings.dataPrivacy", icon: ShieldCheck },
 ];
 
 const HELP_CHILDREN: NavLeaf[] = [
-  { href: "/help/donate", label: "Donate", icon: Coffee },
-  { href: "/help/feedback", label: "Feedback", icon: MessageSquareHeart },
+  { href: "/help/donate", label: "Donate", labelKey: "sidebar.help.donate", icon: Coffee },
+  { href: "/help/feedback", label: "Feedback", labelKey: "sidebar.help.feedback", icon: MessageSquareHeart },
 ];
 
 const ENABLED_REPORTS = REPORTS.filter((r) => isReportEnabled(r.slug));
 const REPORT_CHILDREN: NavLeaf[] = ENABLED_REPORTS.map((r) => ({ href: `/reports/${r.slug}`, label: r.title }));
 
 const REPORT_CATEGORIES: ReportMeta["category"][] = ["Expense", "Investment", "Combined"];
+const REPORT_CATEGORY_KEYS: Record<ReportMeta["category"], TranslationKey> = {
+  Expense: "sidebar.reports.expense",
+  Investment: "sidebar.reports.investment",
+  Combined: "sidebar.reports.combined",
+};
 const REPORT_SUBGROUPS: NavSubGroup[] = REPORT_CATEGORIES.map((category) => ({
   label: category,
+  labelKey: REPORT_CATEGORY_KEYS[category],
   items: ENABLED_REPORTS.filter((r) => r.category === category).map((r) => ({
     href: `/reports/${r.slug}`,
     label: r.title,
@@ -131,19 +150,19 @@ const REPORT_SUBGROUPS: NavSubGroup[] = REPORT_CATEGORIES.map((category) => ({
 })).filter((group) => group.items.length > 0);
 
 const NAV_ENTRIES: NavEntry[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/investments", label: "Investments", icon: TrendingUp },
-  { href: "/portfolio", label: "Portfolio", icon: PieChart },
-  { href: "/calculators", label: "Calculators", icon: Calculator },
-  { href: "/goals", label: "Goals", icon: Target },
-  { href: "/cashbook", label: "Cashbook", icon: Users },
-  { href: "/insurance", label: "Insurance", icon: ShieldCheck },
-  { label: "Assets", icon: Landmark, children: ASSET_CHILDREN },
-  { label: "Reports", icon: FileBarChart, children: REPORT_CHILDREN, subGroups: REPORT_SUBGROUPS },
-  { label: "Config", icon: Cog, children: CONFIG_CHILDREN },
-  { label: "Settings", icon: Settings, children: SETTINGS_CHILDREN },
-  { label: "Help", icon: HelpCircle, children: HELP_CHILDREN },
+  { href: "/dashboard", label: "Dashboard", labelKey: "sidebar.dashboard", icon: LayoutDashboard },
+  { href: "/transactions", label: "Transactions", labelKey: "sidebar.transactions", icon: ArrowLeftRight },
+  { href: "/investments", label: "Investments", labelKey: "sidebar.investments", icon: TrendingUp },
+  { href: "/portfolio", label: "Portfolio", labelKey: "sidebar.portfolio", icon: PieChart },
+  { href: "/calculators", label: "Calculators", labelKey: "sidebar.calculators", icon: Calculator },
+  { href: "/goals", label: "Goals", labelKey: "sidebar.goals", icon: Target },
+  { href: "/cashbook", label: "Cashbook", labelKey: "sidebar.cashbook", icon: Users },
+  { href: "/insurance", label: "Insurance", labelKey: "sidebar.insurance", icon: ShieldCheck },
+  { label: "Assets", labelKey: "sidebar.group.assets", icon: Landmark, children: ASSET_CHILDREN },
+  { label: "Reports", labelKey: "sidebar.group.reports", icon: FileBarChart, children: REPORT_CHILDREN, subGroups: REPORT_SUBGROUPS },
+  { label: "Config", labelKey: "sidebar.group.config", icon: Cog, children: CONFIG_CHILDREN },
+  { label: "Settings", labelKey: "sidebar.group.settings", icon: Settings, children: SETTINGS_CHILDREN },
+  { label: "Help", labelKey: "sidebar.group.help", icon: HelpCircle, children: HELP_CHILDREN },
 ];
 
 /** Matches href+query (e.g. `/assets?tab=gold`) against the current route, not just pathname. */
@@ -165,6 +184,7 @@ export function Sidebar() {
   const router = useRouter();
   const isActive = useIsActive();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   async function handleSignOut() {
     await signOut();
@@ -232,7 +252,7 @@ export function Sidebar() {
         )}
       >
         {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
-        <span className="truncate">{child.label}</span>
+        <span className="truncate">{navLabel(child, t)}</span>
       </Link>
     );
   }
@@ -240,16 +260,18 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "bg-sidebar text-sidebar-foreground relative hidden shrink-0 flex-col border-r border-sidebar-border transition-all duration-200 md:flex",
+        "bg-sidebar text-sidebar-foreground relative hidden shrink-0 flex-col border-r border-sidebar-border md:flex",
         collapsed ? "w-16" : "w-64"
       )}
     >
       <div className={cn("flex items-center gap-2 py-5", collapsed ? "justify-center px-3" : "px-6")}>
-        <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 shrink-0 rounded-lg" />
-        {!collapsed && <span className="flex-1 truncate text-lg font-semibold">{APP_BRANDING.name}</span>}
+        <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2" title={t("sidebar.backToDashboard")}>
+          <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 shrink-0 rounded-lg" />
+          {!collapsed && <span className="flex-1 truncate text-lg font-semibold">{APP_BRANDING.name}</span>}
+        </Link>
         <button
           onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("sidebar.expandSidebar") : t("sidebar.collapseSidebar")}
           className={cn(
             "text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/60 shrink-0 rounded-md p-1.5",
             collapsed && "absolute -right-3 top-6 bg-sidebar border border-sidebar-border"
@@ -268,7 +290,7 @@ export function Sidebar() {
               <Link
                 key={entry.href}
                 href={entry.href}
-                title={collapsed ? entry.label : undefined}
+                title={collapsed ? navLabel(entry, t) : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   collapsed && "justify-center px-0",
@@ -278,7 +300,7 @@ export function Sidebar() {
                 )}
               >
                 <Icon className="size-4.5 shrink-0" />
-                {!collapsed && entry.label}
+                {!collapsed && navLabel(entry, t)}
               </Link>
             );
           }
@@ -291,7 +313,7 @@ export function Sidebar() {
             <div key={entry.label}>
               <button
                 onClick={() => toggleGroup(entry.label)}
-                title={collapsed ? entry.label : undefined}
+                title={collapsed ? navLabel(entry, t) : undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   collapsed && "justify-center px-0",
@@ -303,8 +325,13 @@ export function Sidebar() {
                 <GroupIcon className="size-4.5 shrink-0" />
                 {!collapsed && (
                   <>
-                    <span className="flex-1 text-left">{entry.label}</span>
-                    <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", isOpen && "rotate-180")} />
+                    <span className="flex-1 text-left">{navLabel(entry, t)}</span>
+                    <ChevronDown
+                      className={cn(
+                        "size-3.5 shrink-0 transition-transform motion-reduce:transition-none",
+                        isOpen && "rotate-180"
+                      )}
+                    />
                   </>
                 )}
               </button>
@@ -314,8 +341,8 @@ export function Sidebar() {
                   {entry.subGroups
                     ? entry.subGroups.map((sub) => (
                         <div key={sub.label} className="mb-2 last:mb-0">
-                          <p className="text-sidebar-foreground/40 px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wide uppercase">
-                            {sub.label}
+                          <p className="text-sidebar-foreground/40 px-2.5 pt-1.5 pb-1 text-xs font-medium">
+                            {navLabel(sub, t)}
                           </p>
                           {sub.items.map((child) => renderChildLink(child))}
                         </div>
@@ -344,7 +371,7 @@ export function Sidebar() {
           {!collapsed && (
             <button
               onClick={handleSignOut}
-              aria-label="Sign out"
+              aria-label={t("sidebar.signOut")}
               className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground rounded-md p-1.5 hover:bg-sidebar-accent/60"
             >
               <LogOut className="size-4" />

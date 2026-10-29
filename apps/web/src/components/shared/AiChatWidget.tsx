@@ -13,6 +13,10 @@ import {
   Check,
   Plus,
   HelpCircle,
+  Wallet,
+  Receipt,
+  TrendingUp,
+  PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TypewriterMarkdown } from './TypewriterMarkdown';
@@ -27,10 +31,10 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
-  { text: 'What is my net worth?', icon: '💰' },
-  { text: 'How much did I spend this month?', icon: '📊' },
-  { text: 'How are my investments doing?', icon: '📈' },
-  { text: 'What is my top expense category?', icon: '🎯' },
+  { text: 'What is my net worth?', icon: Wallet },
+  { text: 'How much did I spend this month?', icon: Receipt },
+  { text: 'How are my investments doing?', icon: TrendingUp },
+  { text: 'What is my top expense category?', icon: PieChart },
 ];
 
 function formatTime(date: Date = new Date()): string {
@@ -83,6 +87,7 @@ export function AiChatWidget() {
     setError(null);
     setShowSuggestionsMenu(false);
 
+    // eslint-disable-next-line react-hooks/purity -- event-handler-local id, never read during render
     const userMsgId = `user-${Date.now()}`;
     const userMsg: ChatMessage = {
       id: userMsgId,
@@ -110,6 +115,7 @@ export function AiChatWidget() {
       if (!res.ok) throw new Error(body.error ?? 'Something went wrong.');
 
       const assistantMsg: ChatMessage = {
+        // eslint-disable-next-line react-hooks/purity -- event-handler-local id, never read during render
         id: `assistant-${Date.now()}`,
         role: 'assistant',
         content: body.reply,
@@ -161,7 +167,7 @@ export function AiChatWidget() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-20 right-4 z-50 flex h-[min(31rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[22.5rem] sm:max-w-[24rem] flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl sm:bottom-22 sm:right-6"
+            className="glass-surface-strong fixed bottom-20 right-4 z-50 flex h-[min(31rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[22.5rem] sm:max-w-[24rem] flex-col overflow-hidden rounded-3xl sm:bottom-22 sm:right-6"
           >
             {/* Header Redesign */}
             <div className="relative border-b border-border/60 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-4 py-3 backdrop-blur-md">
@@ -236,7 +242,7 @@ export function AiChatWidget() {
                   </div>
 
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground">Hello! 👋</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Hello!</h4>
                     <p className="text-xs text-muted-foreground max-w-[18rem]">
                       How can I help you today? Ask me about your transactions, net worth, budgets, or investments.
                     </p>
@@ -244,7 +250,7 @@ export function AiChatWidget() {
 
                   {/* Suggestion Chips */}
                   <div className="w-full space-y-2 pt-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 text-left px-1">
+                    <p className="text-xs font-medium text-muted-foreground/70 text-left px-1">
                       Suggested questions
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -253,9 +259,9 @@ export function AiChatWidget() {
                           key={s.text}
                           type="button"
                           onClick={() => sendMessage(s.text)}
-                          className="group flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-primary/5 hover:border-primary/30 p-2.5 text-left text-xs font-medium text-foreground transition-all duration-150 hover:translate-x-0.5 active:scale-[0.99]"
+                          className="group flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-primary/5 hover:border-primary/30 p-2.5 text-left text-xs font-medium text-foreground transition-[background-color,border-color,transform] duration-150 motion-reduce:transition-none hover:translate-x-0.5 active:scale-[0.99]"
                         >
-                          <span className="text-base">{s.icon}</span>
+                          <s.icon className="size-4 shrink-0 text-muted-foreground group-hover:text-primary" />
                           <span className="flex-1 group-hover:text-primary transition-colors">{s.text}</span>
                         </button>
                       ))}
@@ -365,26 +371,26 @@ export function AiChatWidget() {
             <AnimatePresence>
               {showSuggestionsMenu && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="border-t border-border/60 bg-muted/40 p-2.5 space-y-1.5 overflow-hidden"
+                  initial={{ opacity: 0, gridTemplateRows: '0fr' }}
+                  animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+                  exit={{ opacity: 0, gridTemplateRows: '0fr' }}
+                  className="grid border-t border-border/60 bg-muted/40 overflow-hidden"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    Quick Prompts
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {SUGGESTIONS.map((s) => (
-                      <button
-                        key={s.text}
-                        type="button"
-                        onClick={() => sendMessage(s.text)}
-                        className="rounded-full border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground hover:border-primary/40 hover:text-primary transition-colors flex items-center gap-1 shadow-2xs"
-                      >
-                        <span>{s.icon}</span>
-                        <span>{s.text}</span>
-                      </button>
-                    ))}
+                  <div className="min-h-0 p-2.5 space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground px-1">Quick prompts</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SUGGESTIONS.map((s) => (
+                        <button
+                          key={s.text}
+                          type="button"
+                          onClick={() => sendMessage(s.text)}
+                          className="rounded-full border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground hover:border-primary/40 hover:text-primary transition-colors flex items-center gap-1 shadow-2xs"
+                        >
+                          <s.icon className="size-3.5 shrink-0" />
+                          <span>{s.text}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -398,7 +404,7 @@ export function AiChatWidget() {
                   onClick={() => setShowSuggestionsMenu((prev) => !prev)}
                   title="Suggestions"
                   className={cn(
-                    'size-9 rounded-full flex items-center justify-center border border-border/80 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-all active:scale-95',
+                    'size-9 rounded-full flex items-center justify-center border border-border/80 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-[background-color,color,transform] motion-reduce:transition-none active:scale-95',
                     showSuggestionsMenu && 'bg-primary/10 text-primary border-primary/30'
                   )}
                 >
@@ -415,9 +421,9 @@ export function AiChatWidget() {
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder="Type a message…"
                     disabled={isSending}
-                    className="w-full h-10 rounded-full border border-border/80 bg-background/80 px-4 pr-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    className="w-full h-10 rounded-full border border-border/80 bg-background/80 px-4 pr-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                   />
                 </div>
 
@@ -426,7 +432,7 @@ export function AiChatWidget() {
                   disabled={isSending || !input.trim()}
                   aria-label="Send message"
                   className={cn(
-                    'size-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground shadow-md transition-all duration-150 active:scale-95 hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none'
+                    'size-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground shadow-md transition-[background-color,transform] duration-150 motion-reduce:transition-none active:scale-95 hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none'
                   )}
                 >
                   <Send className="size-4 -translate-x-0.5 translate-y-0.5" />
@@ -445,7 +451,7 @@ export function AiChatWidget() {
           whileTap={{ scale: 0.94 }}
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Close AI chat' : 'Open AI chat'}
-          className="relative flex size-14 items-center justify-center overflow-hidden rounded-full shadow-xl transition-all bg-primary text-primary-foreground border-2 border-background ring-4 ring-primary/10 hover:ring-primary/25"
+          className="relative flex size-14 items-center justify-center overflow-hidden rounded-full shadow-xl transition-[box-shadow] motion-reduce:transition-none bg-primary text-primary-foreground border-2 border-background ring-4 ring-primary/10 hover:ring-primary/25"
         >
           <AnimatePresence mode="wait">
             {open ? (

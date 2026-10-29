@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FileDropzone } from '@/components/shared/FileDropzone';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_MESSAGE_LENGTH = 5000;
@@ -31,6 +32,7 @@ export default function HelpFeedbackPage() {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
 
   const form = useForm<FeedbackInput>({
     resolver: zodResolver(feedbackSchema),
@@ -58,7 +60,7 @@ export default function HelpFeedbackPage() {
 
   function handleScreenshotFile(file: File) {
     if (file.size > MAX_SCREENSHOT_BYTES) {
-      toast.error('Screenshot is too large — max 5MB.');
+      toast.error(t('toast.feedback.screenshotTooLarge'));
       return;
     }
     setScreenshotFile(file);
@@ -83,14 +85,14 @@ export default function HelpFeedbackPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Could not send feedback, please try again.');
+        throw new Error(body.error ?? t('toast.feedback.sendFailed'));
       }
 
-      toast.success('Thanks for the feedback — it just landed in the inbox.');
+      toast.success(t('toast.feedback.sent'));
       form.setValue('message', '');
       setScreenshotFile(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not send feedback, please try again.');
+      toast.error(error instanceof Error ? error.message : t('toast.feedback.sendFailed'));
     } finally {
       setIsSubmitting(false);
     }

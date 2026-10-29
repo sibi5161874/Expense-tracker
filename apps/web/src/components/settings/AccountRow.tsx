@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 interface AccountRowProps {
   account: Account;
@@ -24,10 +25,11 @@ function AccountRowComponent({ account, onEdit, onDelete, isDeleting, fxRates, c
   const converted = isForeign ? convertToBaseCurrency(account.opening_balance, account.currency, fxRates) : null;
   const convertedCurrent =
     isForeign && currentBalance !== undefined ? convertToBaseCurrency(currentBalance, account.currency, fxRates) : null;
+  const { t } = useTranslation();
   const { requestDelete, dialog } = useConfirmDelete(
     onDelete,
-    `Delete account "${account.name}"?`,
-    "This can't be undone."
+    t('confirm.deleteAccount.title', { name: account.name }),
+    t('common.cannotBeUndone')
   );
 
   return (

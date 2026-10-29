@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BadgeTone } from "@/components/shared/StatusBadge";
+import { AmountText } from "@/components/shared/AmountText";
 
 const ICON_TONE_CLASSES: Record<BadgeTone, string> = {
   success: "bg-success-subtle text-success",
@@ -17,9 +18,21 @@ interface StatCardProps {
   tone?: BadgeTone;
   trend?: string;
   trendTone?: BadgeTone;
+  /** Raw currency amount backing `value`. When provided, the card shows the abbreviated
+   * form (₹12.5L…) with the full figure on hover instead of `value` verbatim — for
+   * amounts, not percentages, counts, or other pre-formatted strings. */
+  compactValue?: number;
 }
 
-export function StatCard({ label, value, icon: Icon, tone = "neutral", trend, trendTone }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone = "neutral",
+  trend,
+  trendTone,
+  compactValue,
+}: StatCardProps) {
   return (
     <div className="bg-card rounded-2xl p-5">
       <div className="flex items-start justify-between">
@@ -28,7 +41,13 @@ export function StatCard({ label, value, icon: Icon, tone = "neutral", trend, tr
           <Icon className="size-4.5" />
         </div>
       </div>
-      <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+      {compactValue !== undefined ? (
+        <p className="mt-3 text-2xl font-semibold tabular-nums">
+          <AmountText value={compactValue} compact colorBySign={false} className="text-2xl font-semibold" />
+        </p>
+      ) : (
+        <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+      )}
       {trend && (
         <p
           className={cn(

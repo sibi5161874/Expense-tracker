@@ -53,7 +53,7 @@ export function CategoryBreakdownReport() {
     >
       <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold">Expenses by Category</h2>
-        <ExpenseBreakdownChart data={categoryBreakdown} />
+        <ExpenseBreakdownChart data={categoryBreakdown} compact />
       </div>
 
       <DataTable

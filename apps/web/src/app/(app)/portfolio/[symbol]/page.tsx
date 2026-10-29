@@ -66,11 +66,23 @@ export default function StockDetailPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-4">
             <StatCard label="Quantity" value={String(holding.unitsHeld)} icon={Hash} />
-            <StatCard label="Avg Cost" value={formatINR(holding.avgBuyPrice)} icon={Wallet} />
-            <StatCard label="Current Price" value={formatINR(holding.currentPrice)} icon={LineChart} tone="info" />
+            <StatCard
+              label="Avg Cost"
+              value={formatINR(holding.avgBuyPrice)}
+              compactValue={holding.avgBuyPrice}
+              icon={Wallet}
+            />
+            <StatCard
+              label="Current Price"
+              value={formatINR(holding.currentPrice)}
+              compactValue={holding.currentPrice}
+              icon={LineChart}
+              tone="info"
+            />
             <StatCard
               label="P&L"
               value={formatINR(holding.unrealisedPnl)}
+              compactValue={holding.unrealisedPnl}
               icon={TrendingUp}
               tone={holding.unrealisedPnl >= 0 ? 'success' : 'destructive'}
             />

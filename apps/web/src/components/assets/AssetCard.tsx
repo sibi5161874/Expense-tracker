@@ -2,6 +2,7 @@ import { Pencil, Trash2, type LucideIcon } from 'lucide-react';
 import { StatusBadge, type BadgeTone } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { cn } from '@/lib/utils';
 
 export interface AssetCardField {
@@ -48,7 +49,8 @@ const TONE_TEXT_CLASS: Record<'success' | 'destructive', string> = {
  * differs, which now lives in `assetCardConfigs.ts` as plain data instead of repeated JSX.
  */
 export function AssetCard<T extends { id: string }>({ config, item, onEdit, onDelete }: AssetCardProps<T>) {
-  const { requestDelete, dialog } = useConfirmDelete(onDelete, config.confirmTitle, "This can't be undone.");
+  const { t } = useTranslation();
+  const { requestDelete, dialog } = useConfirmDelete(onDelete, config.confirmTitle, t('common.cannotBeUndone'));
   const Icon = config.icon;
   const badge = config.getBadge?.(item);
   const subtitle = config.getSubtitle?.(item);

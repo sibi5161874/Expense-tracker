@@ -1,3 +1,4 @@
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export interface ImportReconciliation {
@@ -51,19 +52,25 @@ function ReconciliationBanner({ reconciliation }: { reconciliation: ImportReconc
 
   if (reconciliation.mismatches === 0) {
     return (
-      <p className="text-success text-xs">
-        ✓ Self-check passed — every row&apos;s amount matches the file&apos;s own running balance (
-        {reconciliation.totalChecked} row{reconciliation.totalChecked === 1 ? '' : 's'} checked).
+      <p className="text-success inline-flex items-start gap-1.5 text-xs">
+        <CheckCircle2 className="mt-px size-3.5 shrink-0" />
+        <span>
+          Self-check passed — every row&apos;s amount matches the file&apos;s own running balance (
+          {reconciliation.totalChecked} row{reconciliation.totalChecked === 1 ? '' : 's'} checked).
+        </span>
       </p>
     );
   }
 
   return (
     <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-      <p className="font-medium text-warning-foreground">
-        ⚠ Self-check found {reconciliation.mismatches} of {reconciliation.totalChecked} row
-        {reconciliation.totalChecked === 1 ? '' : 's'} don&apos;t match this file&apos;s own running balance
-        {reconciliation.firstMismatchRow ? ` (first at row ${reconciliation.firstMismatchRow})` : ''}.
+      <p className="text-warning-foreground inline-flex items-start gap-1.5 font-medium">
+        <AlertTriangle className="mt-px size-3.5 shrink-0" />
+        <span>
+          Self-check found {reconciliation.mismatches} of {reconciliation.totalChecked} row
+          {reconciliation.totalChecked === 1 ? '' : 's'} don&apos;t match this file&apos;s own running balance
+          {reconciliation.firstMismatchRow ? ` (first at row ${reconciliation.firstMismatchRow})` : ''}.
+        </span>
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
         This usually means a column was mapped to the wrong field. Review the preview below carefully, or go

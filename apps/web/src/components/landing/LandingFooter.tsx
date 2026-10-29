@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Coffee } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { APP_BRANDING } from '@repo/shared/config';
-import { BMC_URL } from '@/lib/constants';
+import { BuyMeACoffeeButton } from '@/components/donate/BuyMeACoffeeButton';
 
 export function LandingFooter() {
   return (
@@ -19,7 +19,7 @@ export function LandingFooter() {
 
           <div className="grid grid-cols-2 gap-8 sm:gap-16">
             <div>
-              <p className="text-xs font-semibold tracking-wide uppercase">Product</p>
+              <p className="text-xs font-medium text-muted-foreground">Product</p>
               <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
                 <li><Link href="/features" className="hover:text-foreground transition-colors">Features</Link></li>
                 <li><Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link></li>
@@ -29,7 +29,7 @@ export function LandingFooter() {
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold tracking-wide uppercase">Legal</p>
+              <p className="text-xs font-medium text-muted-foreground">Legal</p>
               <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
                 <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
@@ -40,16 +40,10 @@ export function LandingFooter() {
 
         <div className="border-border/60 text-muted-foreground mt-10 flex flex-col gap-4 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} {APP_BRANDING.name}. All rights reserved.</p>
-          <a
-            href={BMC_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#FFDD00] px-3 py-1.5 font-semibold text-black transition-all hover:brightness-95 active:scale-[0.98]"
-          >
-            <Coffee className="size-3.5" />
-            Buy me a coffee
-          </a>
-          <p>Made with care in India 🇮🇳</p>
+          <BuyMeACoffeeButton />
+          <p className="inline-flex items-center gap-1">
+            Made with <Heart className="text-destructive size-3.5 fill-current" /> in India
+          </p>
         </div>
       </div>
     </footer>

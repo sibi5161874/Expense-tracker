@@ -106,7 +106,9 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{mode === "login" ? "Log in" : "Create an account"}</CardTitle>
+        <CardTitle className="font-serif text-2xl font-medium tracking-tight text-foreground">
+          {mode === "login" ? "Log in" : "Create an account"}
+        </CardTitle>
         <CardDescription>
           {mode === "login"
             ? "Welcome back to your finance tracker."
@@ -179,7 +181,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
+          <div className="relative flex justify-center text-xs">
             <span className="bg-card text-muted-foreground px-2">Or continue with</span>
           </div>
         </div>

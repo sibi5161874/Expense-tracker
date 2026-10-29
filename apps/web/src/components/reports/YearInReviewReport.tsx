@@ -80,7 +80,7 @@ export function YearInReviewReport() {
       </div>
 
       <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold">Monthly Totals — {year}</h2>
+        <h2 className="mb-4 text-sm font-semibold">Monthly totals, {year}</h2>
         <CashFlowChart data={chartData} />
       </div>
     </ReportContainer>

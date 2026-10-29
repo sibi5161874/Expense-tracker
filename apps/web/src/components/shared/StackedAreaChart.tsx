@@ -1,7 +1,8 @@
 'use client';
 
-import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { formatINR } from '@repo/shared/utils';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegendContent, type ChartConfig } from '@/components/ui/chart';
 
 const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
@@ -12,42 +13,49 @@ interface StackedAreaChartProps {
 }
 
 export function StackedAreaChart({ data, xKey, series }: StackedAreaChartProps) {
+  const config: ChartConfig = Object.fromEntries(
+    series.map((key, i) => [key, { label: key, color: COLORS[i % COLORS.length] }])
+  );
+
   return (
-    <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={data}>
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey={xKey} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-          tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : `${v}`)}
-          width={40}
-        />
-        <Tooltip
-          cursor={{ stroke: 'var(--border)' }}
-          contentStyle={{
-            background: 'var(--popover)',
-            color: 'var(--popover-foreground)',
-            border: '1px solid var(--border)',
-            borderRadius: '0.5rem',
-            fontSize: 12,
-          }}
-          formatter={(value) => formatINR(Number(value))}
-        />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-        {series.map((key, i) => (
-          <Area
-            key={key}
-            type="monotone"
-            dataKey={key}
-            stackId="1"
-            stroke={COLORS[i % COLORS.length]}
-            fill={COLORS[i % COLORS.length]}
-            fillOpacity={0.5}
+    <ChartContainer
+      config={config}
+      height={320}
+      chart={
+        <AreaChart data={data}>
+          <defs>
+            {series.map((key, i) => (
+              <linearGradient key={key} id={`stacked-area-${key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.05} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+          <XAxis dataKey={xKey} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+            tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : `${v}`)}
+            width={40}
           />
-        ))}
-      </AreaChart>
-    </ResponsiveContainer>
+          <ChartTooltip cursor={{ stroke: 'var(--border)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+          {series.map((key, i) => (
+            <Area
+              key={key}
+              type="monotone"
+              dataKey={key}
+              stackId="1"
+              stroke={COLORS[i % COLORS.length]}
+              strokeWidth={2}
+              fill={`url(#stacked-area-${key})`}
+            />
+          ))}
+        </AreaChart>
+      }
+    >
+      <ChartLegendContent items={series} />
+    </ChartContainer>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useNetWorthSnapshots } from '@/hooks/useNetWorthSnapshots';
 import { filterSnapshotsByRange, calculateSnapshotGrowthPct, type NetWorthHistoryRange } from '@repo/shared/logic';
@@ -14,6 +14,11 @@ import { ProBlurredPreview } from '@/components/shared/ProGate';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+
+const NET_WORTH_CONFIG: ChartConfig = {
+  net_worth: { label: 'Net worth', color: 'var(--success)' },
+};
 
 const RANGE_OPTIONS: { value: NetWorthHistoryRange; label: string }[] = [
   { value: '1M', label: '1M' },
@@ -31,37 +36,31 @@ const PLACEHOLDER_DATA = Array.from({ length: 20 }, (_, i) => ({
 
 function NetWorthAreaChart({ data }: { data: { snapshot_date: string; net_worth: number }[] }) {
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id="historicalNetWorthGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--success)" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="snapshot_date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-          tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
-          width={48}
-        />
-        <Tooltip
-          cursor={{ stroke: 'var(--border)' }}
-          contentStyle={{
-            background: 'var(--popover)',
-            color: 'var(--popover-foreground)',
-            border: '1px solid var(--border)',
-            borderRadius: '0.5rem',
-            fontSize: 12,
-          }}
-          formatter={(value) => formatINR(Number(value))}
-        />
-        <Area type="monotone" dataKey="net_worth" stroke="var(--success)" fill="url(#historicalNetWorthGradient)" strokeWidth={2} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <ChartContainer
+      config={NET_WORTH_CONFIG}
+      height={260}
+      chart={
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="historicalNetWorthGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--success)" stopOpacity={0.35} />
+              <stop offset="95%" stopColor="var(--success)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+          <XAxis dataKey="snapshot_date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+            tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
+            width={48}
+          />
+          <ChartTooltip cursor={{ stroke: 'var(--border)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+          <Area type="monotone" dataKey="net_worth" stroke="var(--success)" fill="url(#historicalNetWorthGradient)" strokeWidth={2} />
+        </AreaChart>
+      }
+    />
   );
 }
 
@@ -83,7 +82,7 @@ function LiveHistoricalChart() {
         </div>
 
         {isLoading ? (
-          <LoadingState label="Loading history..." />
+          <LoadingState label="Loading history…" />
         ) : error ? (
           <ErrorState error={error} />
         ) : (snapshots ?? []).length === 0 ? (
@@ -91,9 +90,9 @@ function LiveHistoricalChart() {
             <p className="text-muted-foreground text-sm">Take a net worth snapshot to start building your history.</p>
             <Link
               href="/reports/net-worth"
-              className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold transition-all hover:brightness-95 active:scale-[0.98]"
+              className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold transition-[filter,transform] motion-reduce:transition-none hover:brightness-95 active:scale-[0.98]"
             >
-              Take a Snapshot
+              Take a snapshot
             </Link>
           </div>
         ) : filtered.length === 0 ? (
@@ -148,7 +147,7 @@ export function HistoricalNetWorthChart() {
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
-    toast.info('Historical net worth charts are a Pro feature — start your free trial to unlock it.');
+    toast.info('Historical net worth charts are a Pro feature. Start your free trial to unlock it.');
     router.push('/settings?tab=billing');
   }
 

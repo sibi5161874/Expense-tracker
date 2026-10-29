@@ -27,8 +27,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<string>(DEFAULT_CURRENCY);
 
   useEffect(() => {
+    // localStorage only exists client-side, so restoring the saved preference has to happen
+    // in an effect (React's own documented use for one — synchronizing with an external
+    // system) rather than during render. Same pattern as Sidebar.tsx's collapse preference.
     const saved = localStorage.getItem(CURRENCY_STORAGE_KEY);
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
       setCurrencyState(saved.toUpperCase());
     }
   }, []);
