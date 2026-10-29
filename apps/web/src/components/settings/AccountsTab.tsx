@@ -56,8 +56,8 @@ export function AccountsTab() {
             month: 'short',
             hour: 'numeric',
             minute: '2-digit',
-          })}{' '}
-          — the live rate provider is unreachable, so the ≈ conversions below use the last successful fetch.
+          })}
+          : the live rate provider is unreachable, so the ≈ conversions below use the last successful fetch.
         </p>
       )}
 

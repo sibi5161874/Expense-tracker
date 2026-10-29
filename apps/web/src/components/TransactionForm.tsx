@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { AccountSelectField } from '@/components/shared/form-fields/AccountSelectField';
 import { CategorySelectField } from '@/components/shared/form-fields/CategorySelectField';
 import { NotesField } from '@/components/shared/form-fields/NotesField';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 interface TransactionFormProps {
   onSuccess: () => void;
@@ -31,6 +32,7 @@ export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFor
   const { data: categories } = useCategories();
   const { createTransaction, updateTransaction } = useTransactions();
   const [formError, setFormError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const form = useForm<TransactionInput>({
     resolver: zodResolver(transactionSchema),
@@ -47,10 +49,10 @@ export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFor
     try {
       if (editing) {
         await updateTransaction({ id: editing.id, data });
-        toast.success('Transaction updated.');
+        toast.success(t('toast.transaction.updated'));
       } else {
         await createTransaction(data);
-        toast.success('Transaction added.');
+        toast.success(t('toast.transaction.added'));
       }
       onSuccess();
     } catch (error) {

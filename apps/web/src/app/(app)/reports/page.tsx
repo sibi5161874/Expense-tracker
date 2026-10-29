@@ -20,7 +20,7 @@ export default function ReportsPage() {
 
       <Link
         href="/reports/overall"
-        className="bg-primary/5 border-primary/30 hover:border-primary/50 group mb-10 flex items-center justify-between gap-3 rounded-2xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+        className="bg-primary/5 border-primary/30 hover:border-primary/50 group mb-10 flex items-center justify-between gap-3 rounded-2xl border p-5 shadow-sm transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none hover:-translate-y-0.5 hover:shadow-md"
       >
         <div className="flex items-center gap-3">
           <div className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">

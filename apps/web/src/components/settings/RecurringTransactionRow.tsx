@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { transactionTypeTone } from '@/lib/badgeTones';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 type RecurringTransaction = NonNullable<Awaited<ReturnType<typeof getRecurringTransactions>>>[number];
 
@@ -25,10 +26,11 @@ function RecurringTransactionRowComponent({
   onToggleActive,
   isDeleting,
 }: RecurringTransactionRowProps) {
+  const { t } = useTranslation();
   const { requestDelete, dialog } = useConfirmDelete(
     onDelete,
-    'Delete recurring transaction?',
-    "This can't be undone."
+    t('confirm.deleteRecurringTransaction.title'),
+    t('common.cannotBeUndone')
   );
   const label = recurringTransaction.notes || recurringTransaction.category?.name || 'Untitled';
   const nextRun = new Date(recurringTransaction.next_run_date).toLocaleDateString('en-IN', {

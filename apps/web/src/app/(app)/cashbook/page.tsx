@@ -20,6 +20,7 @@ import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { cashbookFlowTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
 import type { getCashbook } from '@repo/shared/queries/cashbook';
 
@@ -28,6 +29,8 @@ type CashbookEntry = NonNullable<Awaited<ReturnType<typeof getCashbook>>>[number
 export default function CashbookPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [flowFilter, setFlowFilter] = useState('');
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -46,7 +49,12 @@ export default function CashbookPage() {
     deleteCashbookBulk,
     deleteCounterparty,
     isDeleting,
-  } = useCashbook({ page, pageSize });
+  } = useCashbook({
+    page,
+    pageSize,
+    search: search || undefined,
+    flow: flowFilter ? (flowFilter as 'Gave' | 'Received') : undefined,
+  });
 
   const sortedSummaryEntries = useMemo(() => {
     if (!summary) return [];
@@ -61,6 +69,7 @@ export default function CashbookPage() {
   }, [summary]);
 
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
+  const { t } = useTranslation();
   const handleEdit = useCallback((entry: CashbookEntry) => setEditingEntry(entry), []);
 
   /** Every field `createCashbook`/`createCashbookBulk` need to reconstruct a deleted entry —
@@ -84,17 +93,17 @@ export default function CashbookPage() {
   const handleDeleteWithUndo = useCallback(
     (entry: CashbookEntry) => {
       deleteCashbook(entry.id);
-      toast('Entry deleted.', {
+      toast(t('toast.entry.deleted'), {
         duration: 6000,
         action: {
-          label: 'Undo',
+          label: t('common.undo'),
           onClick: () => {
-            createCashbook(toCashbookInput(entry)).catch(() => toast.error("Couldn't restore that entry."));
+            createCashbook(toCashbookInput(entry)).catch(() => toast.error(t('toast.cashbook.restoreFailed')));
           },
         },
       });
     },
-    [deleteCashbook, createCashbook, toCashbookInput]
+    [deleteCashbook, createCashbook, toCashbookInput, t]
   );
 
   const { requestDelete, dialog } = useConfirmDelete(
@@ -102,8 +111,8 @@ export default function CashbookPage() {
       const entry = cashbook?.find((c) => c.id === id);
       if (entry) handleDeleteWithUndo(entry);
     },
-    'Delete entry?',
-    "You can undo this for a few seconds after deleting."
+    t('confirm.deleteEntry.title'),
+    t('common.undoableForSeconds')
   );
   const closeForm = useCallback(() => {
     setShowForm(false);
@@ -180,7 +189,7 @@ export default function CashbookPage() {
         <CashbookCalendarView />
       ) : error ? (
         <ErrorState error={error} />
-      ) : !isLoading && cashbook?.length === 0 && page === 0 ? (
+      ) : !isLoading && cashbook?.length === 0 && page === 0 && !search && !flowFilter ? (
         <EmptyState
           icon={BookOpen}
           title="No cashbook entries yet"
@@ -214,8 +223,17 @@ export default function CashbookPage() {
             columns={columns}
             getRowId={(c) => c.id}
             searchPlaceholder="Search counterparty, account…"
-            searchableText={(c) => `${c.counterparty} ${c.account_used?.name ?? ''}`}
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(0);
+            }}
             filters={filters}
+            filterValues={{ flow: flowFilter }}
+            onFilterChange={(_filterId, value) => {
+              setFlowFilter(value);
+              setPage(0);
+            }}
             selectable
             bulkActions={(ids, clear) => (
               <Button
@@ -298,8 +316,8 @@ export default function CashbookPage() {
       <ConfirmDialog
         open={pendingBulkDelete !== null}
         onOpenChange={(open) => !open && setPendingBulkDelete(null)}
-        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} entr${pendingBulkDelete?.ids.length === 1 ? 'y' : 'ies'}?`}
-        description="This can't be undone."
+        title={t('confirm.deleteEntriesCount.title', { count: pendingBulkDelete?.ids.length ?? 0 })}
+        description={t('common.cannotBeUndone')}
         isConfirming={isDeleting}
         onConfirm={async () => {
           if (pendingBulkDelete) {
@@ -307,13 +325,13 @@ export default function CashbookPage() {
             const deletedRows = (cashbook ?? []).filter((c) => ids.includes(c.id));
             await deleteCashbookBulk(ids);
             clear();
-            toast(`${deletedRows.length} entr${deletedRows.length === 1 ? 'y' : 'ies'} deleted.`, {
+            toast(t('toast.entriesCount.deleted', { count: deletedRows.length }), {
               duration: 6000,
               action: {
-                label: 'Undo',
+                label: t('common.undo'),
                 onClick: () => {
                   createCashbookBulk(deletedRows.map(toCashbookInput)).catch(() =>
-                    toast.error("Couldn't restore those entries.")
+                    toast.error(t('toast.cashbooks.restoreFailed'))
                   );
                 },
               },
@@ -325,16 +343,16 @@ export default function CashbookPage() {
       <ConfirmDialog
         open={counterpartyToDelete !== null}
         onOpenChange={(open) => !open && setCounterpartyToDelete(null)}
-        title={`Remove contact "${counterpartyToDelete}"?`}
-        description={`This will delete all cashbook entries and contact records for ${counterpartyToDelete}.`}
+        title={t('confirm.removeContact.title', { name: counterpartyToDelete ?? '' })}
+        description={t('confirm.removeContact.description', { name: counterpartyToDelete ?? '' })}
         isConfirming={isDeleting}
         onConfirm={async () => {
           if (counterpartyToDelete) {
             try {
               await deleteCounterparty(counterpartyToDelete);
-              toast.success(`Removed ${counterpartyToDelete} and associated entries.`);
+              toast.success(t('toast.contact.removed', { name: counterpartyToDelete }));
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : 'Failed to remove contact.');
+              toast.error(err instanceof Error ? err.message : t('toast.contact.removeFailed'));
             }
           }
           setCounterpartyToDelete(null);

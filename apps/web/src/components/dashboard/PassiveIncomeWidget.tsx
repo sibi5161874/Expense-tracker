@@ -8,6 +8,7 @@ import { usePassiveIncome } from '@/hooks/usePassiveIncome';
 import { formatINR } from '@repo/shared/utils/currency';
 import { ProBlurredPreview } from '@/components/shared/ProGate';
 import { Card, CardContent } from '@/components/ui/card';
+import { AmountText } from '@/components/shared/AmountText';
 import type { SymbolHolding } from '@repo/shared/logic';
 
 function LivePassiveIncome({ holdings }: { holdings: SymbolHolding[] }) {
@@ -25,11 +26,11 @@ function LivePassiveIncome({ holdings }: { holdings: SymbolHolding[] }) {
         ) : (
           <>
             <p className="text-2xl font-semibold tabular-nums">
-              {formatINR(annualIncome)}
+              <AmountText value={annualIncome} compact colorBySign={false} className="text-2xl font-semibold" />
               <span className="text-muted-foreground ml-1 text-sm font-normal">/ year</span>
             </p>
             <p className="text-muted-foreground mt-1 text-sm">
-              You earn {formatINR(annualIncome)} per year in passive income — about {formatINR(monthlyIncome)} per month.
+              You earn {formatINR(annualIncome)} per year in passive income, about {formatINR(monthlyIncome)} per month.
             </p>
           </>
         )}
@@ -52,7 +53,7 @@ function PassiveIncomePlaceholder() {
           <span className="text-muted-foreground ml-1 text-sm font-normal">/ year</span>
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          You earn {formatINR(42_000)} per year in passive income — about {formatINR(3_500)} per month.
+          You earn {formatINR(42_000)} per year in passive income, about {formatINR(3_500)} per month.
         </p>
       </CardContent>
     </Card>
@@ -65,7 +66,7 @@ export function PassiveIncomeWidget({ holdings }: { holdings: SymbolHolding[] })
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
-    toast.info('Passive income tracking is a Pro feature — start your free trial to unlock it.');
+    toast.info('Passive income tracking is a Pro feature. Start your free trial to unlock it.');
     router.push('/settings?tab=billing');
   }
 

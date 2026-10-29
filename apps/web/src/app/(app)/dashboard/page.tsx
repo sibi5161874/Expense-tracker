@@ -145,14 +145,14 @@ export default function DashboardPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardContent>
-                <h2 className="mb-4 text-sm font-semibold">Cash flow — last 6 months</h2>
+                <h2 className="mb-4 text-sm font-semibold">Cash flow, last 6 months</h2>
                 <CashFlowChart data={trend ?? []} />
               </CardContent>
             </Card>
             <Card>
               <CardContent>
-                <h2 className="mb-4 text-sm font-semibold">Expenses by category — this month</h2>
-                <ExpenseBreakdownChart data={categoryBreakdown} />
+                <h2 className="mb-4 text-sm font-semibold">Expenses by category, this month</h2>
+                <ExpenseBreakdownChart data={categoryBreakdown} compact />
               </CardContent>
             </Card>
           </div>

@@ -6,6 +6,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { transactionTypeTone } from '@/lib/badgeTones';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 interface CategoryRowProps {
   category: Category;
@@ -15,10 +16,11 @@ interface CategoryRowProps {
 }
 
 function CategoryRowComponent({ category, onEdit, onDelete, isDeleting }: CategoryRowProps) {
+  const { t } = useTranslation();
   const { requestDelete, dialog } = useConfirmDelete(
     onDelete,
-    `Delete category "${category.name}"?`,
-    "This can't be undone."
+    t('confirm.deleteCategory.title', { name: category.name }),
+    t('common.cannotBeUndone')
   );
   return (
     <TableRow>

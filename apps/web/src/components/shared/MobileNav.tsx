@@ -22,24 +22,26 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/LocaleContext";
 import { Fab } from "@/components/ui/fab";
 import { TransactionForm } from "@/components/TransactionForm";
+import type { TranslationKey } from "@repo/shared/i18n";
 
-const PRIMARY_LINKS = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/transactions", label: "Activity", icon: ArrowLeftRight },
-  { href: "/portfolio", label: "Portfolio", icon: PieChart },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
+const PRIMARY_LINKS: { href: string; labelKey: TranslationKey; icon: typeof LayoutDashboard }[] = [
+  { href: "/dashboard", labelKey: "nav.home", icon: LayoutDashboard },
+  { href: "/transactions", labelKey: "nav.activity", icon: ArrowLeftRight },
+  { href: "/portfolio", labelKey: "sidebar.portfolio", icon: PieChart },
+  { href: "/reports", labelKey: "sidebar.group.reports", icon: FileBarChart },
 ];
 
-const MORE_LINKS = [
-  { href: "/investments", label: "Investments", icon: TrendingUp },
-  { href: "/goals", label: "Goals", icon: Target },
-  { href: "/cashbook", label: "Cashbook", icon: Users },
-  { href: "/insurance", label: "Insurance", icon: ShieldCheck },
-  { href: "/assets", label: "Assets", icon: Landmark },
-  { href: "/config", label: "Config", icon: Cog },
-  { href: "/settings", label: "Settings", icon: Settings },
+const MORE_LINKS: { href: string; labelKey: TranslationKey; icon: typeof LayoutDashboard }[] = [
+  { href: "/investments", labelKey: "sidebar.investments", icon: TrendingUp },
+  { href: "/goals", labelKey: "sidebar.goals", icon: Target },
+  { href: "/cashbook", labelKey: "sidebar.cashbook", icon: Users },
+  { href: "/insurance", labelKey: "sidebar.insurance", icon: ShieldCheck },
+  { href: "/assets", labelKey: "sidebar.group.assets", icon: Landmark },
+  { href: "/config", labelKey: "sidebar.group.config", icon: Cog },
+  { href: "/settings", labelKey: "sidebar.group.settings", icon: Settings },
 ];
 
 /**
@@ -52,6 +54,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
+  const { t } = useTranslation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
@@ -79,7 +82,7 @@ export function MobileNav() {
               )}
             >
               <Icon className="size-5 text-current" />
-              {link.label}
+              {t(link.labelKey)}
             </Link>
           );
         })}
@@ -92,13 +95,13 @@ export function MobileNav() {
           )}
         >
           <MoreHorizontal className="size-5 text-current" />
-          More
+          {t("nav.more")}
         </button>
       </nav>
 
       <Fab
         className="bottom-24 md:hidden"
-        aria-label="Add transaction"
+        aria-label={t("nav.addTransaction")}
         onClick={() => setQuickAddOpen(true)}
       >
         <Plus className="size-6" />
@@ -111,15 +114,15 @@ export function MobileNav() {
       {moreOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <button
-            aria-label="Close menu"
+            aria-label={t("nav.closeMenu")}
             className="absolute inset-0 bg-black/40"
             onClick={() => setMoreOpen(false)}
           />
           <div className="bg-card text-card-foreground absolute inset-x-0 bottom-0 max-h-[75vh] overflow-y-auto rounded-t-2xl p-4 pb-6">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">More</h2>
+              <h2 className="text-sm font-semibold">{t("nav.more")}</h2>
               <button
-                aria-label="Close"
+                aria-label={t("nav.close")}
                 onClick={() => setMoreOpen(false)}
                 className="text-muted-foreground rounded-full p-1.5 hover:bg-muted"
               >
@@ -141,7 +144,7 @@ export function MobileNav() {
                     )}
                   >
                     <Icon className="size-5 text-current" />
-                    {link.label}
+                    {t(link.labelKey)}
                   </Link>
                 );
               })}
@@ -150,7 +153,7 @@ export function MobileNav() {
                 className="text-destructive hover:bg-destructive-subtle flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-xs font-medium"
               >
                 <LogOut className="size-5 text-current" />
-                Sign out
+                {t("sidebar.signOut")}
               </button>
             </div>
           </div>

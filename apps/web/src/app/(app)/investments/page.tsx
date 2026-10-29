@@ -25,6 +25,7 @@ import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { investmentActionTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { INVESTMENT_LOG_TEMPLATE_COLUMNS, INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW } from '@repo/shared';
 import type { getInvestmentLog } from '@repo/shared/queries/investmentLog';
 
@@ -36,6 +37,8 @@ export default function InvestmentsPage() {
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -51,8 +54,14 @@ export default function InvestmentsPage() {
     deleteInvestmentLog,
     deleteInvestmentLogBulk,
     isDeleting,
-  } = useInvestmentLog({ page, pageSize });
+  } = useInvestmentLog({
+    page,
+    pageSize,
+    search: search || undefined,
+    action: actionFilter ? (actionFilter as InvestmentLogEntry['action']) : undefined,
+  });
   const { hasFeature } = useEntitlements();
+  const { t } = useTranslation();
   // A fund's symbol is its AMFI scheme code ("122639"); the refresh stores its real name on holdings.
   const { data: holdingRows } = useHoldings();
   const nameBySymbol = new Map((holdingRows ?? []).filter((h) => h.display_name).map((h) => [h.symbol, h.display_name!]));
@@ -89,19 +98,19 @@ export default function InvestmentsPage() {
   const handleDeleteWithUndo = useCallback(
     (investment: InvestmentLogEntry) => {
       deleteInvestmentLog(investment.id);
-      toast('Investment deleted.', {
+      toast(t('toast.investment.deleted'), {
         duration: 6000,
         action: {
-          label: 'Undo',
+          label: t('common.undo'),
           onClick: () => {
             createInvestmentLog(toInvestmentLogInput(investment)).catch(() =>
-              toast.error("Couldn't restore that investment.")
+              toast.error(t('toast.investment.restoreFailed'))
             );
           },
         },
       });
     },
-    [deleteInvestmentLog, createInvestmentLog, toInvestmentLogInput]
+    [deleteInvestmentLog, createInvestmentLog, toInvestmentLogInput, t]
   );
 
   const { requestDelete, dialog } = useConfirmDelete(
@@ -109,8 +118,8 @@ export default function InvestmentsPage() {
       const investment = investments?.find((i) => i.id === id);
       if (investment) handleDeleteWithUndo(investment);
     },
-    'Delete investment?',
-    'You can undo this for a few seconds after deleting.'
+    t('confirm.deleteInvestment.title'),
+    t('common.undoableForSeconds')
   );
   const closeForm = useCallback(() => {
     setShowForm(false);
@@ -236,7 +245,7 @@ export default function InvestmentsPage() {
         <InvestmentLogCalendarView />
       ) : error ? (
         <ErrorState error={error} />
-      ) : !isLoading && investments?.length === 0 && page === 0 ? (
+      ) : !isLoading && investments?.length === 0 && page === 0 && !search && !actionFilter ? (
         <EmptyState
           icon={TrendingUp}
           title="No investment entries yet"
@@ -255,8 +264,17 @@ export default function InvestmentsPage() {
           columns={columns}
           getRowId={(i) => i.id}
           searchPlaceholder="Search symbol, account…"
-          searchableText={(i) => `${i.symbol} ${nameBySymbol.get(i.symbol) ?? ''} ${i.linked_account?.name ?? ''}`}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(0);
+          }}
           filters={filters}
+          filterValues={{ action: actionFilter }}
+          onFilterChange={(_filterId, value) => {
+            setActionFilter(value);
+            setPage(0);
+          }}
           selectable
           bulkActions={(ids, clear) => (
             <Button
@@ -343,8 +361,8 @@ export default function InvestmentsPage() {
       <ConfirmDialog
         open={pendingBulkDelete !== null}
         onOpenChange={(open) => !open && setPendingBulkDelete(null)}
-        title={`Delete ${pendingBulkDelete?.ids.length ?? 0} investment${pendingBulkDelete?.ids.length === 1 ? '' : 's'}?`}
-        description="This can't be undone."
+        title={t('confirm.deleteInvestmentsCount.title', { count: pendingBulkDelete?.ids.length ?? 0 })}
+        description={t('common.cannotBeUndone')}
         isConfirming={isDeleting}
         onConfirm={async () => {
           if (pendingBulkDelete) {
@@ -352,13 +370,13 @@ export default function InvestmentsPage() {
             const deletedRows = (investments ?? []).filter((i) => ids.includes(i.id));
             await deleteInvestmentLogBulk(ids);
             clear();
-            toast(`${deletedRows.length} investment${deletedRows.length === 1 ? '' : 's'} deleted.`, {
+            toast(t('toast.investmentsCount.deleted', { count: deletedRows.length }), {
               duration: 6000,
               action: {
-                label: 'Undo',
+                label: t('common.undo'),
                 onClick: () => {
                   createInvestmentLogsBulk(deletedRows.map(toInvestmentLogInput)).catch(() =>
-                    toast.error("Couldn't restore those investments.")
+                    toast.error(t('toast.investments.restoreFailed'))
                   );
                 },
               },

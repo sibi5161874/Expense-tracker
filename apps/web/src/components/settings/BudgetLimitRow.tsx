@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { budgetStatusTone } from '@/lib/badgeTones';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 type BudgetLimit = NonNullable<Awaited<ReturnType<typeof getBudgetLimits>>>[number];
 
@@ -27,7 +28,8 @@ function BudgetLimitRowComponent({
   isDeleting,
 }: BudgetLimitRowProps) {
   const status = calculateBudgetStatus(actualThisMonth, budgetLimit.monthly_limit);
-  const { requestDelete, dialog } = useConfirmDelete(onDelete, 'Delete budget limit?', "This can't be undone.");
+  const { t } = useTranslation();
+  const { requestDelete, dialog } = useConfirmDelete(onDelete, t('confirm.deleteBudgetLimit.title'), t('common.cannotBeUndone'));
 
   return (
     <TableRow>

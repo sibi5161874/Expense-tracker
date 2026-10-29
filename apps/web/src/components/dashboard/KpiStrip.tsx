@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { formatINR } from '@repo/shared/utils/currency';
 import { cn } from '@/lib/utils';
+import { AmountText } from '@/components/shared/AmountText';
 import type { BadgeTone } from '@/components/shared/StatusBadge';
 
 const VALUE_TONE_CLASSES: Record<BadgeTone, string> = {
@@ -33,9 +33,17 @@ export function KpiStrip({ items, className }: { items: KpiStatItem[]; className
             <Icon className="size-3.5" />
             {label}
           </span>
-          <span className={cn('font-mono text-xl font-semibold tabular-nums', VALUE_TONE_CLASSES[tone])}>
-            {typeof value === 'number' ? formatINR(value) : value}
-          </span>
+          {typeof value === 'number' ? (
+            <AmountText
+              value={value}
+              compact
+              colorBySign={false}
+              sign="neutral"
+              className={cn('text-xl font-semibold', VALUE_TONE_CLASSES[tone])}
+            />
+          ) : (
+            <span className={cn('font-mono text-xl font-semibold tabular-nums', VALUE_TONE_CLASSES[tone])}>{value}</span>
+          )}
         </div>
       ))}
     </div>

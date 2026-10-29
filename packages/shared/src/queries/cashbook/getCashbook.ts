@@ -9,6 +9,25 @@ export interface GetCashbookOptions {
   page?: number;
   pageSize?: number;
   flow?: 'Gave' | 'Received';
+  /** Free-text match against `counterparty` — OR'd with `accountIds` below, same reasoning
+   * as getTransactions: an embedded-table OR filter would force an inner join and silently
+   * drop every row with no account set, so account-name matches are resolved to ids
+   * client-side (accounts are a small, already-cached list) and passed in as plain ids. */
+  search?: string;
+  accountIds?: string[];
+}
+
+function buildSearchOrClause(opts: Pick<GetCashbookOptions, 'search' | 'accountIds'>): string | null {
+  const clauses: string[] = [];
+  const search = opts.search?.trim();
+  if (search) {
+    const escaped = search.replace(/[%,()]/g, (c) => `\\${c}`);
+    clauses.push(`counterparty.ilike.%${escaped}%`);
+  }
+  if (opts.accountIds?.length) {
+    clauses.push(`account_used_id.in.(${opts.accountIds.join(',')})`);
+  }
+  return clauses.length > 0 ? clauses.join(',') : null;
 }
 
 export async function getCashbook(
@@ -32,6 +51,11 @@ export async function getCashbook(
     query = query.eq('flow', opts.flow);
   }
 
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
+
   const page = opts.page ?? 0;
   const pageSize = opts.pageSize ?? PAGE_SIZE;
   const from = page * pageSize;
@@ -50,7 +74,7 @@ export async function getCashbook(
 export async function getCashbookCount(
   supabase: SupabaseClient<Database>,
   userId: string,
-  opts: Pick<GetCashbookOptions, 'counterparty' | 'flow'> = {}
+  opts: Pick<GetCashbookOptions, 'counterparty' | 'flow' | 'search' | 'accountIds'> = {}
 ) {
   let query = supabase
     .from('cashbook')
@@ -59,6 +83,11 @@ export async function getCashbookCount(
 
   if (opts.counterparty) query = query.eq('counterparty', opts.counterparty);
   if (opts.flow) query = query.eq('flow', opts.flow);
+
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
 
   const { count, error } = await query;
 

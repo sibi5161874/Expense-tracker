@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AmountText } from '@/components/shared/AmountText';
 
-const NUMERIC_HEAD = 'text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase';
+const NUMERIC_HEAD = 'text-right text-xs font-medium text-muted-foreground';
 const NUMERIC_CELL = 'text-right font-mono tabular-nums';
 
 interface HoldingsTableProps {
@@ -63,12 +63,8 @@ export function HoldingsTable({
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Symbol
-            </TableHead>
-            <TableHead className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Exchange
-            </TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Symbol</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Exchange</TableHead>
             <TableHead className={NUMERIC_HEAD}>Quantity</TableHead>
             <TableHead className={NUMERIC_HEAD}>Avg Cost</TableHead>
             <TableHead className={NUMERIC_HEAD}>Current Price</TableHead>
@@ -99,7 +95,7 @@ export function HoldingsTable({
                 className={cn(
                   'group hover:bg-accent/40 cursor-pointer transition-colors duration-150',
                   isLoss && 'border-l-2 border-destructive',
-                  animateRows && 'animate-in fade-in-0 slide-in-from-bottom-1 duration-300'
+                  animateRows && 'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 duration-300'
                 )}
                 style={animateRows ? { animationDelay: `${index * 20}ms`, animationFillMode: 'both' } : undefined}
               >
@@ -119,7 +115,7 @@ export function HoldingsTable({
                     {foreignPriceCurrencies?.[holding.symbol] && (
                       <span
                         title={`Live price is quoted in ${foreignPriceCurrencies[holding.symbol]} and is not converted to INR — portfolio totals add it at face value.`}
-                        className="bg-warning/10 text-warning rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                        className="bg-warning/10 text-warning rounded px-1 py-0.5 text-[10px] font-semibold"
                       >
                         {foreignPriceCurrencies[holding.symbol]}
                       </span>
@@ -134,7 +130,7 @@ export function HoldingsTable({
                     {holding.lotCount > 1 && (
                       <span
                         title={`Weighted average across ${holding.lotCount} purchases`}
-                        className="bg-info-subtle text-info rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                        className="bg-info-subtle text-info rounded px-1 py-0.5 text-[10px] font-semibold"
                       >
                         WAC
                       </span>
@@ -147,7 +143,7 @@ export function HoldingsTable({
                     {!holding.hasLivePrice && (
                       <span
                         title="No live price has ever been fetched for this symbol — showing the most recent trade price instead."
-                        className="bg-warning-subtle text-warning-foreground rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                        className="bg-warning-subtle text-warning-foreground rounded px-1 py-0.5 text-[10px] font-semibold"
                       >
                         Est.
                       </span>

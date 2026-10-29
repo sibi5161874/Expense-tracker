@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calculator, Sparkles } from 'lucide-react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Cell, Pie, PieChart } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import {
   calculateSipFutureValue,
@@ -20,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProLockedButton } from '@/components/shared/ProGate';
+import { AmountText } from '@/components/shared/AmountText';
 
 type CalcTab = 'sip' | 'averaging' | 'lumpsum' | 'pnl';
 
@@ -114,27 +116,37 @@ function TwoSlicePie({
   const total = slices.reduce((sum, s) => sum + s.value, 0);
   if (total <= 0) return null;
 
+  const config: ChartConfig = Object.fromEntries(
+    slices.map((entry, i) => [entry.name, { label: entry.name, color: entry.color ?? PIE_COLORS[i % PIE_COLORS.length] }])
+  );
+
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <ResponsiveContainer width="100%" height={180} className="sm:max-w-[180px]">
-        <PieChart>
-          <Pie data={slices} dataKey="value" nameKey="name" innerRadius={48} outerRadius={70} paddingAngle={2}>
-            {slices.map((entry, i) => (
-              <Cell key={entry.name} fill={entry.color ?? PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              background: 'var(--popover)',
-              color: 'var(--popover-foreground)',
-              border: '1px solid var(--border)',
-              borderRadius: '0.5rem',
-              fontSize: 12,
-            }}
-            formatter={(value) => formatINR(Number(value))}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      <div className="relative w-full sm:max-w-[180px]">
+        <ChartContainer
+          config={config}
+          height={180}
+          chart={
+            <PieChart>
+              <Pie data={slices} dataKey="value" nameKey="name" innerRadius={48} outerRadius={70} paddingAngle={2}>
+                {slices.map((entry, i) => (
+                  <Cell key={entry.name} fill={entry.color ?? PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />
+                ))}
+              </Pie>
+              <ChartTooltip content={<ChartTooltipContent formatter={formatINR} hideLabel />} />
+            </PieChart>
+          }
+        />
+        {/* Compact here on purpose — the exact figure is already spelled out in the ResultCard
+            tiles above every calculator; a donut this small (96px inner diameter) can't fit a
+            full ₹23,23,390.76 without wrapping, so only the chart abbreviates. */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-muted-foreground text-[10px] font-medium">Total</span>
+          <span className="pointer-events-auto">
+            <AmountText value={total} compact colorBySign={false} className="text-base font-semibold" />
+          </span>
+        </div>
+      </div>
       <ul className="w-full space-y-2">
         {slices.map((entry, i) => (
           <li key={entry.name} className="flex items-center justify-between gap-3 text-sm">
@@ -145,7 +157,7 @@ function TwoSlicePie({
               />
               <span className="truncate">{entry.name}</span>
             </span>
-            <span className="tabular-nums font-medium">{formatINR(entry.value)}</span>
+            <AmountText value={entry.value} compact colorBySign={false} className="font-medium" />
           </li>
         ))}
       </ul>
@@ -296,7 +308,7 @@ export default function CalculatorsPage() {
             <Calculator className="text-muted-foreground size-8" />
             <p className="text-sm font-medium">The Financial Calculator Suite is a Pro feature.</p>
             <p className="text-muted-foreground max-w-sm text-sm">
-              Start your free trial to unlock SIP, lumpsum, stock averaging, and P&L calculators.
+              Start your free trial to use the SIP, lumpsum, stock averaging, and P&L calculators.
             </p>
             <ProLockedButton label="Unlock Calculators" onUpgradeClick={() => router.push('/settings?tab=billing')} />
           </CardContent>
@@ -313,7 +325,7 @@ export default function CalculatorsPage() {
         <CardContent className="flex items-start gap-3">
           <Sparkles className="text-info mt-0.5 size-5 shrink-0" />
           <p className="text-muted-foreground text-sm">
-            These tools are for planning, not advice — every result is a projection based on the numbers you enter,
+            These tools are for planning, not advice. Every result is a projection based on the numbers you enter,
             not a guarantee. Actual returns depend on market performance, which nothing here can predict.
           </p>
         </CardContent>

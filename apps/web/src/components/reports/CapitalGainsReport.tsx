@@ -131,7 +131,7 @@ export function CapitalGainsReport() {
         const isPositive = t.gain >= 0;
         return (
           <div>
-            <div className={`font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            <div className={`font-semibold ${isPositive ? 'text-success' : 'text-destructive'}`}>
               {isPositive ? '+' : ''}{formatINR(t.gain)}
             </div>
             <div className="text-muted-foreground text-xs">
@@ -192,8 +192,8 @@ export function CapitalGainsReport() {
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-card border-border/60 rounded-2xl border p-4 shadow-sm">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Total Realized P&L</p>
-          <p className={`mt-2 text-2xl font-bold ${activeSummary.totalNetGains >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          <p className="text-muted-foreground text-xs font-medium">Total realized P&L</p>
+          <p className={`mt-2 text-2xl font-bold ${activeSummary.totalNetGains >= 0 ? 'text-success' : 'text-destructive'}`}>
             {activeSummary.totalNetGains >= 0 ? '+' : ''}{formatINR(activeSummary.totalNetGains)}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
@@ -202,8 +202,8 @@ export function CapitalGainsReport() {
         </div>
 
         <div className="bg-card border-border/60 rounded-2xl border p-4 shadow-sm">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Short Term (STCG)</p>
-          <p className={`mt-2 text-2xl font-bold ${activeSummary.netStcg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          <p className="text-muted-foreground text-xs font-medium">Short term (STCG)</p>
+          <p className={`mt-2 text-2xl font-bold ${activeSummary.netStcg >= 0 ? 'text-success' : 'text-destructive'}`}>
             {activeSummary.netStcg >= 0 ? '+' : ''}{formatINR(activeSummary.netStcg)}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
@@ -212,8 +212,8 @@ export function CapitalGainsReport() {
         </div>
 
         <div className="bg-card border-border/60 rounded-2xl border p-4 shadow-sm">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Long Term (LTCG)</p>
-          <p className={`mt-2 text-2xl font-bold ${activeSummary.netLtcg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          <p className="text-muted-foreground text-xs font-medium">Long term (LTCG)</p>
+          <p className={`mt-2 text-2xl font-bold ${activeSummary.netLtcg >= 0 ? 'text-success' : 'text-destructive'}`}>
             {activeSummary.netLtcg >= 0 ? '+' : ''}{formatINR(activeSummary.netLtcg)}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
@@ -222,7 +222,7 @@ export function CapitalGainsReport() {
         </div>
 
         <div className="bg-card border-border/60 rounded-2xl border p-4 shadow-sm">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Total Cost Basis</p>
+          <p className="text-muted-foreground text-xs font-medium">Total cost basis</p>
           <p className="mt-2 text-2xl font-bold">
             {formatINR(activeSummary.totalCostBasis)}
           </p>

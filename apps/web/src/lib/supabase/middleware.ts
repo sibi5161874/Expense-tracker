@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   // Public marketing pages, reachable from the landing page's navbar/footer by anyone,
   // signed in or not.
   "/features",
+  "/how-it-works",
   "/pricing",
   "/reports-overview",
   "/donate",

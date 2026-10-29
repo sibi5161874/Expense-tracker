@@ -60,3 +60,40 @@ export function formatCurrency(amount: number, currencyCode: string = 'INR'): st
 
   return formatter.format(amount);
 }
+
+const compactCurrencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+/**
+ * Compact form for large amounts (e.g. "₹12.5L", "₹4.6Cr", "$5.6M", "$6.6B"). Intl's
+ * `notation: 'compact'` natively produces Indian K/L/Cr grouping for `en-IN` and K/M/B for
+ * `en-US` and other locales, so no custom thousand/lakh/crore math is needed here. The
+ * abbreviation is lossy — callers should pair it with the full value (via `formatCurrency`)
+ * in a tooltip/title.
+ */
+export function formatCompactCurrency(amount: number, currencyCode: string = 'INR'): string {
+  const code = currencyCode.trim().toUpperCase() || 'INR';
+  let formatter = compactCurrencyFormatterCache.get(code);
+
+  if (!formatter) {
+    const currencyInfo = POPULAR_CURRENCIES.find((c) => c.code === code);
+    const locale = currencyInfo?.locale ?? 'en-IN';
+    try {
+      formatter = new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: code,
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      });
+    } catch {
+      formatter = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      });
+    }
+    compactCurrencyFormatterCache.set(code, formatter);
+  }
+
+  return formatter.format(amount);
+}

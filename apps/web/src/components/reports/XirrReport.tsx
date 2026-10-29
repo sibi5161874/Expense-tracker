@@ -118,9 +118,7 @@ export function XirrReport() {
           <div>
             <div className="flex items-center gap-2">
               <TrendingUp className="size-5 text-primary" />
-              <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-                Overall Portfolio XIRR
-              </p>
+              <p className="text-muted-foreground text-xs font-medium">Overall portfolio XIRR</p>
             </div>
             <div className="mt-2 flex items-baseline gap-3">
               <span className="text-4xl font-extrabold tracking-tight font-mono">

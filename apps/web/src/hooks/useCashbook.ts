@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
@@ -16,6 +17,7 @@ import {
 } from '@repo/shared/queries/cashbook';
 import type { CashbookInput } from '@repo/shared/schemas';
 import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
+import { useAccounts } from '@/hooks/useAccounts';
 
 /** Removes rows with the given ids from every cached `['cashbook', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -23,17 +25,34 @@ function removeFromCashbookCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useCashbook(opts: { counterparty?: string; page?: number; pageSize?: number } = {}) {
+export function useCashbook(
+  opts: { counterparty?: string; page?: number; pageSize?: number; flow?: 'Gave' | 'Received'; search?: string } = {}
+) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
 
+  // Same reasoning as useTransactions: resolve an account-name search match to ids
+  // client-side (accounts are a small, already-cached list) rather than an embedded-table OR
+  // filter, which PostgREST can only do via an inner join that would drop every row with no
+  // account set.
+  const { data: allAccounts } = useAccounts();
+  const search = opts.search?.trim();
+  const accountIds = useMemo(() => {
+    if (!search) return undefined;
+    const q = search.toLowerCase();
+    const ids = (allAccounts ?? []).filter((a) => a.name.toLowerCase().includes(q)).map((a) => a.id);
+    return ids.length > 0 ? ids : undefined;
+  }, [search, allAccounts]);
+
+  const searchOpts = { ...opts, search, accountIds };
+
   const query = useQuery({
-    queryKey: ['cashbook', userId, opts],
+    queryKey: ['cashbook', userId, searchOpts],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getCashbook(supabase, userId, opts);
+      return getCashbook(supabase, userId, searchOpts);
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,
@@ -42,10 +61,10 @@ export function useCashbook(opts: { counterparty?: string; page?: number; pageSi
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
   // views can render "Page X of Y" without adding a count to every page's payload.
   const countQuery = useQuery({
-    queryKey: ['cashbookCount', userId, opts.counterparty],
+    queryKey: ['cashbookCount', userId, opts.counterparty, opts.flow, search, accountIds],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getCashbookCount(supabase, userId, { counterparty: opts.counterparty });
+      return getCashbookCount(supabase, userId, { counterparty: opts.counterparty, flow: opts.flow, search, accountIds });
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,

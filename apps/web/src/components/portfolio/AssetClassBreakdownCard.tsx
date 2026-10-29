@@ -36,7 +36,7 @@ export function AssetClassBreakdownCard({ holdings }: AssetClassBreakdownCardPro
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-border text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-xs font-medium text-muted-foreground">
                 <th className="py-2 pr-3">Asset Class</th>
                 <th className="py-2 px-3 text-right">Invested</th>
                 <th className="py-2 px-3 text-right">Current Value</th>
@@ -77,7 +77,7 @@ export function AssetClassBreakdownCard({ holdings }: AssetClassBreakdownCardPro
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border font-semibold">
-                <td className="pt-3 pr-3 text-sm uppercase tracking-wide">Total</td>
+                <td className="pt-3 pr-3 text-sm">Total</td>
                 <td className="pt-3 px-3 font-mono tabular-nums text-sm text-right text-muted-foreground">
                   {formatINR(totalInvested)}
                 </td>

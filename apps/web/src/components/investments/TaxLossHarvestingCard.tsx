@@ -39,7 +39,7 @@ function LiveTaxLossCard({ holdings }: { holdings: SymbolHolding[] }) {
           <TrendingDown className="text-muted-foreground size-5" />
           <h2 className="text-sm font-semibold">Tax-Loss Harvesting</h2>
         </div>
-        <p className="text-muted-foreground mt-2 text-sm">No unrealized losses right now — nothing to harvest.</p>
+        <p className="text-muted-foreground mt-2 text-sm">No unrealized losses right now. Nothing to harvest.</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export function TaxLossHarvestingCard({ holdings }: { holdings: SymbolHolding[] 
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
-    toast.info('Tax-loss harvesting insights are a Pro feature — start your free trial to unlock it.');
+    toast.info('Tax-loss harvesting insights are a Pro feature. Start your free trial to unlock it.');
     router.push('/settings?tab=billing');
   }
 

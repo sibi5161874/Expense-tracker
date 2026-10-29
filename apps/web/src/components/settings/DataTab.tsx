@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useTranslation } from '@/contexts/LocaleContext';
 
 // Easter egg: click "in" then "it" then "in" then "it" (matching the sequence below) in the
 // delete-account copy to find a hidden page. Purely order-based, no time expiry — an earlier
@@ -23,6 +24,7 @@ export function DataTab() {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const eggProgressRef = useRef(0);
 
@@ -48,9 +50,9 @@ export function DataTab() {
       link.download = `money-manager-export-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Your data has been exported.');
+      toast.success(t('toast.data.exported'));
     } catch {
-      toast.error("Couldn't export your data, try again.");
+      toast.error(t('toast.data.exportFailed'));
     } finally {
       setIsExporting(false);
     }
@@ -80,7 +82,7 @@ export function DataTab() {
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Export your data</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
-          Download everything — accounts, transactions, investments, assets, goals, budgets, snapshots — as a
+          Download everything (accounts, transactions, investments, assets, goals, budgets, snapshots) as a
           single JSON file. Yours to keep, no strings attached.
         </p>
         <Button variant="outline" onClick={handleExport} disabled={isExporting}>
@@ -94,7 +96,7 @@ export function DataTab() {
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
           Permanently deletes your account and every record{' '}
           <span onClick={() => handleEggWordClick('in')}>in</span>{' '}
-          <span onClick={() => handleEggWordClick('it')}>it</span>. This cannot be undone — export
+          <span onClick={() => handleEggWordClick('it')}>it</span>. This cannot be undone. Export
           your data first if you might want it later.
         </p>
         <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteDialog(true)}>

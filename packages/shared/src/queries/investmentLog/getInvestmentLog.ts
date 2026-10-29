@@ -10,6 +10,30 @@ export interface GetInvestmentLogOptions {
   pageSize?: number;
   action?: 'BUY' | 'SELL' | 'SIP' | 'DIVIDEND' | 'BONUS' | 'SPLIT';
   asset_type?: 'Stock' | 'ETF' | 'Mutual Fund' | 'Crypto' | 'Bond' | 'Other';
+  /** Free-text match against `symbol` — OR'd with `symbols`/`accountIds` below. A fund's
+   * display name (e.g. "Parag Parikh Flexi Cap") isn't a column here, only its AMFI scheme
+   * code is, so the caller resolves a display-name match to symbols client-side (from the
+   * holdings list it already loads) and passes them in `symbols`; account-name matches are
+   * resolved the same way. Same embedded-join-drops-null-rows reasoning as getTransactions. */
+  search?: string;
+  symbols?: string[];
+  accountIds?: string[];
+}
+
+function buildSearchOrClause(opts: Pick<GetInvestmentLogOptions, 'search' | 'symbols' | 'accountIds'>): string | null {
+  const clauses: string[] = [];
+  const search = opts.search?.trim();
+  if (search) {
+    const escaped = search.replace(/[%,()]/g, (c) => `\\${c}`);
+    clauses.push(`symbol.ilike.%${escaped}%`);
+  }
+  if (opts.symbols?.length) {
+    clauses.push(`symbol.in.(${opts.symbols.join(',')})`);
+  }
+  if (opts.accountIds?.length) {
+    clauses.push(`linked_account_id.in.(${opts.accountIds.join(',')})`);
+  }
+  return clauses.length > 0 ? clauses.join(',') : null;
 }
 
 export async function getInvestmentLog(
@@ -37,6 +61,11 @@ export async function getInvestmentLog(
     query = query.eq('asset_type', opts.asset_type);
   }
 
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
+
   const page = opts.page ?? 0;
   const pageSize = opts.pageSize ?? PAGE_SIZE;
   const from = page * pageSize;
@@ -55,7 +84,7 @@ export async function getInvestmentLog(
 export async function getInvestmentLogCount(
   supabase: SupabaseClient<Database>,
   userId: string,
-  opts: Pick<GetInvestmentLogOptions, 'symbol' | 'action' | 'asset_type'> = {}
+  opts: Pick<GetInvestmentLogOptions, 'symbol' | 'action' | 'asset_type' | 'search' | 'symbols' | 'accountIds'> = {}
 ) {
   let query = supabase
     .from('investment_log')
@@ -65,6 +94,11 @@ export async function getInvestmentLogCount(
   if (opts.symbol) query = query.eq('symbol', opts.symbol);
   if (opts.action) query = query.eq('action', opts.action);
   if (opts.asset_type) query = query.eq('asset_type', opts.asset_type);
+
+  const searchOr = buildSearchOrClause(opts);
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
 
   const { count, error } = await query;
 

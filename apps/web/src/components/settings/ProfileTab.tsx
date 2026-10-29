@@ -19,6 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FinancialEssentialsCard } from '@/components/dashboard/FinancialEssentialsCard';
+import { useTranslation } from '@/contexts/LocaleContext';
 import { cn } from '@/lib/utils';
 
 function AvatarUploader() {
@@ -27,6 +28,7 @@ function AvatarUploader() {
   const { uploadAvatar, isUploading } = useAvatarUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? '??';
+  const { t } = useTranslation();
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -34,9 +36,9 @@ function AvatarUploader() {
     if (!file) return;
     try {
       await uploadAvatar(file);
-      toast.success('Profile picture updated.');
+      toast.success(t('toast.profile.pictureUpdated'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not update profile picture.');
+      toast.error(error instanceof Error ? error.message : t('toast.profile.pictureUpdateFailed'));
     }
   }
 
@@ -98,7 +100,7 @@ function RoadmapPanel({ phase }: { phase: AnalysisPhase }) {
   if (phase === 'analyzing') {
     return (
       <div className="bg-card border-border/60 flex h-full flex-col items-center justify-center rounded-2xl border p-8 text-center">
-        <Loader2 className="text-primary size-8 animate-spin" />
+        <Loader2 className="text-primary size-8 motion-safe:animate-spin" />
         <h2 className="mt-3 text-sm font-semibold">Analyzing your profile…</h2>
         <p className="text-muted-foreground mt-1 max-w-xs text-sm">
           Calculating your recommended insurance cover and goal progress.
@@ -140,6 +142,9 @@ export function ProfileTab() {
       onboarding_completed: true,
     });
     if (profile.monthly_income != null || profile.date_of_birth != null || profile.onboarding_completed) {
+      // Synchronizing local UI state to an async query result arriving after mount — a
+      // legitimate effect use (React docs: "resetting state when a prop/query changes").
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
       setAnalysisPhase((prev) => (prev === 'analyzing' ? prev : 'done'));
     }
   }, [profile, form]);
@@ -194,7 +199,7 @@ export function ProfileTab() {
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Your Profile</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
-          Used to personalize the Financial Essentials Check on your Dashboard — recommended insurance
+          Used to personalize the Financial Essentials Check on your Dashboard: recommended insurance
           cover and emergency fund targets. Simplified estimates, not financial advice.
         </p>
 

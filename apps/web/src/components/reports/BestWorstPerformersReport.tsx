@@ -1,13 +1,18 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { Cell, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Cell, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useAllInvestmentLog } from '@/hooks/useInvestmentLog';
 import { groupInvestmentsBySymbol } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
 import { ErrorState } from '@/components/shared/QueryState';
 import { ReportSkeleton } from '@/components/shared/ReportSkeleton';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+
+const PERFORMERS_CONFIG: ChartConfig = {
+  returnPct: { label: 'Return %', color: 'var(--success)' },
+};
 
 interface PerformerRow {
   symbol: string;
@@ -54,34 +59,28 @@ export function BestWorstPerformersReport() {
         <>
           <div ref={chartRef} className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold">Return % by Holding</h2>
-            <ResponsiveContainer width="100%" height={Math.max(200, holdings.length * 40)}>
-              <BarChart data={holdings} layout="vertical" margin={{ left: 16 }}>
-                <CartesianGrid horizontal={false} stroke="var(--border)" />
-                <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                <YAxis
-                  type="category"
-                  dataKey="symbol"
-                  width={90}
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--muted)' }}
-                  contentStyle={{
-                    background: 'var(--popover)',
-                    color: 'var(--popover-foreground)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.5rem',
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => `${value}%`}
-                />
-                <Bar dataKey="returnPct" name="Return %" radius={[0, 4, 4, 0]}>
-                  {holdings.map((h) => (
-                    <Cell key={h.symbol} fill={h.returnPct >= 0 ? 'var(--success)' : 'var(--destructive)'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartContainer
+              config={PERFORMERS_CONFIG}
+              height={Math.max(200, holdings.length * 40)}
+              chart={
+                <BarChart data={holdings} layout="vertical" margin={{ left: 16 }}>
+                  <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.6} />
+                  <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="symbol"
+                    width={90}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                  />
+                  <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  <Bar dataKey="returnPct" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                    {holdings.map((h) => (
+                      <Cell key={h.symbol} fill={h.returnPct >= 0 ? 'var(--success)' : 'var(--destructive)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              }
+            />
           </div>
 
           <DataTable

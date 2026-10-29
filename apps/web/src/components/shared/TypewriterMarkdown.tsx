@@ -34,15 +34,28 @@ export function TypewriterMarkdown({
     completeRef.current = onComplete;
   }, [onProgress, onComplete]);
 
-  useEffect(() => {
-    if (!animate) {
-      setDisplayedLength(content.length);
-      setIsDone(true);
-      return;
-    }
+  // Reset the typewriter state the moment `content` or `animate` changes, using React's
+  // documented "adjusting state when a prop changes" pattern (comparing against the
+  // last-seen props during render) rather than an effect — this is the same technique
+  // Sidebar.tsx uses, and it keeps the reset synchronous with the render that introduces
+  // the new content instead of flashing the old text for one frame first.
+  const [lastContent, setLastContent] = useState(content);
+  const [lastAnimate, setLastAnimate] = useState(animate);
+  if (content !== lastContent || animate !== lastAnimate) {
+    setLastContent(content);
+    setLastAnimate(animate);
+    setDisplayedLength(animate ? 0 : content.length);
+    setIsDone(!animate);
+  }
 
-    // If already at full length, mark done
+  useEffect(() => {
+    if (!animate) return;
+
+    // If already at full length, mark done. This observes state the interval below already
+    // reached in a prior run of this effect (or a 0-length content), so it's reporting
+    // completion to an external callback, not deriving render state — a legitimate effect use.
     if (displayedLength >= content.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
       setIsDone(true);
       completeRef.current?.();
       return;
@@ -66,7 +79,7 @@ export function TypewriterMarkdown({
     }, speed);
 
     return () => clearInterval(interval);
-  }, [content, animate, speed]);
+  }, [content, animate, speed, displayedLength]);
 
   const displayedContent = content.slice(0, displayedLength);
 

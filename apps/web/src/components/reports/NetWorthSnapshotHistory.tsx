@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Camera, Trash2 } from 'lucide-react';
 import { useNetWorthSnapshots } from '@/hooks/useNetWorthSnapshots';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -19,6 +19,12 @@ import { Button } from '@/components/ui/button';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
+import { useTranslation } from '@/contexts/LocaleContext';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+
+const SNAPSHOT_CONFIG: ChartConfig = {
+  net_worth: { label: 'Net worth', color: 'var(--success)' },
+};
 
 interface NetWorthSnapshotHistoryProps {
   currentBreakdown: NetWorthBreakdown;
@@ -30,7 +36,8 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
   const { data: snapshots, takeSnapshot, deleteSnapshot, isTakingSnapshot, isDeleting } = useNetWorthSnapshots();
   const { tier } = useEntitlements();
   const [error, setError] = useState<string | null>(null);
-  const { requestDelete, dialog } = useConfirmDelete(deleteSnapshot, 'Delete snapshot?', "This can't be undone.");
+  const { t } = useTranslation();
+  const { requestDelete, dialog } = useConfirmDelete(deleteSnapshot, t('confirm.deleteSnapshot.title'), t('common.cannotBeUndone'));
 
   const rows = useMemo(() => {
     const sorted = snapshots ?? [];
@@ -91,7 +98,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
         {canTakeSnapshot ? (
           <Button size="sm" variant="outline" onClick={handleTakeSnapshot} disabled={isTakingSnapshot}>
             <Camera className="size-4" />
-            {isTakingSnapshot ? 'Saving...' : 'Take Snapshot'}
+            {isTakingSnapshot ? 'Saving…' : 'Take Snapshot'}
           </Button>
         ) : (
           <ProLockedButton label="Take Snapshot" icon={<Camera className="size-4" />} onUpgradeClick={goToUpgrade} />
@@ -106,36 +113,37 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: NetWorthSnapshotHi
         </p>
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={rows}>
-              <CartesianGrid vertical={false} stroke="var(--border)" />
-              <XAxis
-                dataKey="snapshot_date"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
-                width={48}
-              />
-              <Tooltip
-                cursor={{ stroke: 'var(--border)' }}
-                contentStyle={{
-                  background: 'var(--popover)',
-                  color: 'var(--popover-foreground)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '0.5rem',
-                  fontSize: 12,
-                }}
-                formatter={(value) => formatINR(Number(value))}
-              />
-              <Line type="monotone" dataKey="net_worth" stroke="var(--success)" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <ChartContainer
+            config={SNAPSHOT_CONFIG}
+            height={220}
+            chart={
+              <LineChart data={rows}>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+                <XAxis
+                  dataKey="snapshot_date"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                  tickFormatter={(v) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : `${v}`)}
+                  width={48}
+                />
+                <ChartTooltip cursor={{ stroke: 'var(--border)' }} content={<ChartTooltipContent formatter={formatINR} />} />
+                <Line
+                  type="monotone"
+                  dataKey="net_worth"
+                  stroke="var(--success)"
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: 'var(--success)', stroke: 'var(--card)', strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: 'var(--success)', stroke: 'var(--card)', strokeWidth: 2 }}
+                />
+              </LineChart>
+            }
+          />
 
           <div className="mt-4">
             <DataTable

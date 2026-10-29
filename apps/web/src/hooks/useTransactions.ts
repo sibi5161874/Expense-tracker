@@ -19,6 +19,8 @@ import {
 } from '@repo/shared/queries/transactions';
 import type { TransactionInput } from '@repo/shared/schemas';
 import { STALE_TIME_SHORT, STALE_TIME_LONG } from '@/lib/queryStaleTimes';
+import { useCategories } from '@/hooks/useCategories';
+import { useAccounts } from '@/hooks/useAccounts';
 
 /** Removes rows with the given ids from every cached `['transactions', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -26,30 +28,56 @@ function removeFromTransactionsCache(old: unknown, ids: Set<string>) {
   return Array.isArray(old) ? old.filter((row) => !ids.has(row.id)) : old;
 }
 
-export function useTransactions(opts: { month?: string; page?: number; pageSize?: number } = {}) {
+export function useTransactions(
+  opts: { month?: string; page?: number; pageSize?: number; type?: 'Income' | 'Expense' | 'Transfer'; search?: string } = {}
+) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
 
+  // Resolving "search" to a backend filter needs more than `notes.ilike` — the search box also
+  // promises to match a category or account name (see DataTable's old searchableText below).
+  // Filtering an embedded category/account name directly would force an inner join in
+  // PostgREST and silently drop every transaction with no category assigned, so instead this
+  // resolves matching ids from the already-cached (STALE_TIME_LONG) categories/accounts lists
+  // client-side and passes plain `category_id`/`from_account_id`/`to_account_id` filters
+  // through to getTransactions — same two queries either way, just the small reference lists
+  // this page was already going to need for labels.
+  const { data: allCategories } = useCategories();
+  const { data: allAccounts } = useAccounts();
+
+  const search = opts.search?.trim();
+  const { categoryIds, accountIds } = useMemo(() => {
+    if (!search) return { categoryIds: undefined, accountIds: undefined };
+    const q = search.toLowerCase();
+    const categoryIds = (allCategories ?? []).filter((c) => c.name.toLowerCase().includes(q)).map((c) => c.id);
+    const accountIds = (allAccounts ?? []).filter((a) => a.name.toLowerCase().includes(q)).map((a) => a.id);
+    return {
+      categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
+      accountIds: accountIds.length > 0 ? accountIds : undefined,
+    };
+  }, [search, allCategories, allAccounts]);
+
+  const searchOpts = { ...opts, search, categoryIds, accountIds };
+
   const query = useQuery({
-    queryKey: ['transactions', userId, opts],
+    queryKey: ['transactions', userId, searchOpts],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getTransactions(supabase, userId, opts);
+      return getTransactions(supabase, userId, searchOpts);
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,
   });
 
   // Kept separate from the row query above (a `head: true` count-only request) so paginated
-  // views can render "Page X of Y" without adding a count to every page's payload — and keyed
-  // on just `month` since that's the only filter the list page actually applies via `opts`.
+  // views can render "Page X of Y" without adding a count to every page's payload.
   const countQuery = useQuery({
-    queryKey: ['transactionsCount', userId, opts.month],
+    queryKey: ['transactionsCount', userId, opts.month, opts.type, search, categoryIds, accountIds],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
-      return getTransactionsCount(supabase, userId, { month: opts.month });
+      return getTransactionsCount(supabase, userId, { month: opts.month, type: opts.type, search, categoryIds, accountIds });
     },
     enabled: !!userId,
     staleTime: STALE_TIME_SHORT,

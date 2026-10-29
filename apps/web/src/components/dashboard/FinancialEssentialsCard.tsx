@@ -48,8 +48,11 @@ function EssentialItemRow({ item }: { item: FinancialEssentialItem }) {
 
       <div className="bg-muted mt-2.5 h-2 w-full overflow-hidden rounded-full">
         <div
-          className={cn('h-full rounded-full transition-[width] duration-500', item.adequate ? 'bg-success' : 'bg-destructive')}
-          style={{ width: `${percent}%` }}
+          className={cn(
+            'h-full w-full origin-left rounded-full transition-transform duration-500 motion-reduce:transition-none',
+            item.adequate ? 'bg-success' : 'bg-destructive'
+          )}
+          style={{ transform: `scaleX(${percent / 100})` }}
         />
       </div>
 
@@ -57,7 +60,9 @@ function EssentialItemRow({ item }: { item: FinancialEssentialItem }) {
         <span className={cn('font-mono tabular-nums', item.adequate ? 'text-success' : 'text-destructive')}>
           {formatINR(item.current)}
         </span>
-        <span className="text-muted-foreground font-mono tabular-nums">of {formatINR(item.recommended)}</span>
+        <span className="text-muted-foreground tabular-nums">
+          of <span className="font-mono">{formatINR(item.recommended)}</span>
+        </span>
       </div>
     </div>
   );
@@ -90,7 +95,7 @@ export function FinancialEssentialsCard() {
         </div>
 
         <p className="text-muted-foreground mt-5 text-xs">
-          Simplified estimates based on your profile and data — not financial advice.
+          Simplified estimates based on your profile and data, not financial advice.
         </p>
       </CardContent>
     </Card>
