@@ -23,6 +23,7 @@ export function isGloballyRateLimitedPath(pathname: string): boolean {
  * down, quota exhausted) must let the request through rather than block the whole app.
  */
 export async function enforceGlobalApiLimit(key: string): Promise<NextResponse | null> {
+  if (process.env.E2E_MODE === 'true') return null;
   try {
     return await enforceRateLimit(`global:${key}`, GLOBAL_API_LIMIT, GLOBAL_API_WINDOW_MS);
   } catch {

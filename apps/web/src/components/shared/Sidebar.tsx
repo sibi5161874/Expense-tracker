@@ -265,7 +265,7 @@ export function Sidebar() {
       )}
     >
       <div className={cn("flex items-center gap-2 py-5", collapsed ? "justify-center px-3" : "px-6")}>
-        <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2" title={t("sidebar.backToDashboard")}>
+        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2" title={APP_BRANDING.name}>
           <Image src={APP_BRANDING.logoUrl} alt={APP_BRANDING.name} width={32} height={32} className="size-8 shrink-0 rounded-lg" />
           {!collapsed && <span className="flex-1 truncate text-lg font-semibold">{APP_BRANDING.name}</span>}
         </Link>

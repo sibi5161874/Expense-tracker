@@ -107,7 +107,7 @@ export function CryptoForm({ onSuccess, onCancel, editing }: CryptoFormProps) {
                         step="any"
                         placeholder="0.00000000"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                         value={field.value ?? ''}
                       />
                     </FormControl>
@@ -129,7 +129,7 @@ export function CryptoForm({ onSuccess, onCancel, editing }: CryptoFormProps) {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                           value={field.value ?? ''}
                         />
                       </FormControl>
@@ -150,7 +150,7 @@ export function CryptoForm({ onSuccess, onCancel, editing }: CryptoFormProps) {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                           value={field.value ?? ''}
                         />
                       </FormControl>

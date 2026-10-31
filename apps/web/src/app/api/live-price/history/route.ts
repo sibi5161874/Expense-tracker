@@ -26,6 +26,18 @@ function isRange(value: unknown): value is Range {
  * quote, so it gets its own route rather than a mode flag on that one.
  */
 export async function GET(req: Request) {
+  if (process.env.E2E_MODE === 'true') {
+    const url = new URL(req.url);
+    const ticker = url.searchParams.get('ticker') ?? 'MOCK';
+    const range = url.searchParams.get('range') ?? '1mo';
+    const points = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return { date: d.toISOString().slice(0, 10), close: 3500 + i * 2 };
+    });
+    return NextResponse.json({ ticker, range, points });
+  }
+
   const { supabase, user } = await resolveRequestUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 

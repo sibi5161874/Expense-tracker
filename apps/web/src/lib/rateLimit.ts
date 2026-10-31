@@ -66,6 +66,10 @@ export async function enforceRateLimit(
   windowMs: number,
   message = 'Too many requests — please wait a moment and try again.'
 ): Promise<NextResponse | null> {
+  // Every per-route rate limit funnels through here, not just the global one in
+  // globalRateLimit.ts — bypassing only that would still let an unrelated per-route limit
+  // (e.g. transaction creation) spuriously 429 a persona test hammering the UI.
+  if (process.env.E2E_MODE === 'true') return null;
   const result = await checkRateLimit(key, limit, windowMs);
   if (result.allowed) return null;
   return NextResponse.json(

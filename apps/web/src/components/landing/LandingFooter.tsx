@@ -40,10 +40,12 @@ export function LandingFooter() {
 
         <div className="border-border/60 text-muted-foreground mt-10 flex flex-col gap-4 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} {APP_BRANDING.name}. All rights reserved.</p>
-          <BuyMeACoffeeButton />
-          <p className="inline-flex items-center gap-1">
-            Made with <Heart className="text-destructive size-3.5 fill-current" /> in India
-          </p>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <BuyMeACoffeeButton />
+            <p className="inline-flex items-center gap-1">
+              Made with <Heart className="text-destructive size-3.5 fill-current" /> in India
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -137,7 +137,7 @@ export function RecurringTransactionForm({ onSuccess, onCancel, editing }: Recur
                   <FormControl>
                     <AmountInput
                       {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                       value={field.value ?? ''}
                     />
                   </FormControl>

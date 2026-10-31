@@ -21,6 +21,13 @@ let inflight: Promise<AmfiNavRow[]> | null = null;
  * separately (see prices/refresh/route.ts). If AMFI is down, the last good copy is served.
  */
 export async function getAmfiSchemes(): Promise<AmfiNavRow[]> {
+  if (process.env.E2E_MODE === 'true') {
+    return [
+      { schemeCode: '100001', isinGrowth: 'INE000A01001', isinReinvest: '', schemeName: '[E2E] Mock Equity Fund - Growth', nav: 125.5, date: new Date().toISOString().slice(0, 10) },
+      { schemeCode: '100002', isinGrowth: 'INE000A01002', isinReinvest: '', schemeName: '[E2E] Mock Debt Fund - Growth', nav: 48.2, date: new Date().toISOString().slice(0, 10) },
+    ];
+  }
+
   if (memory && Date.now() - memory.loadedAt < MF_NAV_TTL_SECONDS * 1000) return memory.rows;
 
   inflight ??= (async () => {

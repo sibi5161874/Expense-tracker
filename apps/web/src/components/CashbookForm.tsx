@@ -107,7 +107,7 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
                   <FormControl>
                     <AmountInput
                       {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                       value={field.value ?? ''}
                     />
                   </FormControl>
