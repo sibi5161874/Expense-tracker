@@ -115,7 +115,7 @@ export function OnboardingWizard({ onDone }: OnboardingWizardProps) {
                           min="0"
                           placeholder="0"
                           {...field}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                           value={field.value ?? 0}
                         />
                       </FormControl>
@@ -139,7 +139,7 @@ export function OnboardingWizard({ onDone }: OnboardingWizardProps) {
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                         value={field.value ?? ''}
                       />
                     </FormControl>
@@ -162,7 +162,7 @@ export function OnboardingWizard({ onDone }: OnboardingWizardProps) {
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                         value={field.value ?? ''}
                       />
                     </FormControl>

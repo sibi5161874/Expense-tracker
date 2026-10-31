@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PieChart, ShieldCheck, FileCheck2 } from 'lucide-react';
@@ -51,12 +52,12 @@ export function AuthCarousel() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent" />
 
       <div className="relative flex h-full flex-col justify-between p-10">
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight text-white">
+        <Link href="/" className="flex w-fit items-center gap-2 text-sm font-semibold tracking-tight text-white">
           <span className="bg-primary flex size-7 items-center justify-center rounded-lg text-primary-foreground text-xs font-bold">
             K
           </span>
           KashMap
-        </div>
+        </Link>
 
         <div className="max-w-sm">
           <AnimatePresence mode="wait">

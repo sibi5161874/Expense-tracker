@@ -16,6 +16,11 @@ import { getUserProfile } from '@repo/shared/queries/profile';
  * outside the portfolio itself (a watchlist, a benchmark, etc).
  */
 export async function GET(req: Request) {
+  if (process.env.E2E_MODE === 'true') {
+    const ticker = new URL(req.url).searchParams.get('ticker') ?? 'MOCK';
+    return Response.json({ ticker, price: 3500.0, currency: 'INR', source: 'mock', as_of: new Date().toISOString() });
+  }
+
   const { supabase, user } = await resolveRequestUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 

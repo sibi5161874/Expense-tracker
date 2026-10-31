@@ -77,7 +77,7 @@ export function RecurringDepositForm({ onSuccess, onCancel, editing }: Recurring
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                         value={field.value ?? ''}
                       />
                     </FormControl>
@@ -98,7 +98,7 @@ export function RecurringDepositForm({ onSuccess, onCancel, editing }: Recurring
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                         value={field.value ?? ''}
                       />
                     </FormControl>
@@ -150,7 +150,7 @@ export function RecurringDepositForm({ onSuccess, onCancel, editing }: Recurring
                       step="0.01"
                       placeholder="0.00"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                       value={field.value ?? ''}
                     />
                   </FormControl>

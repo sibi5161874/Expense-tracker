@@ -25,6 +25,18 @@ import type { Database } from '@repo/shared/types';
 const FX_CACHE_KEY = 'fx:rates';
 const MAX_TOOL_ROUNDS = 4;
 
+/** Human-readable step labels for the chat UI's step trace — shown only for tools the model
+ * actually called this turn, never a fixed/fake list. */
+const TOOL_STEP_LABELS: Record<string, string> = {
+  get_net_worth_summary: 'Checked your net worth',
+  get_recent_transactions: 'Checked your transactions',
+  get_portfolio_holdings: 'Checked your investments',
+  get_budget_status: 'Checked your budgets',
+  get_goals: 'Checked your goals',
+  get_recurring_bills_and_sips: 'Checked your recurring bills',
+  get_insurance_policies: 'Checked your insurance',
+};
+
 const SYSTEM_PROMPT = `You are KashMap's in-app financial assistant. You answer questions about the CURRENT user's own transactions, investments, budgets, goals, recurring bills, insurance policies, and net worth — nothing else.
 
 Rules:
@@ -212,6 +224,22 @@ async function runTool(
 }
 
 export async function POST(req: Request) {
+  if (process.env.E2E_MODE === 'true') {
+    // Matches the real SSE contract (see the stream below) so the chat UI's own stream
+    // parser — and the orb's mood transitions driven by it — works unchanged in E2E tests.
+    const encoder = new TextEncoder();
+    const mockStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const send = (event: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        send({ type: 'start' });
+        send({ type: 'token', text: 'Mock AI response for tests.' });
+        send({ type: 'done' });
+        controller.close();
+      },
+    });
+    return new Response(mockStream, { headers: { 'Content-Type': 'text/event-stream' } });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -249,75 +277,162 @@ export async function POST(req: Request) {
     })),
   ];
 
-  try {
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const response = await groq.chat.completions.create(
-        {
-          model: AI_CHAT_MODEL,
-          messages,
-          tools: TOOLS,
-          tool_choice: 'auto',
-          temperature: 0.2,
-        },
-        {
-          signal: AbortSignal.timeout(AI_CHAT_TIMEOUT_MS),
-        }
-      );
+  const encoder = new TextEncoder();
+  const requestId = getRequestId(req);
 
-      const choice = response.choices?.[0];
-      const message = choice?.message;
-      if (!message) {
-        return NextResponse.json({ reply: "I couldn't come up with an answer for that — try rephrasing?" });
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let closed = false;
+      function send(
+        event:
+          | { type: 'start' }
+          | { type: 'token'; text: string }
+          | { type: 'step'; label: string }
+          | { type: 'done' }
+          | { type: 'error'; message: string }
+      ) {
+        if (closed) return;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      }
+      function close() {
+        if (closed) return;
+        closed = true;
+        controller.close();
       }
 
-      const toolCalls = message.tool_calls;
-      if (!toolCalls || toolCalls.length === 0) {
-        const text = message.content?.trim();
-        return NextResponse.json({ reply: text || "I couldn't come up with an answer for that — try rephrasing?" });
-      }
+      const startedAt = Date.now();
 
-      // Add the assistant's response with tool calls to conversation history
-      messages.push(message);
+      try {
+        for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+          // Tool-call rounds (the model deciding which data to fetch) and the final text round
+          // both go through the same streamed call — Groq streams tool-call argument deltas the
+          // same way it streams content deltas, keyed by `index`, so we accumulate either kind
+          // as chunks arrive and only know which round this was once the stream ends.
+          const chatStream = await groq.chat.completions.create(
+            {
+              model: AI_CHAT_MODEL,
+              messages,
+              tools: TOOLS,
+              tool_choice: 'auto',
+              temperature: 0.2,
+              stream: true,
+            },
+            { signal: AbortSignal.timeout(AI_CHAT_TIMEOUT_MS) }
+          );
 
-      // Execute all tool calls
-      for (const tc of toolCalls) {
-        const fnName = tc.function.name;
-        let fnArgs: Record<string, unknown> = {};
-        try {
-          fnArgs = JSON.parse(tc.function.arguments || '{}');
-        } catch {
-          fnArgs = {};
+          let content = '';
+          let sentStart = false;
+          const toolCallsByIndex = new Map<number, { id: string; name: string; args: string }>();
+
+          for await (const chunk of chatStream) {
+            const delta = chunk.choices?.[0]?.delta;
+            if (!delta) continue;
+
+            if (delta.content) {
+              content += delta.content;
+              if (!sentStart) {
+                send({ type: 'start' });
+                sentStart = true;
+              }
+              send({ type: 'token', text: delta.content });
+            }
+
+            if (delta.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                const existing = toolCallsByIndex.get(tc.index) ?? { id: '', name: '', args: '' };
+                if (tc.id) existing.id = tc.id;
+                if (tc.function?.name) existing.name += tc.function.name;
+                if (tc.function?.arguments) existing.args += tc.function.arguments;
+                toolCallsByIndex.set(tc.index, existing);
+              }
+            }
+          }
+
+          const toolCalls = Array.from(toolCallsByIndex.values());
+
+          // Only report a "Thought for Ns" step when it precedes real tool use — round 0's own
+          // content, if any, has already streamed to the client as individual 'token' events by
+          // this point, so a step reported *after* that would appear out of order; when the
+          // model just answers directly there's no separate phase worth reporting anyway.
+          if (round === 0 && toolCalls.length > 0) {
+            const thoughtSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+            send({ type: 'step', label: `Thought for ${thoughtSeconds}s` });
+          }
+
+          if (toolCalls.length === 0) {
+            if (!content.trim()) {
+              send({ type: 'start' });
+              send({ type: 'token', text: "I couldn't come up with an answer for that — try rephrasing?" });
+            }
+            send({ type: 'done' });
+            close();
+            return;
+          }
+
+          // Tool round — nothing has streamed to the client yet (no 'start' sent), run every
+          // call the model asked for and feed the results back in before the next round.
+          messages.push({
+            role: 'assistant',
+            content: content || null,
+            tool_calls: toolCalls.map((tc, i) => ({
+              id: tc.id || `call_${i}`,
+              type: 'function' as const,
+              function: { name: tc.name, arguments: tc.args },
+            })),
+          });
+
+          for (const tc of toolCalls) {
+            let fnArgs: Record<string, unknown> = {};
+            try {
+              fnArgs = JSON.parse(tc.args || '{}');
+            } catch {
+              fnArgs = {};
+            }
+
+            let toolResult: unknown;
+            try {
+              toolResult = await runTool(tc.name, fnArgs, supabase, user.id);
+            } catch (e) {
+              logError('ai-chat.tool', e, { userId: user.id, tool: tc.name, requestId });
+              toolResult = { error: 'Failed to fetch that data.' };
+            }
+
+            send({ type: 'step', label: TOOL_STEP_LABELS[tc.name] ?? `Checked ${tc.name}` });
+
+            messages.push({
+              role: 'tool',
+              tool_call_id: tc.id || tc.name,
+              content: JSON.stringify(toolResult),
+            });
+          }
         }
 
-        let toolResult: unknown;
-        try {
-          toolResult = await runTool(fnName, fnArgs, supabase, user.id);
-        } catch (e) {
-          logError('ai-chat.tool', e, { userId: user.id, tool: fnName, requestId: getRequestId(req) });
-          toolResult = { error: 'Failed to fetch that data.' };
-        }
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          content: JSON.stringify(toolResult),
+        send({ type: 'start' });
+        send({
+          type: 'token',
+          text: "That question needed more digging than I can do right now — try breaking it into smaller questions?",
         });
+        send({ type: 'done' });
+        close();
+      } catch (e) {
+        const isTimeout = e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError');
+        logError('ai-chat.send', e, { userId: user.id, requestId });
+        send({
+          type: 'error',
+          message: isTimeout
+            ? "The assistant didn't respond in time — please try again."
+            : "Couldn't reach the AI assistant, please try again.",
+        });
+        close();
       }
-    }
+    },
+  });
 
-    return NextResponse.json({
-      reply: "That question needed more digging than I can do right now — try breaking it into smaller questions?",
-    });
-  } catch (e) {
-    const isTimeout = e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError');
-    logError('ai-chat.send', e, { userId: user.id, requestId: getRequestId(req) });
-    return NextResponse.json(
-      {
-        error: isTimeout
-          ? "The assistant didn't respond in time — please try again."
-          : "Couldn't reach the AI assistant, please try again.",
-      },
-      { status: isTimeout ? 504 : 502 }
-    );
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
 }

@@ -19,6 +19,23 @@ let client: Razorpay | null = null;
 
 /** Throws with a message safe to return to the client — never leaks which env var specifically, just that payments aren't configured. */
 export function getRazorpayClient(): Razorpay {
+  // In E2E tests, fake just the network boundary (orders.create) rather than short-circuiting
+  // the whole create-order route — that keeps the real reservation/DB logic under test, with
+  // zero risk of a real Razorpay charge.
+  if (process.env.E2E_MODE === 'true') {
+    return {
+      orders: {
+        create: async (opts: { amount: number; currency: string; receipt?: string }) => ({
+          id: `order_mock_${Date.now()}`,
+          amount: opts.amount,
+          currency: opts.currency,
+          receipt: opts.receipt,
+          status: 'created',
+        }),
+      },
+    } as unknown as Razorpay;
+  }
+
   if (client) return client;
 
   const keyId = process.env.RAZORPAY_KEY_ID;

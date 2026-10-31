@@ -60,6 +60,28 @@ function makeRequest(body: unknown) {
   });
 }
 
+type Delta = { content?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
+
+/** A fake Groq streamed response: an async-iterable of chunks, one per delta given. */
+function fakeStream(deltas: Delta[]) {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      for (const delta of deltas) {
+        yield { choices: [{ delta }] };
+      }
+    },
+  };
+}
+
+/** Reads every SSE `data: {...}` event out of the route's streamed Response body. */
+async function readEvents(res: Response): Promise<Array<Record<string, unknown>>> {
+  const text = await res.text();
+  return text
+    .split('\n\n')
+    .filter((chunk) => chunk.startsWith('data: '))
+    .map((chunk) => JSON.parse(chunk.slice('data: '.length)));
+}
+
 const validBody = { messages: [{ role: 'user', content: 'What is my net worth?' }] };
 
 describe('POST /api/ai-chat', () => {
@@ -108,52 +130,53 @@ describe('POST /api/ai-chat', () => {
 
   it('skips the rate limit entirely for a Pro/trial user', async () => {
     isUnlimitedTierMock.mockReturnValue(true);
-    createCompletionMock.mockResolvedValue({
-      choices: [{ message: { role: 'assistant', content: 'You have no transactions yet.', tool_calls: [] } }],
-    });
+    createCompletionMock.mockResolvedValue(fakeStream([{ content: 'You have no transactions yet.' }]));
     await POST(makeRequest(validBody));
     expect(enforceRateLimitMock).not.toHaveBeenCalled();
   });
 
-  it('returns the final text reply when Groq answers without needing a tool', async () => {
-    createCompletionMock.mockResolvedValue({
-      choices: [{ message: { role: 'assistant', content: 'Your net worth is looking good.', tool_calls: [] } }],
-    });
+  it('streams the final reply token by token when Groq answers without needing a tool', async () => {
+    createCompletionMock.mockResolvedValue(
+      fakeStream([{ content: 'Your net worth ' }, { content: 'is looking good.' }])
+    );
     const res = await POST(makeRequest(validBody));
-    const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.reply).toBe('Your net worth is looking good.');
+    expect(res.headers.get('Content-Type')).toBe('text/event-stream');
+
+    const events = await readEvents(res);
+    // No tool use means no separate "thinking" phase to report — content streams immediately.
+    expect(events.some((e) => e.type === 'step')).toBe(false);
+    expect(events[0]).toEqual({ type: 'start' });
+    expect(events.filter((e) => e.type === 'token').map((e) => e.text).join('')).toBe(
+      'Your net worth is looking good.'
+    );
+    expect(events.at(-1)).toEqual({ type: 'done' });
   });
 
-  it('runs the requested tool and feeds the result back before answering', async () => {
+  it('runs the requested tool and feeds the result back before streaming the answer, with a step event per tool', async () => {
     createCompletionMock
-      .mockResolvedValueOnce({
-        choices: [
+      .mockResolvedValueOnce(
+        fakeStream([
           {
-            message: {
-              role: 'assistant',
-              content: null,
-              tool_calls: [
-                {
-                  id: 'call_1',
-                  type: 'function',
-                  function: { name: 'get_net_worth_summary', arguments: '{}' },
-                },
-              ],
-            },
+            tool_calls: [
+              { index: 0, id: 'call_1', function: { name: 'get_net_worth_summary', arguments: '' } },
+            ],
           },
-        ],
-      })
-      .mockResolvedValueOnce({
-        choices: [{ message: { role: 'assistant', content: 'Your net worth is ₹1,00,000.', tool_calls: [] } }],
-      });
+          { tool_calls: [{ index: 0, function: { arguments: '{}' } }] },
+        ])
+      )
+      .mockResolvedValueOnce(fakeStream([{ content: 'Your net worth is ₹1,00,000.' }]));
 
     const res = await POST(makeRequest(validBody));
-    const body = await res.json();
+    const events = await readEvents(res);
 
     expect(computeUserNetWorthMock).toHaveBeenCalledWith(expect.anything(), 'user_1', {});
     expect(createCompletionMock).toHaveBeenCalledTimes(2);
-    expect(body.reply).toBe('Your net worth is ₹1,00,000.');
+    const stepLabels = events.filter((e) => e.type === 'step').map((e) => e.label);
+    expect(stepLabels).toEqual([expect.stringMatching(/^Thought for \d+s$/), 'Checked your net worth']);
+    expect(events.filter((e) => e.type === 'token').map((e) => e.text).join('')).toBe(
+      'Your net worth is ₹1,00,000.'
+    );
 
     // The second call must include the tool response feeding the first call's result back in.
     const secondCallArgs = createCompletionMock.mock.calls[1]![0];
@@ -163,17 +186,20 @@ describe('POST /api/ai-chat', () => {
     expect(JSON.parse(toolResultContent.content)).toEqual({ netWorth: 100000, unconvertedCurrencies: [] });
   });
 
-  it('returns 502 and logs when the Groq call throws', async () => {
+  it('emits an error event (still HTTP 200, since streaming already started) when the Groq call throws', async () => {
     createCompletionMock.mockRejectedValue(new Error('upstream down'));
     const res = await POST(makeRequest(validBody));
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(200);
+    const events = await readEvents(res);
+    expect(events).toEqual([{ type: 'error', message: "Couldn't reach the AI assistant, please try again." }]);
   });
 
-  it('returns 504 when the Groq call times out', async () => {
+  it('emits a timeout-specific error event when the Groq call times out', async () => {
     const abortError = new Error('The operation was aborted');
     abortError.name = 'AbortError';
     createCompletionMock.mockRejectedValue(abortError);
     const res = await POST(makeRequest(validBody));
-    expect(res.status).toBe(504);
+    const events = await readEvents(res);
+    expect(events).toEqual([{ type: 'error', message: "The assistant didn't respond in time — please try again." }]);
   });
 });

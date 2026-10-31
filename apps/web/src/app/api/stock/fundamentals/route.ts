@@ -28,6 +28,11 @@ const MODULES = 'summaryDetail,assetProfile,price';
  * nothing in common with the chart endpoint's.
  */
 export async function GET(req: Request) {
+  if (process.env.E2E_MODE === 'true') {
+    const ticker = new URL(req.url).searchParams.get('ticker') ?? 'MOCK';
+    return NextResponse.json({ ticker, trailingPE: 25, fiftyTwoWeekHigh: 4000, fiftyTwoWeekLow: 2000 });
+  }
+
   const { supabase, user } = await resolveRequestUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
