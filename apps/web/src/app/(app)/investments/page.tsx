@@ -13,7 +13,7 @@ import { BrokerImportDialog } from '@/components/shared/BrokerImportDialog';
 import { InstitutionLogo } from '@/components/shared/InstitutionLogo';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { DataTable, type DataTableColumn, type DataTableFilter, type SortDirection } from '@/components/shared/DataTable';
 import { InvestmentLogCalendarView } from '@/components/investments/InvestmentLogCalendarView';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ export default function InvestmentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -59,6 +60,8 @@ export default function InvestmentsPage() {
     pageSize,
     search: search || undefined,
     action: actionFilter ? (actionFilter as InvestmentLogEntry['action']) : undefined,
+    sortBy: sort ? (sort.columnId as 'date' | 'quantity' | 'price') : undefined,
+    sortAscending: sort ? sort.direction === 'asc' : undefined,
   });
   const { hasFeature } = useEntitlements();
   const { t } = useTranslation();
@@ -159,11 +162,12 @@ export default function InvestmentsPage() {
       sortValue: (i) => i.price,
     },
     {
+      // Derived (quantity*price+fees) — no backing column to sort by server-side across pages,
+      // so this one stays unsortable rather than only reordering whatever page happens to be loaded.
       id: 'total',
       header: 'Total',
       className: 'text-right',
       cell: (i) => <AmountText value={i.quantity * i.price + (i.fees || 0)} colorBySign={false} />,
-      sortValue: (i) => i.quantity * i.price + (i.fees || 0),
     },
     {
       id: 'account',
@@ -273,6 +277,11 @@ export default function InvestmentsPage() {
           filterValues={{ action: actionFilter }}
           onFilterChange={(_filterId, value) => {
             setActionFilter(value);
+            setPage(0);
+          }}
+          sort={sort}
+          onSortChange={(next) => {
+            setSort(next);
             setPage(0);
           }}
           selectable

@@ -18,7 +18,14 @@ export interface GetInvestmentLogOptions {
   search?: string;
   symbols?: string[];
   accountIds?: string[];
+  /** Server-side sort — defaults to date desc. Whitelisted below since it's interpolated
+   * straight into the query; `total` (quantity*price+fees) isn't here because it's derived
+   * client-side and has no backing column to sort by across pages. */
+  sortBy?: 'date' | 'quantity' | 'price';
+  sortAscending?: boolean;
 }
+
+const SORTABLE_INVESTMENT_LOG_COLUMNS = new Set(['date', 'quantity', 'price']);
 
 function buildSearchOrClause(opts: Pick<GetInvestmentLogOptions, 'search' | 'symbols' | 'accountIds'>): string | null {
   const clauses: string[] = [];
@@ -71,7 +78,10 @@ export async function getInvestmentLog(
   const from = page * pageSize;
   const to = from + pageSize - 1;
 
-  query = query.order('date', { ascending: false }).range(from, to);
+  const sortBy = opts.sortBy && SORTABLE_INVESTMENT_LOG_COLUMNS.has(opts.sortBy) ? opts.sortBy : 'date';
+  const sortAscending = opts.sortBy ? (opts.sortAscending ?? true) : false;
+
+  query = query.order(sortBy, { ascending: sortAscending }).range(from, to);
 
   const { data, error } = await query;
 

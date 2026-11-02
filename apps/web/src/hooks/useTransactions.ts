@@ -29,7 +29,15 @@ function removeFromTransactionsCache(old: unknown, ids: Set<string>) {
 }
 
 export function useTransactions(
-  opts: { month?: string; page?: number; pageSize?: number; type?: 'Income' | 'Expense' | 'Transfer'; search?: string } = {}
+  opts: {
+    month?: string;
+    page?: number;
+    pageSize?: number;
+    type?: 'Income' | 'Expense' | 'Transfer';
+    search?: string;
+    sortBy?: 'date' | 'amount';
+    sortAscending?: boolean;
+  } = {}
 ) {
   const { user } = useAuth();
   const userId = user?.id;

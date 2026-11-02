@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { investmentLogSchema, type InvestmentLogInput } from '@repo/shared/schemas';
-import { parseSupabaseError } from '@repo/shared/utils';
+import { buildInvestmentLogMirrorTransaction } from '@repo/shared/logic';
+import { parseSupabaseError, formatINR } from '@repo/shared/utils';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
 import { useRefreshPrices } from '@/hooks/useRefreshPrices';
@@ -107,6 +108,28 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
   const symbol = form.watch('symbol');
   const isFund = assetType === 'Mutual Fund';
   const currentAssetConfig = ASSET_CONFIG[assetType] ?? ASSET_CONFIG.Stock;
+
+  // Investment entries mirror their cash side into a real transaction against the linked
+  // account (see createInvestmentLog) — this preview surfaces that *before* saving, so a BUY
+  // never silently debits an account the user wasn't expecting.
+  const linkedAccountId = form.watch('linked_account_id');
+  const date = form.watch('date');
+  const quantity = form.watch('quantity');
+  const price = form.watch('price');
+  const fees = form.watch('fees');
+  const mirrorPreview = useMemo(() => {
+    if (!linkedAccountId || quantity == null || price == null) return null;
+    return buildInvestmentLogMirrorTransaction({
+      date,
+      symbol: symbol ?? '',
+      action,
+      quantity,
+      price,
+      fees: fees ?? 0,
+      linked_account_id: linkedAccountId,
+    });
+  }, [linkedAccountId, date, symbol, action, quantity, price, fees]);
+  const linkedAccountName = accounts?.find((a) => a.id === linkedAccountId)?.name;
 
   function handleAssetTypeChange(next: AssetType) {
     const prev = form.getValues('asset_type');
@@ -269,6 +292,12 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
               label="Linked Account"
               accounts={accounts}
             />
+
+            {mirrorPreview && linkedAccountName && (
+              <p className="text-muted-foreground text-xs">
+                A {formatINR(mirrorPreview.amount)} {mirrorPreview.type.toLowerCase()} will be recorded in {linkedAccountName}.
+              </p>
+            )}
 
             <NotesField control={form.control} name="notes" />
 

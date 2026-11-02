@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cashbookSchema, type CashbookInput } from '@repo/shared/schemas';
-import { parseSupabaseError } from '@repo/shared/utils';
+import { buildCashbookMirrorTransaction } from '@repo/shared/logic';
+import { parseSupabaseError, formatINR } from '@repo/shared/utils';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useCashbook } from '@/hooks/useCashbook';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,19 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
       date: new Date().toISOString().split('T')[0],
     },
   });
+
+  // Cashbook entries mirror their cash side into a real transaction against the account used
+  // (see createCashbook) — this preview surfaces that *before* saving.
+  const accountUsedId = form.watch('account_used_id');
+  const date = form.watch('date');
+  const counterparty = form.watch('counterparty');
+  const flow = form.watch('flow');
+  const amount = form.watch('amount');
+  const mirrorPreview = useMemo(() => {
+    if (!accountUsedId || amount == null) return null;
+    return buildCashbookMirrorTransaction({ date, counterparty: counterparty ?? '', flow, amount, account_used_id: accountUsedId });
+  }, [accountUsedId, date, counterparty, flow, amount]);
+  const accountUsedName = accounts?.find((a) => a.id === accountUsedId)?.name;
 
   async function onSubmit(data: CashbookInput) {
     setFormError(null);
@@ -131,6 +145,12 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
             />
 
             <AccountSelectField control={form.control} name="account_used_id" label="Account Used" accounts={accounts} />
+
+            {mirrorPreview && accountUsedName && (
+              <p className="text-muted-foreground text-xs">
+                A {formatINR(mirrorPreview.amount)} {mirrorPreview.type.toLowerCase()} will be recorded in {accountUsedName}.
+              </p>
+            )}
 
             <NotesField control={form.control} name="notes" />
 
