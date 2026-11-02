@@ -11,7 +11,7 @@ import { ImportDialog } from '@/components/shared/ImportDialog';
 import { BankStatementImportDialog } from '@/components/shared/BankStatementImportDialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { ProLockedButton } from '@/components/shared/ProGate';
-import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { DataTable, type DataTableColumn, type DataTableFilter, type SortDirection } from '@/components/shared/DataTable';
 import { TransactionsCalendarView } from '@/components/transactions/TransactionsCalendarView';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function TransactionsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -56,6 +57,8 @@ export default function TransactionsPage() {
     pageSize,
     search: search || undefined,
     type: typeFilter ? (typeFilter as 'Income' | 'Expense' | 'Transfer') : undefined,
+    sortBy: sort ? (sort.columnId as 'date' | 'amount') : undefined,
+    sortAscending: sort ? sort.direction === 'asc' : undefined,
   });
   const { hasFeature } = useEntitlements();
   // Renamed from the usual `t` — this file's own `Transaction` row variables are already named
@@ -251,6 +254,11 @@ export default function TransactionsPage() {
           filterValues={{ type: typeFilter }}
           onFilterChange={(_filterId, value) => {
             setTypeFilter(value);
+            setPage(0);
+          }}
+          sort={sort}
+          onSortChange={(next) => {
+            setSort(next);
             setPage(0);
           }}
           selectable

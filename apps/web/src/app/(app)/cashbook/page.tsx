@@ -8,7 +8,7 @@ import { CashbookForm } from '@/components/CashbookForm';
 import { CounterpartySummaryCard } from '@/components/cashbook/CounterpartySummaryCard';
 import { ImportDialog } from '@/components/shared/ImportDialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { DataTable, type DataTableColumn, type DataTableFilter } from '@/components/shared/DataTable';
+import { DataTable, type DataTableColumn, type DataTableFilter, type SortDirection } from '@/components/shared/DataTable';
 import { CashbookCalendarView } from '@/components/cashbook/CashbookCalendarView';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ export default function CashbookPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [flowFilter, setFlowFilter] = useState('');
+  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -54,6 +55,8 @@ export default function CashbookPage() {
     pageSize,
     search: search || undefined,
     flow: flowFilter ? (flowFilter as 'Gave' | 'Received') : undefined,
+    sortBy: sort ? (sort.columnId as 'date' | 'amount') : undefined,
+    sortAscending: sort ? sort.direction === 'asc' : undefined,
   });
 
   const sortedSummaryEntries = useMemo(() => {
@@ -232,6 +235,11 @@ export default function CashbookPage() {
             filterValues={{ flow: flowFilter }}
             onFilterChange={(_filterId, value) => {
               setFlowFilter(value);
+              setPage(0);
+            }}
+            sort={sort}
+            onSortChange={(next) => {
+              setSort(next);
               setPage(0);
             }}
             selectable

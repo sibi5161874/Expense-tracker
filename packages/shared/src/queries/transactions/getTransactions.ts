@@ -22,7 +22,13 @@ export interface GetTransactionsOptions {
   /** Account ids whose name matched `search`, matched against either side of the transaction
    * (from_account_id or to_account_id) — same reasoning as categoryIds. */
   accountIds?: string[];
+  /** Server-side sort — defaults to date desc. Whitelisted below since it's interpolated
+   * straight into the query. */
+  sortBy?: 'date' | 'amount';
+  sortAscending?: boolean;
 }
+
+const SORTABLE_TRANSACTIONS_COLUMNS = new Set(['date', 'amount']);
 
 /** Builds the shared `.or(...)` search clause so getTransactions and getTransactionsCount can
  * never drift apart on what "search" means. Returns null when there's nothing to search by. */
@@ -84,7 +90,10 @@ export async function getTransactions(
   const from = page * pageSize;
   const to = from + pageSize - 1;
 
-  query = query.order('date', { ascending: false }).range(from, to);
+  const sortBy = opts.sortBy && SORTABLE_TRANSACTIONS_COLUMNS.has(opts.sortBy) ? opts.sortBy : 'date';
+  const sortAscending = opts.sortBy ? (opts.sortAscending ?? true) : false;
+
+  query = query.order(sortBy, { ascending: sortAscending }).range(from, to);
 
   const { data, error } = await query;
 

@@ -64,9 +64,19 @@ interface DataTableProps<T> {
   onPageSizeChange?: (pageSize: number) => void;
   pageSizeOptions?: number[];
   animateRows?: boolean;
+  /**
+   * Controlled sort — when provided (together with `onSortChange`), clicking a header no
+   * longer re-sorts `data` client-side (it's assumed to already be one server-sorted page) and
+   * instead reports the next sort state upward for the caller to pass into its own query.
+   * Required whenever `data` is one server-paginated page: sorting only that page client-side
+   * only ever reorders the rows already fetched, which is exactly the "sort only reorders the
+   * current page, not the whole dataset" bug this prop exists to prevent.
+   */
+  sort?: { columnId: string; direction: SortDirection } | null;
+  onSortChange?: (next: { columnId: string; direction: SortDirection } | null) => void;
 }
 
-type SortDirection = 'asc' | 'desc';
+export type SortDirection = 'asc' | 'desc';
 
 // Module-level so it's referentially stable across renders — a fresh `{}` as the fallback for
 // an unset `filterValues` would otherwise make the `filtered` useMemo below recompute (and,
@@ -124,17 +134,21 @@ export function DataTable<T>({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
   animateRows = false,
+  sort: controlledSort,
+  onSortChange,
 }: DataTableProps<T>) {
   const isSearchControlled = onSearchChange !== undefined;
   const isFilterControlled = onFilterChange !== undefined;
+  const isSortControlled = onSortChange !== undefined;
 
   const [uncontrolledSearch, setUncontrolledSearch] = useState('');
   const [uncontrolledFilters, setUncontrolledFilters] = useState<Record<string, string>>({});
-  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
+  const [uncontrolledSort, setUncontrolledSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const search = isSearchControlled ? (controlledSearch ?? '') : uncontrolledSearch;
   const activeFilters = isFilterControlled ? (controlledFilterValues ?? EMPTY_FILTERS) : uncontrolledFilters;
+  const activeSort = isSortControlled ? (controlledSort ?? null) : uncontrolledSort;
 
   // Local state for the input itself so typing stays instant; the debounced effect below is
   // what actually calls the (likely network-triggering) onSearchChange. Synced to the
@@ -176,27 +190,35 @@ export function DataTable<T>({
       }
     }
 
-    if (sort) {
-      const column = columns.find((c) => c.id === sort.columnId);
+    // Controlled mode: `data` is already the caller's server-sorted page — re-sorting it again
+    // client-side would only ever reorder that one page, the exact "sort only reorders the
+    // current page" bug this split exists to prevent.
+    if (!isSortControlled && activeSort) {
+      const column = columns.find((c) => c.id === activeSort.columnId);
       if (column?.sortValue) {
         rows = [...rows].sort((a, b) => {
           const av = column.sortValue!(a);
           const bv = column.sortValue!(b);
           const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-          return sort.direction === 'asc' ? cmp : -cmp;
+          return activeSort.direction === 'asc' ? cmp : -cmp;
         });
       }
     }
 
     return rows;
-  }, [data, search, activeFilters, filters, sort, columns, searchableText, isSearchControlled, isFilterControlled]);
+  }, [data, search, activeFilters, filters, activeSort, columns, searchableText, isSearchControlled, isFilterControlled, isSortControlled]);
 
   function toggleSort(columnId: string) {
-    setSort((prev) => {
-      if (!prev || prev.columnId !== columnId) return { columnId, direction: 'asc' };
-      if (prev.direction === 'asc') return { columnId, direction: 'desc' };
-      return null;
-    });
+    const current = activeSort;
+    const next: { columnId: string; direction: SortDirection } | null =
+      !current || current.columnId !== columnId
+        ? { columnId, direction: 'asc' }
+        : current.direction === 'asc'
+          ? { columnId, direction: 'desc' }
+          : null;
+
+    if (isSortControlled) onSortChange(next);
+    else setUncontrolledSort(next);
   }
 
   function toggleRow(id: string) {
@@ -320,8 +342,8 @@ export function DataTable<T>({
                   <span className="inline-flex items-center gap-1">
                     {col.header}
                     {col.sortValue &&
-                      (sort?.columnId === col.id ? (
-                        sort.direction === 'asc' ? (
+                      (activeSort?.columnId === col.id ? (
+                        activeSort.direction === 'asc' ? (
                           <ArrowUp className="size-3" />
                         ) : (
                           <ArrowDown className="size-3" />

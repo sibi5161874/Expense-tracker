@@ -31,6 +31,8 @@ export function useInvestmentLog(
     pageSize?: number;
     action?: 'BUY' | 'SELL' | 'SIP' | 'DIVIDEND' | 'BONUS' | 'SPLIT';
     search?: string;
+    sortBy?: 'date' | 'quantity' | 'price';
+    sortAscending?: boolean;
   } = {}
 ) {
   const { user } = useAuth();

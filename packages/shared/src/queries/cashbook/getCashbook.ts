@@ -15,7 +15,13 @@ export interface GetCashbookOptions {
    * client-side (accounts are a small, already-cached list) and passed in as plain ids. */
   search?: string;
   accountIds?: string[];
+  /** Server-side sort — defaults to date desc. Whitelisted below since it's interpolated
+   * straight into the query. */
+  sortBy?: 'date' | 'amount';
+  sortAscending?: boolean;
 }
+
+const SORTABLE_CASHBOOK_COLUMNS = new Set(['date', 'amount']);
 
 function buildSearchOrClause(opts: Pick<GetCashbookOptions, 'search' | 'accountIds'>): string | null {
   const clauses: string[] = [];
@@ -61,7 +67,10 @@ export async function getCashbook(
   const from = page * pageSize;
   const to = from + pageSize - 1;
 
-  query = query.order('date', { ascending: false }).range(from, to);
+  const sortBy = opts.sortBy && SORTABLE_CASHBOOK_COLUMNS.has(opts.sortBy) ? opts.sortBy : 'date';
+  const sortAscending = opts.sortBy ? (opts.sortAscending ?? true) : false;
+
+  query = query.order(sortBy, { ascending: sortAscending }).range(from, to);
 
   const { data, error } = await query;
 

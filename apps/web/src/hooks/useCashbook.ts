@@ -26,7 +26,15 @@ function removeFromCashbookCache(old: unknown, ids: Set<string>) {
 }
 
 export function useCashbook(
-  opts: { counterparty?: string; page?: number; pageSize?: number; flow?: 'Gave' | 'Received'; search?: string } = {}
+  opts: {
+    counterparty?: string;
+    page?: number;
+    pageSize?: number;
+    flow?: 'Gave' | 'Received';
+    search?: string;
+    sortBy?: 'date' | 'amount';
+    sortAscending?: boolean;
+  } = {}
 ) {
   const { user } = useAuth();
   const userId = user?.id;
