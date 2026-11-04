@@ -61,9 +61,6 @@ export default function TransactionsPage() {
     sortAscending: sort ? sort.direction === 'asc' : undefined,
   });
   const { hasFeature } = useEntitlements();
-  // Renamed from the usual `t` — this file's own `Transaction` row variables are already named
-  // `t` throughout (see the column defs and callbacks below), so the translation function uses
-  // a different name here to avoid shadowing.
   const { t: translate } = useTranslation();
 
   function goToUpgrade() {
@@ -71,11 +68,6 @@ export default function TransactionsPage() {
     router.push('/settings?tab=billing');
   }
 
-  // Stagger-fade rows in only on the very first successful load — never on pagination or
-  // refetch. Tracked as state, not a ref (refs can't be read during render), flipped via the
-  // same render-time "adjusting state" pattern used on the portfolio page: this render's
-  // shouldAnimateRows is computed first and used as-is, then setHasAnimated schedules the
-  // flag for next render without this render ever re-reading it.
   const [hasAnimated, setHasAnimated] = useState(false);
   const shouldAnimateRows = !isLoading && !hasAnimated;
   if (shouldAnimateRows) {
@@ -84,8 +76,6 @@ export default function TransactionsPage() {
 
   const handleEdit = useCallback((transaction: Transaction) => setEditingTransaction(transaction), []);
 
-  /** Every field `create`/`createTransactionsBulk` need to reconstruct a deleted row — shared
-   * by the single- and bulk-delete undo paths below. */
   const toTransactionInput = useCallback(
     (t: Transaction) => ({
       date: t.date,
@@ -100,9 +90,6 @@ export default function TransactionsPage() {
     []
   );
 
-  /** Deletes one transaction and offers a 6-second "Undo" that re-creates it from the row's
-   * own fields — a real recreate, not a soft-delete, since there's no `deleted_at` column to
-   * restore from. */
   const handleDeleteWithUndo = useCallback(
     (t: Transaction) => {
       deleteTransaction(t.id);
@@ -141,16 +128,25 @@ export default function TransactionsPage() {
       id: 'amount',
       header: 'Amount',
       className: 'text-right',
-      cell: (t) => (
-        <AmountText value={t.amount} sign={t.type === 'Income' ? 'positive' : t.type === 'Expense' ? 'negative' : 'neutral'} />
-      ),
+      cell: (t) => <AmountText value={t.amount} sign={t.type === 'Income' ? 'positive' : t.type === 'Expense' ? 'negative' : 'neutral'} />,
       sortValue: (t) => t.amount,
     },
-    { id: 'account', header: 'Account', cell: (t) => t.from_account?.name ?? '-' },
+    {
+      id: 'account',
+      header: 'Account',
+      cell: (t) =>
+        t.type === 'Transfer'
+          ? `${t.from_account?.name ?? '-'} → ${t.to_account?.name ?? '-'}`
+          : (t.from_account?.name ?? '-'),
+    },
     {
       id: 'notes',
       header: 'Notes',
-      cell: (t) => <span className="text-muted-foreground max-w-48 truncate">{t.notes || '-'}</span>,
+      cell: (t) => (
+        <span className="text-muted-foreground block max-w-xs truncate text-xs">
+          {t.notes || t.sub_category || '-'}
+        </span>
+      ),
     },
   ];
 
@@ -169,57 +165,140 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Transactions"
-        description="Track your income, expenses, and transfers."
-        action={
-          <div className="flex items-center gap-2">
+      {/* Mobile Top Header + Action Bar (< md:) */}
+      <div className="mb-4 space-y-3 md:hidden">
+        {/* Row 1: Title & View Segmented Toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Transactions</h1>
+            <p className="text-muted-foreground text-xs">Track income, expenses & transfers</p>
+          </div>
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+            className="shrink-0"
+          />
+        </div>
+
+        {/* Row 2: Add Transaction Primary + Compact Icon Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowForm(true)}
+            className="flex-1 h-10 rounded-xl font-medium shadow-xs"
+          >
+            <Plus className="size-4 mr-1.5" />
+            Add Transaction
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() => setShowImport(true)}
+            title="Import CSV"
+            aria-label="Import CSV"
+          >
+            <UploadCloud className="size-4" />
+          </Button>
+          {hasFeature('bankStatementImport') ? (
             <Button
               variant="outline"
-              onClick={() =>
-                downloadCsvTemplate(
-                  'transactions-template.csv',
-                  TRANSACTIONS_TEMPLATE_COLUMNS,
-                  TRANSACTIONS_TEMPLATE_EXAMPLE_ROW
-                )
-              }
+              size="icon"
+              className="size-10 shrink-0 rounded-xl"
+              onClick={() => setShowBankImport(true)}
+              title="Import from Bank"
+              aria-label="Import from Bank"
             >
-              <Download className="size-4" />
-              Download Template
+              <Landmark className="size-4" />
             </Button>
-            <Button variant="outline" onClick={() => setShowImport(true)}>
-              <UploadCloud className="size-4" />
-              Import CSV
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-10 shrink-0 rounded-xl text-muted-foreground"
+              onClick={goToUpgrade}
+              title="Import from Bank (Pro)"
+              aria-label="Import from Bank (Pro)"
+            >
+              <Landmark className="size-4" />
             </Button>
-            {hasFeature('bankStatementImport') ? (
-              <Button variant="outline" onClick={() => setShowBankImport(true)}>
-                <Landmark className="size-4" />
-                Import from Bank
-              </Button>
-            ) : (
-              <ProLockedButton
-                label="Import from Bank"
-                icon={<Landmark className="size-4" />}
-                onUpgradeClick={goToUpgrade}
-              />
-            )}
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="size-4" />
-              Add Transaction
-            </Button>
-          </div>
-        }
-      />
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() =>
+              downloadCsvTemplate(
+                'transactions-template.csv',
+                TRANSACTIONS_TEMPLATE_COLUMNS,
+                TRANSACTIONS_TEMPLATE_EXAMPLE_ROW
+              )
+            }
+            title="Download CSV Template"
+            aria-label="Download CSV Template"
+          >
+            <Download className="size-4" />
+          </Button>
+        </div>
+      </div>
 
-      <div className="mb-4 flex justify-end">
-        <SegmentedControl
-          options={[
-            { value: 'table', label: 'Table' },
-            { value: 'calendar', label: 'Calendar' },
-          ]}
-          value={view}
-          onChange={setView}
+      {/* Desktop Header & View Toggle (>= md:) */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="Transactions"
+          description="Track your income, expenses, and transfers."
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  downloadCsvTemplate(
+                    'transactions-template.csv',
+                    TRANSACTIONS_TEMPLATE_COLUMNS,
+                    TRANSACTIONS_TEMPLATE_EXAMPLE_ROW
+                  )
+                }
+              >
+                <Download className="size-4" />
+                Download Template
+              </Button>
+              <Button variant="outline" onClick={() => setShowImport(true)}>
+                <UploadCloud className="size-4" />
+                Import CSV
+              </Button>
+              {hasFeature('bankStatementImport') ? (
+                <Button variant="outline" onClick={() => setShowBankImport(true)}>
+                  <Landmark className="size-4" />
+                  Import from Bank
+                </Button>
+              ) : (
+                <ProLockedButton
+                  label="Import from Bank"
+                  icon={<Landmark className="size-4" />}
+                  onUpgradeClick={goToUpgrade}
+                />
+              )}
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="size-4" />
+                Add Transaction
+              </Button>
+            </div>
+          }
         />
+
+        <div className="mb-4 flex justify-end">
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        </div>
       </div>
 
       {view === 'calendar' ? (
@@ -364,9 +443,6 @@ export default function TransactionsPage() {
         onConfirm={async () => {
           if (pendingBulkDelete) {
             const { ids, clear } = pendingBulkDelete;
-            // Snapshot the full rows before they're gone — deleteTransactionsBulk only takes
-            // ids, and by the time "Undo" is clicked the optimistic removal has already
-            // dropped them from the cache.
             const deletedRows = (transactions ?? []).filter((t) => ids.includes(t.id));
             await deleteTransactionsBulk(ids);
             clear();

@@ -75,8 +75,6 @@ export default function CashbookPage() {
   const { t } = useTranslation();
   const handleEdit = useCallback((entry: CashbookEntry) => setEditingEntry(entry), []);
 
-  /** Every field `createCashbook`/`createCashbookBulk` need to reconstruct a deleted entry —
-   * shared by the single- and bulk-delete undo paths below. */
   const toCashbookInput = useCallback(
     (entry: CashbookEntry) => ({
       date: entry.date,
@@ -91,8 +89,6 @@ export default function CashbookPage() {
     []
   );
 
-  /** Deletes one entry and offers a 6-second "Undo" that re-creates it from its own fields —
-   * a real recreate, not a soft-delete, matching the same pattern on the transactions page. */
   const handleDeleteWithUndo = useCallback(
     (entry: CashbookEntry) => {
       deleteCashbook(entry.id);
@@ -151,41 +147,97 @@ export default function CashbookPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Cashbook"
-        description="Track personal lending and borrowing."
-        action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                downloadCsvTemplate('cashbook-template.csv', CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW)
-              }
-            >
-              <Download className="size-4" />
-              Download Template
-            </Button>
-            <Button variant="outline" onClick={() => setShowImport(true)}>
-              <UploadCloud className="size-4" />
-              Import CSV
-            </Button>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="size-4" />
-              Add Entry
-            </Button>
+      {/* Mobile Top Header + Action Bar (< md:) */}
+      <div className="mb-4 space-y-3 md:hidden">
+        {/* Row 1: Title & View Segmented Toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Cashbook</h1>
+            <p className="text-muted-foreground text-xs">Track personal lending & borrowing</p>
           </div>
-        }
-      />
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+            className="shrink-0"
+          />
+        </div>
 
-      <div className="mb-4 flex justify-end">
-        <SegmentedControl
-          options={[
-            { value: 'table', label: 'Table' },
-            { value: 'calendar', label: 'Calendar' },
-          ]}
-          value={view}
-          onChange={setView}
+        {/* Row 2: Add Entry Primary + Compact Icon Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowForm(true)}
+            className="flex-1 h-10 rounded-xl font-medium shadow-xs"
+          >
+            <Plus className="size-4 mr-1.5" />
+            Add Entry
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() => setShowImport(true)}
+            title="Import CSV"
+            aria-label="Import CSV"
+          >
+            <UploadCloud className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() =>
+              downloadCsvTemplate('cashbook-template.csv', CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW)
+            }
+            title="Download CSV Template"
+            aria-label="Download CSV Template"
+          >
+            <Download className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Desktop Header & View Toggle (>= md:) */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="Cashbook"
+          description="Track personal lending and borrowing."
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  downloadCsvTemplate('cashbook-template.csv', CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW)
+                }
+              >
+                <Download className="size-4" />
+                Download Template
+              </Button>
+              <Button variant="outline" onClick={() => setShowImport(true)}>
+                <UploadCloud className="size-4" />
+                Import CSV
+              </Button>
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="size-4" />
+                Add Entry
+              </Button>
+            </div>
+          }
         />
+
+        <div className="mb-4 flex justify-end">
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        </div>
       </div>
 
       {view === 'calendar' ? (

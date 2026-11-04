@@ -8,12 +8,13 @@ them.
 ## One-time setup
 
 1. Create a test Supabase project at supabase.com (separate from your production one).
-2. In its Auth > Users tab, manually add a test user — e.g. `test@kashmap.in` /
-   `TestPassword123!`.
+2. In its Auth > Users tab, manually add two test users:
+   - Primary: `test@kashmap.in` / `TestPassword123!`
+   - Hacker/Secondary: `hacker@kashmap.in` / `TestPassword123!`
 3. Create `apps/web/.env.test.local` (already gitignored) with that project's URL, anon key,
-   and service_role key, plus `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` matching the user you
-   just created. See the keys this file needs in `playwright.config.ts` and
-   `e2e/helpers/supabaseAdmin.ts`.
+   and service_role key, plus `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` and
+   `TEST_HACKER_EMAIL` / `TEST_HACKER_PASSWORD` matching the users you just created. See
+   `playwright.config.ts` and `e2e/helpers/supabaseAdmin.ts`.
 4. Apply this repo's migrations to the test project the same way you would to any fresh
    Supabase project (`supabase/migrations/*` — read-only from this suite's point of view, never
    edit them for testing purposes).
@@ -79,12 +80,12 @@ Two routes the original plan for this suite assumed needed mocking turned out no
 - **`/api/cron/monthly-summary`** has no UI entry point at all (it's invoked by a scheduler, not
   a button) — nothing in this suite can reach it, so it's untouched.
 
-## Known gap
+## Cross-user RLS isolation
 
-The hacker persona doesn't yet cover true cross-user RLS isolation (sign in as user A, try to
-read user B's row) — that needs a second provisioned test user, which this suite doesn't set up.
-Add one the same way as the first (Auth > Users in the test project) and a
-`TEST_USER_B_EMAIL`/`TEST_USER_B_PASSWORD` pair in `.env.test.local` if you want that covered.
+Cross-user RLS isolation is covered in `e2e/personas/hacker.spec.ts`:
+- User A (`test@kashmap.in`) creates a transaction in their own tenant.
+- User B (`hacker@kashmap.in`) authenticates in a completely isolated context and attempts to access User A's transaction directly via `/api/transactions/[id]`.
+- Supabase Row-Level Security policy strictly enforces isolation, rejecting the attempt with 403 / 404.
 
 ## Delete the test project
 

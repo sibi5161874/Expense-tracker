@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/25 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/40 backdrop-blur-xs duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -40,13 +40,9 @@ function DialogOverlay({
 }
 
 /**
- * Always a flex column capped at 90vh with its own overflow hidden — DialogBody (below) is the
- * one region that actually scrolls when a form's fields overflow that height; DialogFooter is
- * a normal flex sibling that comes after it, so it's never squeezed, overlapped, or scrolled
- * out of view regardless of how tall the content gets. No padding lives here — DialogHeader,
- * DialogBody, and DialogFooter each own their own, so nothing needs a negative margin to
- * "cancel" a parent padding it doesn't actually share (that mismatch was the root cause of the
- * padding/overlap bugs in earlier versions of this file).
+ * Mobile: Native bottom sheet drawer anchored to viewport bottom with pull pill.
+ * Desktop: Centered modal capped at 90vh with its own overflow hidden.
+ * DialogBody handles internal scrolling; DialogFooter stays docked at bottom.
  */
 function DialogContent({
   className,
@@ -62,11 +58,18 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "glass-surface-strong fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Mobile: Native bottom sheet anchored to bottom with smooth slide up
+          "glass-surface-strong fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-border/80 text-sm text-popover-foreground shadow-2xl duration-200 outline-none",
+          "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom",
+          // Desktop: Centered modal popup using inset-0 m-auto to avoid translate conflicts with animations
+          "sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh] sm:w-full sm:max-w-md sm:translate-none sm:rounded-2xl sm:border sm:border-border sm:ring-1 sm:ring-foreground/10",
+          "sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
           className
         )}
         {...props}
       >
+        {/* iOS-style drag handle indicator on mobile */}
+        <div className="mx-auto mt-2.5 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30 sm:hidden" />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -74,13 +77,12 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-3 right-3"
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -93,23 +95,20 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex shrink-0 flex-col gap-2 p-6 pb-4", className)}
+      className={cn("flex shrink-0 flex-col gap-1.5 px-5 pt-3 pb-2 sm:p-6 sm:pb-4", className)}
       {...props}
     />
   )
 }
 
 /**
- * The scrollable middle region — use this to wrap any dialog's field/content list that might
- * overflow DialogContent's 90vh cap. Dialogs that never need to scroll (ConfirmDialog: just a
- * title, description, and two buttons) skip this entirely and put nothing between DialogHeader
- * and DialogFooter.
+ * The scrollable middle region — wraps form fields or modal content that might overflow.
  */
 function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-body"
-      className={cn("min-h-0 flex-1 space-y-5 overflow-y-auto scrollbar-hide px-6 pb-6", className)}
+      className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6 sm:pb-6", className)}
       {...props}
     />
   )
@@ -127,7 +126,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex shrink-0 flex-col-reverse gap-2 border-t bg-black/[0.03] p-6 sm:flex-row sm:justify-end dark:bg-white/5",
+        "flex shrink-0 gap-3 border-t border-border/60 bg-black/[0.02] dark:bg-white/[0.03] px-5 py-3.5 pb-6 sm:px-6 sm:py-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

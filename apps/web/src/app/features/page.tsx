@@ -68,7 +68,7 @@ export default function FeaturesPage() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-serif text-4xl sm:text-6xl font-medium tracking-tight text-foreground max-w-4xl mx-auto leading-tight">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-foreground max-w-4xl mx-auto leading-tight">
             Built to <span className="text-primary italic">master</span> your money.
           </h1>
 

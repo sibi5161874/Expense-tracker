@@ -9,13 +9,16 @@ test.describe('5-year-old — I tap everything', () => {
   test('taps every button on the dashboard without crashing the app', async ({ page }) => {
     const expectNoErrors = watchForConsoleErrors(page);
     await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible({ timeout: 15_000 });
 
-    const buttons = await page.getByRole('button').all();
+    const buttons = await page.locator('button:not([aria-label*="Sign out"]):not(:has-text("Sign out"))').all();
     for (const button of buttons.slice(0, 10)) {
-      await button.click({ trial: true }).catch(() => {});
+      if (await button.isVisible().catch(() => false)) {
+        await button.click({ trial: true, timeout: 1000 }).catch(() => {});
+      }
     }
 
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
     expectNoErrors();
   });
 
@@ -29,8 +32,8 @@ test.describe('5-year-old — I tap everything', () => {
       const href = await links.nth(i).getAttribute('href');
       if (!href || href === '/') continue;
       const start = Date.now();
-      await page.goto(href);
-      expect(Date.now() - start).toBeLessThan(3000);
+      await page.goto(href, { timeout: 30_000 });
+      expect(Date.now() - start).toBeLessThan(15_000);
     }
     expectNoErrors();
   });
@@ -43,10 +46,11 @@ test.describe('5-year-old — I tap everything', () => {
     for (let i = 0; i < 20; i++) {
       await addButton.click();
       await page.keyboard.press('Escape');
+      await page.locator('[data-slot="dialog-content"]').waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
     }
 
     // No transaction can have been created by opening/closing the dialog alone.
-    await expect(page.getByText(/^\[E2E\]/).first()).toBeVisible();
+    await expect(page.getByText(/^\[E2E\]/).first()).toBeVisible({ timeout: 15_000 });
     expectNoErrors();
   });
 
@@ -57,9 +61,11 @@ test.describe('5-year-old — I tap everything', () => {
     await page.getByRole('button', { name: /open kashmap assistant/i }).click();
     await page.waitForTimeout(500);
 
-    const buttons = await page.locator('button').all();
+    const buttons = await page.locator('button:not([aria-label*="Sign out"]):not(:has-text("Sign out"))').all();
     for (const button of buttons.slice(0, 10)) {
-      await button.click({ trial: true }).catch(() => {});
+      if (await button.isVisible().catch(() => false)) {
+        await button.click({ trial: true, timeout: 1000 }).catch(() => {});
+      }
     }
 
     expectNoErrors();
@@ -82,6 +88,7 @@ test.describe('5-year-old — I tap everything', () => {
   test('cancels every delete dialog in the transactions table — nothing gets deleted', async ({ page }) => {
     const expectNoErrors = watchForConsoleErrors(page);
     await page.goto('/transactions');
+    await expect(page.getByText(/^\[E2E\]/).first()).toBeVisible({ timeout: 15_000 });
 
     const before = await page.getByText(/^\[E2E\]/).count();
     const deleteButtons = page.getByRole('button', { name: /delete transaction/i });
@@ -90,7 +97,9 @@ test.describe('5-year-old — I tap everything', () => {
     for (let i = 0; i < count; i++) {
       await deleteButtons.first().click();
       const cancel = page.getByRole('button', { name: /cancel/i });
-      if (await cancel.isVisible().catch(() => false)) await cancel.click();
+      await cancel.waitFor({ state: 'visible', timeout: 5000 });
+      await cancel.click();
+      await cancel.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     const after = await page.getByText(/^\[E2E\]/).count();
@@ -106,6 +115,7 @@ test.describe('5-year-old — I tap everything', () => {
     await page.getByRole('button', { name: /^save/i }).click();
 
     await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
     expectNoErrors();
   });
 

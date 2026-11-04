@@ -26,7 +26,7 @@ export default function HowItWorksPage() {
             <span>Zero setup friction, local-first architecture</span>
           </div>
 
-          <h1 className="font-serif text-4xl sm:text-6xl font-medium tracking-tight text-foreground max-w-3xl mx-auto leading-tight">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-foreground max-w-3xl mx-auto leading-tight">
             Three steps to total financial clarity.
           </h1>
 

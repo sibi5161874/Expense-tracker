@@ -32,7 +32,7 @@ export default defineConfig({
     baseURL,
     storageState: AUTH_STATE_PATH,
     trace: 'retain-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
     screenshot: 'only-on-failure',
   },
   projects: [
@@ -62,7 +62,7 @@ export default defineConfig({
       // which env file supplied the Supabase/test-project values.
       const { NODE_ENV: _unused, ...rest } = process.env;
       return Object.fromEntries(
-        Object.entries({ ...rest, E2E_MODE: 'true' }).filter((entry): entry is [string, string] => entry[1] !== undefined)
+        Object.entries({ ...rest, E2E_MODE: 'true', NEXT_PUBLIC_E2E_MODE: 'true' }).filter((entry): entry is [string, string] => entry[1] !== undefined)
       );
     })(),
   },

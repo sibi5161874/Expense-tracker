@@ -6,13 +6,18 @@ import { expect } from '@playwright/test';
  * errors as they happen (listening only at the end would miss everything that already fired).
  * Call the returned function at the end of the test to assert none occurred.
  */
-export function watchForConsoleErrors(page: Page): () => void {
+export function watchForConsoleErrors(page: Page, options?: { ignore?: RegExp[] }): () => void {
   const errors: string[] = [];
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
+    if (msg.type() === 'error') {
+      const text = msg.text();
+      if (options?.ignore?.some((re) => re.test(text))) return;
+      errors.push(text);
+    }
   });
   page.on('pageerror', (err) => {
+    if (options?.ignore?.some((re) => re.test(err.message))) return;
     errors.push(err.message);
   });
 

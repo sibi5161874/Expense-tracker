@@ -54,10 +54,10 @@ export default function DatabaseHealthPage() {
   const { user, loading: authLoading } = useAuth();
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.trim().toLowerCase();
-  const isAuthorized = !!user?.email && (!adminEmail || user.email.toLowerCase() === adminEmail);
+  const isAuthorized = !!user?.email && !!adminEmail && user.email.toLowerCase() === adminEmail;
 
   useEffect(() => {
-    if (!authLoading && (!user || (adminEmail && user.email?.toLowerCase() !== adminEmail))) {
+    if (!authLoading && (!user || !isAuthorized)) {
       router.replace('/dashboard');
     }
   }, [user, authLoading, adminEmail, router]);

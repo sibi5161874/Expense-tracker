@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Lock } from 'lucide-react';
-import { REPORTS, ReportMeta } from '@/lib/reportsRegistry';
+import { REPORTS } from '@/lib/reportsRegistry';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingFooter } from '@/components/landing/LandingFooter';
-import { FadeIn } from '@/components/landing/FadeIn';
 
 type FilterCategory = 'all' | 'tax' | 'portfolio' | 'allocation' | 'cashflow';
 
@@ -52,7 +51,7 @@ export default function ReportsOverviewPage() {
               <CheckCircle2 className="size-3.5 text-success" />
               <span>Built for high-net-worth Indian investors and family portfolios</span>
             </div>
-            <h1 className="font-serif text-4xl sm:text-6xl font-medium tracking-tight text-foreground leading-tight">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-foreground leading-tight">
               {REPORTS.length} reports. One dashboard.
             </h1>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">

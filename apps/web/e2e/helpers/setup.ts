@@ -22,29 +22,34 @@ export default async function globalSetup(config: FullConfig) {
 
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  // This is the very first page the whole run touches, against a `next dev` server that
-  // hasn't compiled anything yet. The 'load' event (what goto waits for) can fire before React
-  // finishes hydrating on a cold first compile, so a fill()+click() right after goto can land
-  // on listeners that don't exist yet — the native input updates, but no React state does, and
-  // the click is a no-op. Retrying the whole attempt is simpler and more robust than trying to
-  // detect "hydrated" directly.
+  page.on('console', (msg) => {
+    // eslint-disable-next-line no-console
+    console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
+  });
+  page.on('pageerror', (err) => {
+    // eslint-disable-next-line no-console
+    console.error(`[Browser PageError]`, err);
+  });
+
   let loggedIn = false;
   let lastUrl = '';
   let lastBodyText = '';
   for (let attempt = 1; attempt <= 3 && !loggedIn; attempt++) {
-    await page.goto(`${baseURL}/login`, { timeout: 30_000 });
+    await page.goto(`${baseURL}/login`, { timeout: 60_000 });
+    // Small delay to allow React 19 hydration to complete on cold compile
+    await page.waitForTimeout(2000);
     await page.getByPlaceholder('you@example.com').waitFor({ state: 'visible' });
     await page.getByPlaceholder('you@example.com').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.getByRole('button', { name: 'Log in' }).click();
     try {
-      await page.waitForURL(`${baseURL}/dashboard`, { timeout: 15_000 });
+      await page.waitForURL(`${baseURL}/dashboard`, { timeout: 30_000 });
       loggedIn = true;
     } catch {
       lastUrl = page.url();
       lastBodyText = (await page.locator('body').innerText()).slice(0, 500);
       // eslint-disable-next-line no-console -- diagnostic only, globalSetup has no test reporter
-      console.error(`[globalSetup] Login attempt ${attempt}/3 did not reach /dashboard. URL: ${lastUrl}`);
+      console.error(`[globalSetup] Login attempt ${attempt}/3 did not reach /dashboard. URL: ${lastUrl}\nBody text:\n${lastBodyText}`);
     }
   }
   if (!loggedIn) {
@@ -53,14 +58,38 @@ export default async function globalSetup(config: FullConfig) {
     throw new Error(`[globalSetup] Login never reached /dashboard after 3 attempts. Last URL: ${lastUrl}`);
   }
   await page.context().storageState({ path: AUTH_STATE_PATH });
-  await browser.close();
 
   // Idempotent: a previous run that crashed or was killed mid-suite can leave its seeded rows
   // behind, which would otherwise collide with this run's insert (accounts has a unique
   // (user_id, name) constraint). Clearing first means running the suite twice in a row, or
   // recovering from an interrupted run, always starts from the same clean state.
-  await cleanupTestData();
-  await seedTestData();
+  for (let i = 0; i < 3; i++) {
+    try {
+      await cleanupTestData();
+      await seedTestData();
+      // eslint-disable-next-line no-console
+      console.log('[globalSetup] Seeding completed successfully');
+      break;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[globalSetup] seed attempt ${i + 1}/3 failed:`, err);
+      if (i === 2) throw err;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+
+  // Pre-warm the main app routes so Next.js dev server compiles them during globalSetup
+  // rather than timing out individual 60s test budgets on cold on-demand compilation.
+  const warmRoutes = ['/dashboard', '/transactions', '/investments', '/portfolio', '/goals', '/cashbook', '/reports', '/settings'];
+  for (const route of warmRoutes) {
+    try {
+      await page.goto(`${baseURL}${route}`, { timeout: 10_000, waitUntil: 'domcontentloaded' });
+    } catch {
+      // Warm-up is best-effort
+    }
+  }
+
+  await browser.close();
 }
 
 /**

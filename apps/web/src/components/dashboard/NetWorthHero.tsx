@@ -30,7 +30,7 @@ export function NetWorthHero({ breakdown, className, fxRatesStale, fxRatesFetche
         <CountUpAmount
           value={breakdown.netWorth}
           compact
-          className={cn('text-hero mt-2 block', positive ? 'text-success' : 'text-destructive')}
+          className={cn('text-hero mt-2 block break-all sm:break-normal', positive ? 'text-success' : 'text-destructive')}
         />
         {fxRatesStale && fxRatesFetchedAt && (
           <p className="text-muted-foreground mt-1 text-xs">

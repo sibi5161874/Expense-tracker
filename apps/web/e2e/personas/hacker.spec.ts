@@ -43,15 +43,46 @@ test.describe('hacker — unauthenticated probes', () => {
     // `?next=` redirect feature here to exploit (confirmed in AuthForm.tsx), so the real
     // property worth asserting is simpler: a successful login can only ever land on /dashboard.
     await page.goto('/login?next=https://evil.com');
+    await page.locator('form[data-hydrated="true"]').waitFor({ timeout: 30_000 });
     await page.getByPlaceholder('you@example.com').fill(process.env.TEST_USER_EMAIL!);
     await page.locator('input[type="password"]').fill(process.env.TEST_USER_PASSWORD!);
     await page.getByRole('button', { name: 'Log in' }).click();
-    await page.waitForURL(/\/dashboard$/, { timeout: 30_000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible({ timeout: 15_000 });
     expect(page.url()).not.toContain('evil.com');
   });
 });
 
 test.describe('hacker — authenticated probes', () => {
+  test('user A cannot read user B transaction (RLS)', async ({ page, browser }) => {
+    const hackerEmail = process.env.TEST_HACKER_EMAIL;
+    const hackerPassword = process.env.TEST_HACKER_PASSWORD;
+    if (!hackerEmail || !hackerPassword) {
+      test.skip(true, 'TEST_HACKER_EMAIL / TEST_HACKER_PASSWORD missing in .env.test.local');
+      return;
+    }
+
+    // Context 1: user A (already authenticated in `page` via storageState)
+    await page.goto('/transactions');
+    await expect(page.getByText('[E2E] Rent share')).toBeVisible({ timeout: 20_000 });
+
+    // Context 2: sign in fresh as hacker (isolated context, no shared cookies)
+    const ctxB = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const pageB = await ctxB.newPage();
+    await pageB.goto('/login');
+    await pageB.locator('form[data-hydrated="true"]').waitFor({ timeout: 30_000 });
+    await pageB.getByPlaceholder('you@example.com').fill(hackerEmail);
+    await pageB.locator('input[type="password"]').fill(hackerPassword);
+    await pageB.getByRole('button', { name: 'Log in' }).click();
+    await pageB.waitForURL(/\/dashboard/, { timeout: 30_000 });
+
+    // Navigate hacker to /transactions — user A's transactions must NOT be visible under RLS
+    await pageB.goto('/transactions');
+    await expect(pageB.getByText('[E2E] Rent share')).not.toBeVisible();
+
+    await ctxB.close();
+  });
+
   test('a Razorpay webhook without an HMAC signature is rejected', async ({ request }) => {
     const res = await request.post('/api/payments/webhook', {
       data: { event: 'payment.captured', payload: {} },
@@ -61,7 +92,7 @@ test.describe('hacker — authenticated probes', () => {
   });
 
   test('the admin database-health page redirects a non-admin user away', async ({ page }) => {
-    const expectNoErrors = watchForConsoleErrors(page);
+    const expectNoErrors = watchForConsoleErrors(page, { ignore: [/status of 403/i, /Failed to load resource/i] });
     await page.goto('/settings/admin/database-health');
     await expect(page).not.toHaveURL(/\/settings\/admin\/database-health$/);
     expectNoErrors();
@@ -70,7 +101,7 @@ test.describe('hacker — authenticated probes', () => {
   test('uploading an SVG with an embedded <script> as an avatar is rejected', async ({ page }) => {
     await page.goto('/settings');
     const fileInput = page.locator('input[type="file"]').first();
-    if (!(await fileInput.count())) test.skip(true, 'No avatar upload input on /settings');
+    await fileInput.waitFor({ state: 'attached', timeout: 15_000 });
 
     const malicious = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
     await fileInput.setInputFiles({ name: 'evil.svg', mimeType: 'image/svg+xml', buffer: malicious });
@@ -83,10 +114,10 @@ test.describe('hacker — authenticated probes', () => {
     });
   });
 
-  test('rapid-firing the AI chat endpoint does not crash the server (rate-limited or E2E-mocked)', async ({ request }) => {
+  test('rapid-firing the AI chat endpoint does not crash the server (rate-limited or E2E-mocked)', async ({ page }) => {
     const results: number[] = [];
     for (let i = 0; i < 20; i++) {
-      const res = await request.post('/api/ai-chat', {
+      const res = await page.request.post('/api/ai-chat', {
         data: { messages: [{ role: 'user', content: `probe ${i}` }] },
       });
       results.push(res.status());

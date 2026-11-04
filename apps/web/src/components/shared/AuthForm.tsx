@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
@@ -29,6 +29,8 @@ interface AuthFormProps {
   initialError?: string | null;
 }
 
+const emptySubscribe = () => () => {};
+
 export function AuthForm({ mode, initialError }: AuthFormProps) {
   const router = useRouter();
   const { signIn, signUp, signInWithGoogle } = useAuth();
@@ -41,6 +43,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
   });
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const isHydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   // Login only needs email+password, but the form is typed as SignupInput year-round so
   // switching `mode` doesn't need a second <Form> tree — the login resolver simply never
@@ -117,7 +120,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-hydrated={isHydrated ? "true" : undefined}>
             <FormField
               control={form.control}
               name="email"

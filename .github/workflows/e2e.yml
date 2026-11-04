@@ -1,0 +1,60 @@
+name: E2E Personas
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  e2e:
+    name: Playwright Persona Suite
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' }}
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      TEST_HACKER_EMAIL: ${{ secrets.TEST_HACKER_EMAIL }}
+      TEST_HACKER_PASSWORD: ${{ secrets.TEST_HACKER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check E2E test project secrets are configured
+        id: secrets-check
+        run: |
+          if [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping E2E Personas — TEST_SUPABASE_* secrets are not set."
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.secrets-check.outputs.configured == 'true'
+        with:
+          version: 11.11.0
+
+      - uses: actions/setup-node@v4
+        if: steps.secrets-check.outputs.configured == 'true'
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.secrets-check.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        if: steps.secrets-check.outputs.configured == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build web for test
+        if: steps.secrets-check.outputs.configured == 'true'
+        run: node scripts/build-test.js
+
+      - name: Run Playwright Persona Suite
+        if: steps.secrets-check.outputs.configured == 'true'
+        run: pnpm --filter web test:e2e:personas

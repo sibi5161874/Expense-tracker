@@ -83,9 +83,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const isE2E = process.env.NEXT_PUBLIC_E2E_MODE === "true" || process.env.E2E_MODE === "true";
+  const user = isE2E
+    ? (await supabase.auth.getSession()).data.session?.user ?? null
+    : (await supabase.auth.getUser()).data.user;
 
   const isPublicPath =
     request.nextUrl.pathname === "/" ||

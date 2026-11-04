@@ -42,6 +42,10 @@ const securityHeaders = [
 // here would only be widening access with nothing that needs it.
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+    turbopackFileSystemCacheForBuild: false,
+  },
   async headers() {
     return [
       {

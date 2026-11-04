@@ -6,7 +6,7 @@ import { useBudgetLimits } from '@/hooks/useBudgetLimits';
 import { useTransactionsForMonth } from '@/hooks/useTransactions';
 import { formatMonth } from '@repo/shared/utils';
 import { BudgetLimitForm } from '@/components/BudgetLimitForm';
-import { BudgetLimitRow } from '@/components/settings/BudgetLimitRow';
+import { BudgetLimitRow, BudgetLimitCard } from '@/components/settings/BudgetLimitRow';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
@@ -48,7 +48,25 @@ export function BudgetsTab() {
         </Button>
       </div>
 
-      <div className="bg-card border-border/60 overflow-hidden rounded-2xl border shadow-sm">
+      <div className="space-y-2 md:hidden">
+        {budgetLimits?.map((budgetLimit) => (
+          <BudgetLimitCard
+            key={budgetLimit.id}
+            budgetLimit={budgetLimit}
+            actualThisMonth={actualByCategoryId[budgetLimit.category_id] ?? 0}
+            onEdit={setEditingBudget}
+            onDelete={handleDelete}
+            isDeleting={isDeleting}
+          />
+        ))}
+        {budgetLimits?.length === 0 && (
+          <div className="bg-card text-muted-foreground rounded-2xl p-8 text-center text-sm">
+            No budget limits set. Add one to see Budget vs Actual on your reports.
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card border-border/60 hidden overflow-hidden rounded-2xl border shadow-sm md:block">
         <Table>
           <TableHeader>
             <TableRow>

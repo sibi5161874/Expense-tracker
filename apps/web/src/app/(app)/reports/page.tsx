@@ -40,7 +40,7 @@ export default function ReportsPage() {
         {CATEGORIES.map((category) => (
           <section key={category}>
             <h2 className="mb-4 text-lg font-semibold">{category} Reports</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ENABLED_REPORTS.filter((r) => r.category === category).map((report) => (
                 <ReportCard key={report.slug} report={report} />
               ))}

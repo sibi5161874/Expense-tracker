@@ -17,7 +17,7 @@ import { premiumStatusTone } from '@/lib/badgeTones';
 import { cn } from '@/lib/utils';
 import type { InsurancePolicy } from '@repo/shared/types';
 
-const HEAD = 'text-xs font-semibold tracking-wide text-muted-foreground uppercase';
+const HEAD = 'text-xs font-medium text-muted-foreground';
 const HEAD_RIGHT = `${HEAD} text-right`;
 const NUMERIC_CELL = 'text-right font-mono tabular-nums';
 
@@ -52,7 +52,69 @@ export default function InsurancePage() {
       ) : error ? (
         <ErrorState error={error} />
       ) : (
-        <div className="border-border/60 overflow-hidden rounded-2xl border">
+        <>
+        {/* Below `md:`, the 8-column table forces horizontal scrolling — a one-card-per-policy
+            stack reads far better on a phone. */}
+        <div className="space-y-2 md:hidden">
+          {policies?.map((policy) => {
+            const status = calculatePremiumStatus(policy.premium_due_date);
+            const daysUntilDue = calculateDaysUntilDue(policy.premium_due_date);
+            return (
+              <div key={policy.id} className="bg-card space-y-2 rounded-2xl border border-border/60 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{policy.policy_type}</div>
+                    <div className="text-muted-foreground text-xs">{policy.insurer}</div>
+                  </div>
+                  <StatusBadge tone={premiumStatusTone(status)}>{status}</StatusBadge>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                  <div className="space-y-0.5">
+                    <div className="text-muted-foreground text-xs">Policy Number</div>
+                    <div className="truncate">{policy.policy_number}</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-muted-foreground text-xs">Coverage</div>
+                    <div>{formatINR(policy.coverage_amount)}</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-muted-foreground text-xs">Premium</div>
+                    <div>{formatINR(policy.premium_amount)}</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-muted-foreground text-xs">Due Date</div>
+                    <div className={cn(status === 'Overdue' && 'text-destructive')}>
+                      {policy.premium_due_date}
+                      <span className="text-muted-foreground ml-1 text-xs">
+                        ({daysUntilDue >= 0 ? `${daysUntilDue}d` : `${Math.abs(daysUntilDue)}d overdue`})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-1 border-t border-border/60 pt-2">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setEditingPolicy(policy)}>
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => requestDelete(policy.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          {policies?.length === 0 && (
+            <div className="bg-card text-muted-foreground rounded-2xl p-8 text-center text-sm">
+              No insurance policies found. Add your first policy to get started.
+            </div>
+          )}
+        </div>
+
+        <div className="border-border/60 hidden overflow-hidden rounded-2xl border md:block">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -121,6 +183,7 @@ export default function InsurancePage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {(showForm || editingPolicy) && (

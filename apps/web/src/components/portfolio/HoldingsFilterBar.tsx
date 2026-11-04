@@ -75,13 +75,13 @@ export function HoldingsFilterBar({
         />
       </div>
 
-      <div className="flex items-center gap-2 sm:shrink-0">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:shrink-0">
         {/* Filter Select */}
         <Select
           value={filterValue}
           onValueChange={(val) => onFilterChange(val as FilterType)}
         >
-          <SelectTrigger className="h-10 w-36">
+          <SelectTrigger className="h-10 w-full sm:w-36">
             <SelectValue placeholder="Filter">
               {FILTER_OPTIONS.find((opt) => opt.value === filterValue)?.label ?? 'Filter'}
             </SelectValue>
@@ -100,7 +100,7 @@ export function HoldingsFilterBar({
           value={sortValue}
           onValueChange={(val) => onSortChange(val as SortKey)}
         >
-          <SelectTrigger className="h-10 w-52">
+          <SelectTrigger className="h-10 w-full sm:w-52">
             <SelectValue placeholder="Sort by">
               {SORT_OPTIONS.find((opt) => opt.value === sortValue)?.label ?? 'Sort by'}
             </SelectValue>

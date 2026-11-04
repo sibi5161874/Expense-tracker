@@ -69,7 +69,7 @@ export function CounterpartySummaryCard({
   return (
     <div
       className={cn(
-        'group bg-card relative flex min-w-[300px] max-w-[340px] shrink-0 snap-start flex-col justify-between rounded-2xl border p-4 shadow-sm transition-colors',
+        'group bg-card relative flex min-w-[280px] max-w-[340px] min-h-[148px] shrink-0 snap-start flex-col justify-between rounded-2xl border p-4 shadow-sm transition-colors',
         hasOverdue ? 'border-destructive/40 bg-destructive-subtle' : 'border-border/60 hover:border-border'
       )}
     >
@@ -129,7 +129,7 @@ export function CounterpartySummaryCard({
             )}
           </div>
         </div>
-        <p className="text-muted-foreground mb-3 text-sm">{summaryText}</p>
+        <p className="text-muted-foreground mb-3 text-sm line-clamp-2">{summaryText}</p>
       </div>
 
       <div className="border-border/40 grid grid-cols-2 gap-2 border-t pt-2 text-sm">

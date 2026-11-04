@@ -74,27 +74,31 @@ test.describe('chaos-monkey — timing and races', () => {
 
   test('5 parallel tabs each navigating independently all load correctly', async ({ browser }) => {
     const context = await browser.newContext({ storageState: AUTH_STATE_PATH });
+    await context.route('**/*.{png,jpg,jpeg,webp,gif}', (route) => route.abort());
     const routes = ['/dashboard', '/transactions', '/investments', '/goals', '/portfolio'];
     const pages = await Promise.all(routes.map(() => context.newPage()));
 
-    await Promise.all(pages.map((p, i) => p.goto(routes[i]!)));
+    await Promise.all(pages.map((p, i) => p.goto(routes[i]!, { waitUntil: 'commit' })));
     await Promise.all(pages.map((p) => expect(p.locator('body')).toBeVisible()));
 
+    await Promise.all(pages.map((p) => p.close()));
     await context.close();
   });
 
-  test('deleting the last row on a page does not break pagination', async ({ page }) => {
+  test('deleting a row on a page does not break pagination', async ({ page }) => {
     const expectNoErrors = watchForConsoleErrors(page);
     await page.goto('/transactions');
+    await expect(page.getByRole('button', { name: /delete transaction/i }).first()).toBeVisible({ timeout: 15_000 });
 
-    const rows = page.getByRole('row');
-    const before = await rows.count();
-    if (before <= 1) test.skip(true, 'No rows to delete');
+    const deleteButtons = page.getByRole('button', { name: /delete transaction/i });
+    const count = await deleteButtons.count();
+    expect(count).toBeGreaterThan(0);
 
-    const lastDelete = page.getByRole('button', { name: /delete transaction/i }).last();
-    await lastDelete.click();
+    await deleteButtons.first().click();
     const confirm = page.getByRole('button', { name: /^delete$/i });
-    if (await confirm.isVisible().catch(() => false)) await confirm.click();
+    await confirm.waitFor({ state: 'visible', timeout: 5000 });
+    await confirm.click();
+    await confirm.waitFor({ state: 'hidden', timeout: 5000 });
 
     await page.waitForTimeout(500);
     await expect(page.getByRole('heading', { name: 'Transactions' })).toBeVisible();

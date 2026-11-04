@@ -72,9 +72,9 @@
   --radius-4xl: 1.5rem;
 
   /* Hero display size — reserved for one headline number per screen (e.g. Net Worth).
-     Scales from 3rem on mobile up to 5.5rem on desktop; deliberately larger than any other
+     Scales from 2rem on 375px mobile up to 5.5rem on desktop; deliberately larger than any other
      type on the page so it reads before any label does. */
-  --text-hero: clamp(3rem, 2rem + 5vw, 5.5rem);
+  --text-hero: clamp(2rem, 1.25rem + 3.5vw, 5.5rem);
   --text-hero--line-height: 1;
   --text-hero--letter-spacing: -0.02em;
   --text-hero--font-weight: 600;
@@ -240,7 +240,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
   }
   html {
     @apply font-sans;
@@ -260,6 +260,7 @@
     line-height: var(--text-hero--line-height);
     letter-spacing: var(--text-hero--letter-spacing);
     font-weight: var(--text-hero--font-weight);
+    word-break: break-word;
   }
 
   /* Sparing glass treatment — sticky headers and floating popovers/dropdowns (Select,

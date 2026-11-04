@@ -48,7 +48,7 @@ export function DashboardMockup() {
                   </span>
                 </div>
                 <div className="mt-3 flex items-baseline gap-3">
-                  <span className="font-serif text-3xl sm:text-5xl font-semibold tracking-tight text-foreground">
+                  <span className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground break-all sm:break-normal">
                     ₹1,48,92,450
                   </span>
                   <span className="text-xs text-muted-foreground">INR consolidated</span>

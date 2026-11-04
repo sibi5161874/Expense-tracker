@@ -33,20 +33,21 @@ function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps
   const { requestDelete, dialog } = useConfirmDelete(onDelete, t('confirm.deleteGoal.title'), t('common.cannotBeUndone'));
 
   return (
-    <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-2xl text-xl shadow-inner ring-1 ring-border/50">
-            {/* eslint-disable-next-line react-hooks/static-components -- Icon is a stable lookup from a fixed Map, not constructed per render */}
-            {Icon ? <Icon className="size-5" /> : <span>{legacyEmoji}</span>}
+    <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm min-h-[220px] flex flex-col justify-between">
+      <div>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-2xl text-xl shadow-inner ring-1 ring-border/50">
+              {/* eslint-disable-next-line react-hooks/static-components -- Icon is a stable lookup from a fixed Map, not constructed per render */}
+              {Icon ? <Icon className="size-5" /> : <span>{legacyEmoji}</span>}
+            </div>
+            <div>
+              <h3 className="font-semibold line-clamp-1">{displayName}</h3>
+              <p className="text-muted-foreground text-xs">{goal.category}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold">{displayName}</h3>
-            <p className="text-muted-foreground text-xs">{goal.category}</p>
-          </div>
+          <StatusBadge tone={goalStatusTone(status)}>{status}</StatusBadge>
         </div>
-        <StatusBadge tone={goalStatusTone(status)}>{status}</StatusBadge>
-      </div>
 
       <div className="mb-4">
         <div className="mb-1.5 flex justify-between text-sm">
@@ -73,6 +74,7 @@ function GoalCardComponent({ goal, onEdit, onDelete, isDeleting }: GoalCardProps
           <p className="text-muted-foreground">Priority</p>
           <p className="font-medium">{goal.priority}</p>
         </div>
+      </div>
       </div>
 
       <div className="mt-4 flex justify-end gap-1 border-t pt-4">

@@ -65,7 +65,6 @@ export default function InvestmentsPage() {
   });
   const { hasFeature } = useEntitlements();
   const { t } = useTranslation();
-  // A fund's symbol is its AMFI scheme code ("122639"); the refresh stores its real name on holdings.
   const { data: holdingRows } = useHoldings();
   const nameBySymbol = new Map((holdingRows ?? []).filter((h) => h.display_name).map((h) => [h.symbol, h.display_name!]));
 
@@ -77,8 +76,6 @@ export default function InvestmentsPage() {
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
   const handleEdit = useCallback((investment: InvestmentLogEntry) => setEditingInvestment(investment), []);
 
-  /** Every field `createInvestmentLog`/`createInvestmentLogsBulk` need to reconstruct a
-   * deleted row — shared by the single- and bulk-delete undo paths below. */
   const toInvestmentLogInput = useCallback(
     (investment: InvestmentLogEntry) => ({
       date: investment.date,
@@ -96,8 +93,6 @@ export default function InvestmentsPage() {
     []
   );
 
-  /** Deletes one investment and offers a 6-second "Undo" that re-creates it from its own
-   * fields — a real recreate, not a soft-delete, matching the transactions page pattern. */
   const handleDeleteWithUndo = useCallback(
     (investment: InvestmentLogEntry) => {
       deleteInvestmentLog(investment.id);
@@ -162,8 +157,6 @@ export default function InvestmentsPage() {
       sortValue: (i) => i.price,
     },
     {
-      // Derived (quantity*price+fees) — no backing column to sort by server-side across pages,
-      // so this one stays unsortable rather than only reordering whatever page happens to be loaded.
       id: 'total',
       header: 'Total',
       className: 'text-right',
@@ -190,59 +183,142 @@ export default function InvestmentsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Investment Log"
-        description="Every buy, sell, SIP, dividend, bonus, and split event."
-        action={
-          <div className="flex items-center gap-2">
+      {/* Mobile Top Header + Action Bar (< md:) */}
+      <div className="mb-4 space-y-3 md:hidden">
+        {/* Row 1: Title & View Segmented Toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Investment Log</h1>
+            <p className="text-muted-foreground text-xs">Buy, sell, SIP & dividend events</p>
+          </div>
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+            className="shrink-0"
+          />
+        </div>
+
+        {/* Row 2: Add Investment Primary + Compact Icon Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowForm(true)}
+            className="flex-1 h-10 rounded-xl font-medium shadow-xs"
+          >
+            <Plus className="size-4 mr-1.5" />
+            Add Investment
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() => setShowImport(true)}
+            title="Import CSV"
+            aria-label="Import CSV"
+          >
+            <UploadCloud className="size-4" />
+          </Button>
+          {hasFeature('brokerImport') ? (
             <Button
               variant="outline"
-              size="sm"
-              onClick={() =>
-                downloadCsvTemplate(
-                  'investment-log-template.csv',
-                  INVESTMENT_LOG_TEMPLATE_COLUMNS,
-                  INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW
-                )
-              }
+              size="icon"
+              className="size-10 shrink-0 rounded-xl"
+              onClick={() => setShowBrokerImport(true)}
+              title="Import from Broker"
+              aria-label="Import from Broker"
             >
-              <Download className="size-4" />
-              Download Template
+              <Landmark className="size-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowImport(true)}>
-              <UploadCloud className="size-4" />
-              Import CSV
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-10 shrink-0 rounded-xl text-muted-foreground"
+              onClick={goToUpgrade}
+              title="Import from Broker (Pro)"
+              aria-label="Import from Broker (Pro)"
+            >
+              <Landmark className="size-4" />
             </Button>
-            {hasFeature('brokerImport') ? (
-              <Button variant="outline" size="sm" onClick={() => setShowBrokerImport(true)}>
-                <Landmark className="size-4" />
-                Import from Broker
-              </Button>
-            ) : (
-              <ProLockedButton
-                label="Import from Broker"
-                icon={<Landmark className="size-4" />}
-                onUpgradeClick={goToUpgrade}
-                size="sm"
-              />
-            )}
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="size-4" />
-              Add Investment
-            </Button>
-          </div>
-        }
-      />
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 shrink-0 rounded-xl"
+            onClick={() =>
+              downloadCsvTemplate(
+                'investment-log-template.csv',
+                INVESTMENT_LOG_TEMPLATE_COLUMNS,
+                INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW
+              )
+            }
+            title="Download CSV Template"
+            aria-label="Download CSV Template"
+          >
+            <Download className="size-4" />
+          </Button>
+        </div>
+      </div>
 
-      <div className="mb-4 flex justify-end">
-        <SegmentedControl
-          options={[
-            { value: 'table', label: 'Table' },
-            { value: 'calendar', label: 'Calendar' },
-          ]}
-          value={view}
-          onChange={setView}
+      {/* Desktop Header & View Toggle (>= md:) */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="Investment Log"
+          description="Every buy, sell, SIP, dividend, bonus, and split event."
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadCsvTemplate(
+                    'investment-log-template.csv',
+                    INVESTMENT_LOG_TEMPLATE_COLUMNS,
+                    INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW
+                  )
+                }
+              >
+                <Download className="size-4" />
+                Download Template
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowImport(true)}>
+                <UploadCloud className="size-4" />
+                Import CSV
+              </Button>
+              {hasFeature('brokerImport') ? (
+                <Button variant="outline" size="sm" onClick={() => setShowBrokerImport(true)}>
+                  <Landmark className="size-4" />
+                  Import from Broker
+                </Button>
+              ) : (
+                <ProLockedButton
+                  label="Import from Broker"
+                  icon={<Landmark className="size-4" />}
+                  onUpgradeClick={goToUpgrade}
+                  size="sm"
+                />
+              )}
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="size-4" />
+                Add Investment
+              </Button>
+            </div>
+          }
         />
+
+        <div className="mb-4 flex justify-end">
+          <SegmentedControl
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        </div>
       </div>
 
       {view === 'calendar' ? (

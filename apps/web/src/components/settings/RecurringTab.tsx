@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
 import { RecurringTransactionForm } from '@/components/RecurringTransactionForm';
-import { RecurringTransactionRow } from '@/components/settings/RecurringTransactionRow';
+import { RecurringTransactionRow, RecurringTransactionCard } from '@/components/settings/RecurringTransactionRow';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
@@ -46,7 +46,25 @@ export function RecurringTab() {
         </Button>
       </div>
 
-      <div className="bg-card border-border/60 overflow-hidden rounded-2xl border shadow-sm">
+      <div className="space-y-2 md:hidden">
+        {recurringTransactions?.map((rt) => (
+          <RecurringTransactionCard
+            key={rt.id}
+            recurringTransaction={rt}
+            onEdit={setEditing}
+            onDelete={handleDelete}
+            onToggleActive={handleToggleActive}
+            isDeleting={isDeleting}
+          />
+        ))}
+        {recurringTransactions?.length === 0 && (
+          <div className="bg-card text-muted-foreground rounded-2xl p-8 text-center text-sm">
+            No recurring transactions set up. Add rent, salary, or EMIs to auto-generate them each period.
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card border-border/60 hidden overflow-hidden rounded-2xl border shadow-sm md:block">
         <Table>
           <TableHeader>
             <TableRow>

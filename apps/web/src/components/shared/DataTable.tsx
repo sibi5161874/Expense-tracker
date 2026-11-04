@@ -37,59 +37,28 @@ interface DataTableProps<T> {
   bulkActions?: (selectedIds: string[], clearSelection: () => void) => React.ReactNode;
   rowActions?: (row: T) => React.ReactNode;
   emptyMessage?: string;
-  /**
-   * Controlled search — when provided (together with `onSearchChange`), the search box stops
-   * filtering `data` client-side (it's assumed to already be the server-filtered page) and
-   * instead reports the typed text upward, debounced, for the caller to pass into its own
-   * query. Required whenever `data` is one server-paginated page rather than the full dataset
-   * — filtering only that page client-side is exactly the "search only finds 3 of 23 rows"
-   * bug this prop exists to prevent.
-   */
   search?: string;
   onSearchChange?: (value: string) => void;
-  /** Same controlled/uncontrolled split as `search`, per filter id, for the Select filters. */
   filterValues?: Record<string, string>;
   onFilterChange?: (filterId: string, value: string) => void;
-  /** Server-side pagination passthrough. */
   page?: number;
   onPageChange?: (page: number) => void;
   hasNextPage?: boolean;
-  /** Total row count across all pages and the server's page size — when both are given, the
-   * footer renders "Page X of Y" with numbered page buttons instead of the plain Previous/Next
-   * fallback used when the caller doesn't know the total (hasNextPage stays the source of
-   * truth for whether Next is enabled in that fallback mode). */
   totalCount?: number;
   pageSize?: number;
-  /** Renders a "Rows per page" select next to the pagination info when provided, alongside `totalCount`. */
   onPageSizeChange?: (pageSize: number) => void;
   pageSizeOptions?: number[];
   animateRows?: boolean;
-  /**
-   * Controlled sort — when provided (together with `onSortChange`), clicking a header no
-   * longer re-sorts `data` client-side (it's assumed to already be one server-sorted page) and
-   * instead reports the next sort state upward for the caller to pass into its own query.
-   * Required whenever `data` is one server-paginated page: sorting only that page client-side
-   * only ever reorders the rows already fetched, which is exactly the "sort only reorders the
-   * current page, not the whole dataset" bug this prop exists to prevent.
-   */
   sort?: { columnId: string; direction: SortDirection } | null;
   onSortChange?: (next: { columnId: string; direction: SortDirection } | null) => void;
 }
 
 export type SortDirection = 'asc' | 'desc';
 
-// Module-level so it's referentially stable across renders — a fresh `{}` as the fallback for
-// an unset `filterValues` would otherwise make the `filtered` useMemo below recompute (and,
-// transitively, the dependent effects re-run) on every render.
 const EMPTY_FILTERS: Record<string, string> = {};
 
-/**
- * Numbered-pagination range with ellipsis gaps — always keeps the first and last page
- * visible plus a window of `siblingCount` pages around the current one, collapsing anything
- * further away into a single "…" per side instead of listing every page.
- */
 function paginationRange(current: number, total: number, siblingCount = 1): (number | 'ellipsis')[] {
-  const totalNumbers = siblingCount * 2 + 5; // first + last + current + 2 ellipses + siblings
+  const totalNumbers = siblingCount * 2 + 5;
   if (total <= totalNumbers) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
@@ -150,11 +119,6 @@ export function DataTable<T>({
   const activeFilters = isFilterControlled ? (controlledFilterValues ?? EMPTY_FILTERS) : uncontrolledFilters;
   const activeSort = isSortControlled ? (controlledSort ?? null) : uncontrolledSort;
 
-  // Local state for the input itself so typing stays instant; the debounced effect below is
-  // what actually calls the (likely network-triggering) onSearchChange. Synced to the
-  // controlled `search` value via React's documented "adjusting state when a prop changes"
-  // pattern (comparing against the last-seen value during render) rather than an effect —
-  // same technique Sidebar.tsx and HoldingsFilterBar.tsx already use in this codebase.
   const [localSearch, setLocalSearch] = useState(search);
   const [lastSearch, setLastSearch] = useState(search);
   if (search !== lastSearch) {
@@ -167,15 +131,12 @@ export function DataTable<T>({
       if (localSearch !== search) onSearchChange(localSearch);
     }, 300);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the typed value changes; re-running on `search`/onSearchChange identity would refire the debounce mid-type
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearch]);
 
   const filtered = useMemo(() => {
     let rows = data ?? [];
 
-    // Controlled mode: `data` is already the caller's server-filtered page — searching/filtering
-    // it again client-side would only ever narrow that one page, which is the exact "search
-    // only finds results on the current page" bug this split exists to prevent.
     if (!isSearchControlled && search.trim() && searchableText) {
       const q = search.trim().toLowerCase();
       rows = rows.filter((row) => searchableText(row).toLowerCase().includes(q));
@@ -190,9 +151,6 @@ export function DataTable<T>({
       }
     }
 
-    // Controlled mode: `data` is already the caller's server-sorted page — re-sorting it again
-    // client-side would only ever reorder that one page, the exact "sort only reorders the
-    // current page" bug this split exists to prevent.
     if (!isSortControlled && activeSort) {
       const column = columns.find((c) => c.id === activeSort.columnId);
       if (column?.sortValue) {
@@ -261,9 +219,10 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Top Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center flex-wrap gap-2">
         {(searchableText || isSearchControlled) && (
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+          <div className="relative w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs flex-1">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
               value={localSearch}
@@ -277,33 +236,35 @@ export function DataTable<T>({
           </div>
         )}
 
-        {filters.map((filter) => (
-          <Select
-            key={filter.id}
-            value={activeFilters[filter.id] ?? ''}
-            onValueChange={(value) => setFilterValue(filter.id, (value as string) ?? '')}
-            disabled={isLoading}
-          >
-            <SelectTrigger className="w-fit">
-              <SelectValue placeholder={filter.label} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All {filter.label}</SelectItem>
-              {filter.options.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ))}
+        <div className="flex flex-wrap items-center gap-2">
+          {filters.map((filter) => (
+            <Select
+              key={filter.id}
+              value={activeFilters[filter.id] ?? ''}
+              onValueChange={(value) => setFilterValue(filter.id, (value as string) ?? '')}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-fit">
+                <SelectValue placeholder={filter.label} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All {filter.label}</SelectItem>
+                {filter.options.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ))}
 
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
-            <X className="size-3.5" />
-            Clear
-          </Button>
-        )}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
+              <X className="size-3.5" />
+              Clear
+            </Button>
+          )}
+        </div>
 
         {selectable && selectedIds.size > 0 && bulkActions && (
           <div className="flex items-center gap-2 sm:ml-auto">
@@ -315,204 +276,324 @@ export function DataTable<T>({
 
       {isLoading ? (
         <TableSkeleton columns={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)} />
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border/60">
+          <div className="flex h-32 flex-col items-center justify-center gap-2">
+            {hasActiveFilters ? (
+              <>
+                <SearchX className="text-muted-foreground size-6" aria-hidden="true" />
+                <span className="text-muted-foreground text-sm">
+                  No results{search.trim() ? ` for "${search.trim()}"` : ''}.
+                </span>
+                <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
+                  Clear search
+                </Button>
+              </>
+            ) : (
+              <span className="text-muted-foreground">{emptyMessage}</span>
+            )}
+          </div>
+        </div>
       ) : (
-      <div className="bg-card overflow-hidden rounded-2xl">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted hover:bg-muted">
-              {selectable && (
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                    onCheckedChange={toggleAll}
-                    aria-label="Select all"
-                  />
-                </TableHead>
-              )}
-              {columns.map((col) => (
-                <TableHead
-                  key={col.id}
-                  className={cn(
-                    'text-xs font-medium text-muted-foreground',
-                    col.className,
-                    col.sortValue && 'cursor-pointer select-none'
-                  )}
-                  onClick={() => col.sortValue && toggleSort(col.id)}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.header}
-                    {col.sortValue &&
-                      (activeSort?.columnId === col.id ? (
-                        activeSort.direction === 'asc' ? (
-                          <ArrowUp className="size-3" />
-                        ) : (
-                          <ArrowDown className="size-3" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3 opacity-30" />
-                      ))}
-                  </span>
-                </TableHead>
-              ))}
-              {rowActions && <TableHead className="text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody className="[&_tr:nth-child(even)]:bg-muted/70">
-            {filtered.map((row, index) => {
-              const id = getRowId(row);
-              return (
-                <TableRow
-                  key={id}
-                  className={cn(animateRows && 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1')}
-                  style={animateRows ? { animationDelay: `${index * 20}ms`, animationDuration: '300ms' } : undefined}
-                  data-state={selectedIds.has(id) ? 'selected' : undefined}
-                >
+        /* Real Data Table on All Viewports with Smooth Horizontal Scroll on Mobile */
+        <div className="relative w-full overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs">
+          {/* Subtle scroll hint gradient on mobile right edge */}
+          <div
+            className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-8 bg-gradient-to-l from-card via-card/70 to-transparent md:hidden"
+            aria-hidden="true"
+          />
+
+          <div className="w-full overflow-x-auto scrollbar-thin overscroll-x-contain">
+            <Table className="min-w-[640px] w-full text-left">
+              <TableHeader>
+                <TableRow className="bg-muted/70 hover:bg-muted/70 border-b border-border/60">
                   {selectable && (
-                    <TableCell>
+                    <TableHead className="w-12 px-3 text-center">
                       <Checkbox
-                        checked={selectedIds.has(id)}
-                        onCheckedChange={() => toggleRow(id)}
-                        aria-label="Select row"
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onCheckedChange={toggleAll}
+                        aria-label="Select all"
                       />
-                    </TableCell>
+                    </TableHead>
                   )}
                   {columns.map((col) => (
-                    <TableCell key={col.id} className={col.className}>
-                      {col.cell(row)}
-                    </TableCell>
-                  ))}
-                  {rowActions && <TableCell className="text-right">{rowActions(row)}</TableCell>}
-                </TableRow>
-              );
-            })}
-            {filtered.length === 0 && (
-              <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)}
-                  className="h-32 text-center"
-                >
-                  {hasActiveFilters ? (
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <SearchX className="text-muted-foreground size-6" aria-hidden="true" />
-                      <span className="text-muted-foreground text-sm">
-                        No results{search.trim() ? ` for "${search.trim()}"` : ''}.
+                    <TableHead
+                      key={col.id}
+                      className={cn(
+                        'h-11 px-3.5 text-xs font-semibold text-muted-foreground whitespace-nowrap',
+                        col.className,
+                        col.sortValue && 'cursor-pointer select-none hover:text-foreground'
+                      )}
+                      onClick={() => col.sortValue && toggleSort(col.id)}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.header}
+                        {col.sortValue &&
+                          (activeSort?.columnId === col.id ? (
+                            activeSort.direction === 'asc' ? (
+                              <ArrowUp className="size-3 text-foreground" />
+                            ) : (
+                              <ArrowDown className="size-3 text-foreground" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="size-3 opacity-35" />
+                          ))}
                       </span>
-                      <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
-                        Clear search
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">{emptyMessage}</span>
+                    </TableHead>
+                  ))}
+                  {rowActions && (
+                    <TableHead className="text-right px-3.5 h-11 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                      Actions
+                    </TableHead>
                   )}
-                </TableCell>
-              </TableRow>
-            )}
-            {filtered.length > 0 && pageSize && filtered.length < pageSize && (
-              Array.from({ length: pageSize - filtered.length }).map((_, i) => (
-                <TableRow
-                  key={`empty-placeholder-${i}`}
-                  className="h-[49px] border-border/30 hover:bg-transparent pointer-events-none select-none"
-                  aria-hidden="true"
-                >
-                  <TableCell
-                    colSpan={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)}
-                    className="h-[49px] py-0 text-transparent"
-                  >
-                    &nbsp;
-                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody className="[&_tr:nth-child(even)]:bg-muted/30 divide-y divide-border/20">
+                {filtered.map((row, index) => {
+                  const id = getRowId(row);
+                  return (
+                    <TableRow
+                      key={id}
+                      className={cn(
+                        'transition-colors hover:bg-muted/40 border-b border-border/20 last:border-0',
+                        animateRows && 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1'
+                      )}
+                      style={animateRows ? { animationDelay: `${index * 20}ms`, animationDuration: '300ms' } : undefined}
+                      data-state={selectedIds.has(id) ? 'selected' : undefined}
+                    >
+                      {selectable && (
+                        <TableCell className="w-12 px-3 text-center">
+                          <Checkbox
+                            checked={selectedIds.has(id)}
+                            onCheckedChange={() => toggleRow(id)}
+                            aria-label="Select row"
+                          />
+                        </TableCell>
+                      )}
+                      {columns.map((col) => (
+                        <TableCell key={col.id} className={cn('px-3.5 py-3 align-middle whitespace-nowrap text-sm', col.className)}>
+                          {col.cell(row)}
+                        </TableCell>
+                      ))}
+                      {rowActions && (
+                        <TableCell className="text-right px-3.5 py-3 align-middle whitespace-nowrap">
+                          {rowActions(row)}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+                {pageSize && filtered.length < pageSize && (
+                  Array.from({ length: pageSize - filtered.length }).map((_, i) => (
+                    <TableRow
+                      key={`empty-placeholder-${i}`}
+                      className="h-[49px] border-border/20 hover:bg-transparent pointer-events-none select-none"
+                      aria-hidden="true"
+                    >
+                      <TableCell
+                        colSpan={columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)}
+                        className="h-[49px] py-0 text-transparent"
+                      >
+                        &nbsp;
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
 
+      {/* Pagination Bar */}
       {!isLoading && page !== undefined && onPageChange && (
-        <div className="bg-card border-border/60 rounded-2xl border px-4 py-3">
-        {totalCount !== undefined ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground text-sm">
-                Page {page + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
-              </span>
-              {onPageSizeChange && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground text-sm">Rows per page</span>
-                  <Select
-                    value={String(pageSize)}
-                    onValueChange={(value) => onPageSizeChange(Number(value))}
-                  >
-                    <SelectTrigger size="sm" className="w-[70px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    {/* This control sits in the pagination footer, often right at the bottom of the
-                        viewport — with no room to open downward, the shared default (`side: "none"`,
-                        see select.tsx) squeezes the popup into a one-item sliver instead of showing
-                        every page-size option. Flipping upward here fixes that without changing the
-                        default every other Select in the app relies on. */}
-                    <SelectContent collisionAvoidance={{ side: 'flip' }}>
-                      {pageSizeOptions.map((size) => (
-                        <SelectItem key={size} value={String(size)}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(Math.max(0, page - 1))}
-                disabled={page === 0}
-              >
-                <ChevronLeft className="size-3.5" />
-                Previous
-              </Button>
-              {paginationRange(page + 1, Math.max(1, Math.ceil(totalCount / pageSize))).map((p, i) =>
-                p === 'ellipsis' ? (
-                  <span key={`ellipsis-${i}`} className="text-muted-foreground px-1.5 text-sm">
-                    …
+        <div className="bg-card border-border/60 rounded-2xl border p-3 sm:px-4 sm:py-3 shadow-xs">
+          {totalCount !== undefined ? (
+            <>
+              {/* Mobile pagination layout (clean 2-row thumb-friendly design) */}
+              <div className="flex flex-col gap-2.5 sm:hidden">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                  <span className="font-medium">
+                    Page {page + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
                   </span>
-                ) : (
+                  {onPageSizeChange && (
+                    <div className="flex items-center gap-1.5">
+                      <span>Rows:</span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={(value) => onPageSizeChange(Number(value))}
+                      >
+                        <SelectTrigger size="sm" className="h-7 w-16 px-2 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent collisionAvoidance={{ side: 'flip' }}>
+                          {pageSizeOptions.map((size) => (
+                            <SelectItem key={size} value={String(size)}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   <Button
-                    key={p}
-                    variant={p === page + 1 ? 'default' : 'outline'}
+                    variant="outline"
                     size="sm"
-                    className="w-8 px-0"
-                    onClick={() => onPageChange(p - 1)}
+                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    onClick={() => onPageChange(Math.max(0, page - 1))}
+                    disabled={page === 0}
+                    aria-label="Previous page"
                   >
-                    {p}
+                    <ChevronLeft className="size-3.5" />
+                    Previous
                   </Button>
-                )
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(page + 1)}
-                disabled={page + 1 >= Math.ceil(totalCount / pageSize)}
-              >
-                Next
-                <ChevronRight className="size-3.5" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>
-              Previous
-            </Button>
-            <span className="text-muted-foreground text-sm">
-              {filtered.length} {filtered.length === 1 ? 'row' : 'rows'} · Page {page + 1}
-            </span>
-            <Button variant="outline" onClick={() => onPageChange(page + 1)} disabled={!hasNextPage}>
-              Next
-            </Button>
-          </div>
-        )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    onClick={() => onPageChange(page + 1)}
+                    disabled={page + 1 >= Math.ceil(totalCount / pageSize)}
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Desktop pagination layout (identical to original) */}
+              <div className="hidden sm:flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground text-sm">
+                    Page {page + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+                  </span>
+                  {onPageSizeChange && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground text-sm">Rows per page</span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={(value) => onPageSizeChange(Number(value))}
+                      >
+                        <SelectTrigger size="sm" className="w-[70px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent collisionAvoidance={{ side: 'flip' }}>
+                          {pageSizeOptions.map((size) => (
+                            <SelectItem key={size} value={String(size)}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(Math.max(0, page - 1))}
+                    disabled={page === 0}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                    <span>Previous</span>
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {paginationRange(page + 1, Math.max(1, Math.ceil(totalCount / pageSize))).map((p, i) =>
+                      p === 'ellipsis' ? (
+                        <span key={`ellipsis-${i}`} className="text-muted-foreground px-1.5 text-sm">
+                          …
+                        </span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === page + 1 ? 'default' : 'outline'}
+                          size="sm"
+                          className="w-8 px-0"
+                          onClick={() => onPageChange(p - 1)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(page + 1)}
+                    disabled={page + 1 >= Math.ceil(totalCount / pageSize)}
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Mobile pagination without totalCount */}
+              <div className="flex flex-col gap-2 sm:hidden">
+                <span className="text-muted-foreground text-xs text-center font-medium">
+                  {filtered.length} {filtered.length === 1 ? 'row' : 'rows'} · Page {page + 1}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    onClick={() => onPageChange(Math.max(0, page - 1))}
+                    disabled={page === 0}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    onClick={() => onPageChange(page + 1)}
+                    disabled={!hasNextPage}
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Desktop pagination without totalCount */}
+              <div className="hidden sm:flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(Math.max(0, page - 1))}
+                  disabled={page === 0}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="size-3.5" />
+                  <span>Previous</span>
+                </Button>
+                <span className="text-muted-foreground text-sm">
+                  {filtered.length} {filtered.length === 1 ? 'row' : 'rows'} · Page {page + 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(page + 1)}
+                  disabled={!hasNextPage}
+                  aria-label="Next page"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

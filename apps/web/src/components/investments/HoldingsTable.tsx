@@ -59,7 +59,82 @@ export function HoldingsTable({
   };
 
   return (
-    <div className="bg-card overflow-hidden rounded-2xl">
+    <>
+      {/* Below `md:`, this 9-column table forces horizontal scrolling — a one-card-per-holding
+          stack reads far better on a phone (same data, same click-through to TradingView). */}
+      <div className="space-y-2 md:hidden">
+        {holdings.map((holding, index) => {
+          const isLoss = holding.returnPct < 0 || holding.unrealisedPnl < 0;
+          const isTradingViewAsset =
+            holding.assetType === 'Stock' ||
+            holding.assetType === 'ETF' ||
+            holding.assetType === 'Crypto' ||
+            (!holding.assetType && holding.exchange !== 'AMFI');
+
+          return (
+            <div
+              key={`${holding.symbol}-${holding.exchange}`}
+              onClick={() => handleHoldingClick(holding)}
+              title={
+                isTradingViewAsset
+                  ? `Open ${holding.symbol} on TradingView`
+                  : `${holding.symbol} (${holding.assetType || 'Holding'})`
+              }
+              className={cn(
+                'bg-card active:bg-accent/40 cursor-pointer space-y-2 rounded-2xl border border-border/60 p-4 transition-colors',
+                isLoss && 'border-l-2 border-destructive',
+                animateRows && 'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 duration-300'
+              )}
+              style={animateRows ? { animationDelay: `${index * 20}ms`, animationFillMode: 'both' } : undefined}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 truncate font-medium">
+                    {displayNames?.[holding.symbol] || holding.symbol}
+                    {isTradingViewAsset && <ExternalLink className="text-muted-foreground/60 size-3 shrink-0" />}
+                  </div>
+                  <div className="text-muted-foreground truncate text-xs">
+                    {displayNames?.[holding.symbol] ? `${holding.symbol} · ` : ''}
+                    {holding.exchange} · {holding.unitsHeld} units
+                    {foreignPriceCurrencies?.[holding.symbol] && ` · ${foreignPriceCurrencies[holding.symbol]}`}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <AmountText value={holding.currentValue} colorBySign={false} className="font-medium" />
+                  <div className={cn('text-xs font-semibold', isLoss ? 'text-destructive' : 'text-success')}>
+                    {(holding.returnPct * 100).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                <div className="space-y-0.5">
+                  <div className="text-muted-foreground text-xs">Avg Cost</div>
+                  <AmountText value={holding.avgBuyPrice} colorBySign={false} />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-muted-foreground text-xs">Current Price</div>
+                  <AmountText value={holding.currentPrice} colorBySign={false} />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-muted-foreground text-xs">Invested</div>
+                  <AmountText value={holding.invested} colorBySign={false} />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-muted-foreground text-xs">P&amp;L</div>
+                  <AmountText value={holding.unrealisedPnl} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {holdings.length === 0 && (
+          <div className="bg-card text-muted-foreground rounded-2xl p-8 text-center text-sm">
+            No holdings match the selected filters.
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card hidden overflow-hidden rounded-2xl md:block">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -176,6 +251,7 @@ export function HoldingsTable({
           )}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </>
   );
 }

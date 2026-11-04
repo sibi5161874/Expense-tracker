@@ -26,12 +26,12 @@ export interface KpiStatItem {
  */
 export function KpiStrip({ items, className }: { items: KpiStatItem[]; className?: string }) {
   return (
-    <div className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>
+    <div className={cn('grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4', className)}>
       {items.map(({ label, icon: Icon, tone = 'neutral', value }) => (
-        <div key={label} className="bg-muted/40 flex flex-col gap-1.5 rounded-2xl px-5 py-4">
-          <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <Icon className="size-3.5" />
-            {label}
+        <div key={label} className="bg-muted/40 flex flex-col gap-1 rounded-2xl px-3.5 py-3 sm:gap-1.5 sm:px-5 sm:py-4">
+          <span className="text-muted-foreground flex items-center gap-1.5 text-xs truncate">
+            <Icon className="size-3.5 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
           {typeof value === 'number' ? (
             <AmountText
@@ -39,10 +39,10 @@ export function KpiStrip({ items, className }: { items: KpiStatItem[]; className
               compact
               colorBySign={false}
               sign="neutral"
-              className={cn('text-xl font-semibold', VALUE_TONE_CLASSES[tone])}
+              className={cn('text-lg sm:text-xl font-semibold truncate', VALUE_TONE_CLASSES[tone])}
             />
           ) : (
-            <span className={cn('font-mono text-xl font-semibold tabular-nums', VALUE_TONE_CLASSES[tone])}>{value}</span>
+            <span className={cn('font-mono text-lg sm:text-xl font-semibold tabular-nums truncate', VALUE_TONE_CLASSES[tone])}>{value}</span>
           )}
         </div>
       ))}

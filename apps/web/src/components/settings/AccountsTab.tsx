@@ -6,7 +6,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useFxRates } from '@/hooks/useFxRates';
 import { useAllTimeTransactions } from '@/hooks/useReportsData';
 import { AccountForm } from '@/components/AccountForm';
-import { AccountRow } from '@/components/settings/AccountRow';
+import { AccountRow, AccountCard } from '@/components/settings/AccountRow';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
@@ -61,7 +61,28 @@ export function AccountsTab() {
         </p>
       )}
 
-      <div className="bg-card border-border/60 overflow-hidden rounded-2xl border shadow-sm">
+      {/* Below `md:`, the 7-column table forces horizontal scrolling — one card per account
+          reads far better on a phone. */}
+      <div className="space-y-2 md:hidden">
+        {accounts?.map((account) => (
+          <AccountCard
+            key={account.id}
+            account={account}
+            onEdit={setEditingAccount}
+            onDelete={handleDelete}
+            isDeleting={isDeleting}
+            fxRates={fxRates}
+            currentBalance={currentBalanceByAccountId.get(account.id)}
+          />
+        ))}
+        {accounts?.length === 0 && (
+          <div className="bg-card text-muted-foreground rounded-2xl p-8 text-center text-sm">
+            No accounts yet. Add your first account to start logging transactions.
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card border-border/60 hidden overflow-hidden rounded-2xl border shadow-sm md:block">
         <Table>
           <TableHeader>
             <TableRow>

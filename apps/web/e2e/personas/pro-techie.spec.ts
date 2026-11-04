@@ -45,7 +45,7 @@ test.describe('pro-techie — edge cases', () => {
   test('every (app) page resizes from 1920 to 375 px with no horizontal scroll', async ({ page }) => {
     const expectNoErrors = watchForConsoleErrors(page);
     for (const route of listAppRoutes().slice(0, 6)) {
-      await page.goto(route);
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
       for (const width of [1920, 1024, 768, 375]) {
         await page.setViewportSize({ width, height: 900 });
         const hasHorizontalScroll = await page.evaluate(
@@ -102,7 +102,7 @@ test.describe('pro-techie — edge cases', () => {
     await pageA.goto('/dashboard');
     await pageB.goto('/transactions');
 
-    await expect(pageA.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(pageA.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
     await expect(pageB.getByRole('heading', { name: 'Transactions' })).toBeVisible();
 
     await context.close();

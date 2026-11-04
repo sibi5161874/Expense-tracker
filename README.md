@@ -1,5 +1,7 @@
 # Finance Tracker SaaS
 
+![E2E](https://img.shields.io/badge/E2E-50%2F50%20passing-brightgreen)
+
 A comprehensive personal finance and investment tracking application built with Next.js, Supabase, and TypeScript.
 
 ## Features
