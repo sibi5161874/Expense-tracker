@@ -98,7 +98,7 @@ export default function OverallReportPage() {
         description="Every report combined into one document."
         action={
           canExport ? (
-            <Button onClick={handleExport} disabled={isExporting}>
+            <Button onClick={handleExport} disabled={isExporting} className="min-h-[44px]">
               <Download className="size-4" />
               {isExporting ? 'Exporting...' : 'Download PDF'}
             </Button>

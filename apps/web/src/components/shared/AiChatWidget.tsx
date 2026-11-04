@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useOrblingMood } from '@/hooks/useOrblingMood';
 import { OrblingFloatingOrb } from './OrblingFloatingOrb';
@@ -49,6 +50,8 @@ async function* readChatStream(body: ReadableStream<Uint8Array>): AsyncGenerator
  * (what the assistant actually checked this turn — real tool calls, never a fixed list).
  */
 export function AiChatWidget() {
+  const pathname = usePathname();
+  const [hasOpenModal, setHasOpenModal] = useState(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -56,6 +59,30 @@ export function AiChatWidget() {
   const [pendingSteps, setPendingSteps] = useState<string[]>([]);
   const [isAwaitingFirstToken, setIsAwaitingFirstToken] = useState(false);
   const [mood, act] = useOrblingMood('idle');
+
+  useEffect(() => {
+    const checkModal = () => {
+      const dialog = document.querySelector('[role="dialog"]:not([data-chat-panel="true"]), [data-slot="dialog-content"]');
+      setHasOpenModal(!!dialog);
+    };
+    checkModal();
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  const isHiddenRoute =
+    pathname?.startsWith('/settings') ||
+    pathname?.startsWith('/config') ||
+    pathname?.startsWith('/auth') ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
+
+  if (isHiddenRoute || hasOpenModal) {
+    return null;
+  }
 
   const isBusy = mood === 'thinking' || mood === 'reading';
 

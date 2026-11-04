@@ -1,27 +1,47 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
+  subtitle?: string;
   action?: ReactNode;
+  className?: string;
 }
 
-/** Shared full-region empty state — one centered icon circle, never per-item badges. */
-export function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
+/**
+ * Shared industry-standard empty state component:
+ * Displays a 48px muted icon circle, prominent title, explanatory subtitle,
+ * and an accessible primary action CTA (≥44px tall, responsive full-width on mobile).
+ */
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  subtitle,
+  action,
+  className,
+}: EmptyStateProps) {
+  const text = subtitle || description;
+
   return (
-    <Card className="animate-in fade-in-0 duration-300">
-      <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-        <div className="bg-accent text-accent-foreground flex size-14 items-center justify-center rounded-full">
-          <Icon className="size-6" />
+    <Card className={cn('animate-in fade-in-0 duration-300 rounded-2xl border border-dashed border-border/70', className)}>
+      <CardContent className="flex flex-col items-center gap-4 py-12 px-4 sm:py-16 text-center">
+        <div className="bg-muted text-muted-foreground flex size-14 items-center justify-center rounded-2xl ring-1 ring-border/50">
+          <Icon className="size-7" />
         </div>
-        <div className="space-y-1.5">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-muted-foreground mx-auto max-w-sm text-sm">{description}</p>
+        <div className="space-y-1.5 max-w-sm">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
+          {text && <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{text}</p>}
         </div>
-        {action}
+        {action && (
+          <div className="mt-2 w-full sm:w-auto [&_button]:min-h-[44px] [&_button]:w-full sm:[&_button]:w-auto">
+            {action}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

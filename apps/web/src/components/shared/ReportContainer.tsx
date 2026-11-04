@@ -120,11 +120,11 @@ export function ReportContainer({ title, description, excelSheets, chartRef, chi
           <div className="flex gap-2">
             {canExport ? (
               <>
-                <Button variant="outline" onClick={handleExcelExport} disabled={isExportingExcel}>
+                <Button variant="outline" className="min-h-[44px]" onClick={handleExcelExport} disabled={isExportingExcel}>
                   <FileSpreadsheet className="size-4" />
                   {isExportingExcel ? 'Exporting...' : 'Excel'}
                 </Button>
-                <Button variant="outline" onClick={handlePdfExport} disabled={isExportingPdf}>
+                <Button variant="outline" className="min-h-[44px]" onClick={handlePdfExport} disabled={isExportingPdf}>
                   <Download className="size-4" />
                   {isExportingPdf ? 'Exporting...' : 'PDF'}
                 </Button>

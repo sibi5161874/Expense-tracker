@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Wallet, LineChart, TrendingUp, Percent, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useInvestmentLog, useAllInvestmentLog } from '@/hooks/useInvestmentLog';
@@ -21,11 +22,13 @@ import { AssetClassBreakdownCard } from '@/components/portfolio/AssetClassBreakd
 import { AssetClassTabs } from '@/components/portfolio/AssetClassTabs';
 import { HoldingsFilterBar } from '@/components/portfolio/HoldingsFilterBar';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { AmountText } from '@/components/shared/AmountText';
 import { useTranslation } from '@/contexts/LocaleContext';
 import { cn } from '@/lib/utils';
 
 export default function PortfolioPage() {
+  const router = useRouter();
   const { data: allInvestments, isLoading, error } = useAllInvestmentLog();
   const { data: recentInvestments } = useInvestmentLog({ page: 0 });
   const { data: holdingRows } = useHoldings();
@@ -142,7 +145,12 @@ export default function PortfolioPage() {
                 {formatRelativeTime(lastUpdated)}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <Button
+              variant="outline"
+              className="min-h-[44px] px-3.5"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
               <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
               {isRefreshing ? 'Refreshing...' : 'Refresh Prices'}
             </Button>
@@ -161,116 +169,131 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* 1. KPI Summary Grid */}
-      {summary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Total Invested"
-            value={formatINR(summary.totalInvested)}
-            compactValue={summary.totalInvested}
-            icon={Wallet}
-          />
-          <StatCard
-            label="Current Value"
-            value={formatINR(summary.currentValue)}
-            compactValue={summary.currentValue}
-            icon={LineChart}
-            tone="info"
-          />
-          <StatCard
-            label="Total P&L"
-            value={formatINR(summary.totalPnl)}
-            compactValue={summary.totalPnl}
-            icon={TrendingUp}
-            tone={summary.totalPnl >= 0 ? 'success' : 'destructive'}
-          />
-          <StatCard
-            label="P&L %"
-            value={`${summary.pnlPercentage.toFixed(2)}%`}
-            icon={Percent}
-            tone={summary.pnlPercentage >= 0 ? 'success' : 'destructive'}
-          />
-        </div>
-      )}
-
-      {/* 2. Asset Class Breakdown Section */}
-      <AssetClassBreakdownCard holdings={holdings} />
-
-      {/* 3. Main Holdings Table & Allocation Grid */}
-      <div className="space-y-4">
-        {/* Asset Class Filter Tabs */}
-        <AssetClassTabs
-          holdings={holdings}
-          selectedTab={selectedAssetTab}
-          onSelectTab={setSelectedAssetTab}
+      {holdings.length === 0 ? (
+        <EmptyState
+          icon={LineChart}
+          title="No holdings yet"
+          subtitle="Your portfolio holdings are computed automatically from your investment log. Log your first stock or mutual fund trade to start tracking."
+          action={
+            <Button onClick={() => router.push('/investments')} className="min-h-[44px]">
+              Log Investment
+            </Button>
+          }
         />
-
-        {/* Search, Filter, Sort Controls */}
-        <HoldingsFilterBar
-          sortValue={sortValue}
-          onSortChange={setSortValue}
-          filterValue={filterValue}
-          onFilterChange={setFilterValue}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <h2 className="mb-3 text-sm font-semibold">
-              Holdings ({filteredHoldings.length})
-            </h2>
-            <HoldingsTable
-              holdings={filteredHoldings}
-              animateRows={shouldAnimateRows}
-              foreignPriceCurrencies={foreignPriceCurrencies}
-              displayNames={displayNames}
-            />
-          </div>
-          <div className="bg-card rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
-            <ExpenseBreakdownChart data={allocation} />
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Recent Transactions */}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold">Recent transactions</h2>
-        <div className="bg-card divide-border overflow-hidden rounded-2xl divide-y">
-          {recentInvestments?.slice(0, 10).map((inv) => (
-            <div key={inv.id} className="hover:bg-muted/40 flex items-center justify-between px-5 py-3.5 text-sm transition-colors">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">{inv.date}</span>
-                <span
-                  className={cn(
-                    'rounded px-1.5 py-0.5 text-xs font-medium',
-                    inv.action.toUpperCase() === 'BUY' || inv.action.toUpperCase() === 'SIP'
-                      ? 'bg-success-subtle text-success'
-                      : 'bg-destructive-subtle text-destructive'
-                  )}
-                >
-                  {inv.action.charAt(0).toUpperCase() + inv.action.slice(1).toLowerCase()}
-                </span>
-                <span className="truncate font-medium">{inv.symbol}</span>
-                <span className="text-muted-foreground hidden text-xs sm:inline">
-                  {inv.quantity} @ {formatINR(inv.price)}
-                </span>
-              </div>
-              <AmountText value={inv.quantity * inv.price} colorBySign={false} className="ml-4 shrink-0 font-medium" />
+      ) : (
+        <>
+          {/* 1. KPI Summary Grid (2x2 on mobile, 4 columns on lg) */}
+          {summary && (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatCard
+                label="Total Invested"
+                value={formatINR(summary.totalInvested)}
+                compactValue={summary.totalInvested}
+                icon={Wallet}
+              />
+              <StatCard
+                label="Current Value"
+                value={formatINR(summary.currentValue)}
+                compactValue={summary.currentValue}
+                icon={LineChart}
+                tone="info"
+              />
+              <StatCard
+                label="Total P&L"
+                value={formatINR(summary.totalPnl)}
+                compactValue={summary.totalPnl}
+                icon={TrendingUp}
+                tone={summary.totalPnl >= 0 ? 'success' : 'destructive'}
+              />
+              <StatCard
+                label="P&L %"
+                value={`${summary.pnlPercentage.toFixed(2)}%`}
+                icon={Percent}
+                tone={summary.pnlPercentage >= 0 ? 'success' : 'destructive'}
+              />
             </div>
-          ))}
-          {(!recentInvestments || recentInvestments.length === 0) && (
-            <p className="text-muted-foreground p-8 text-center text-sm">No transactions found.</p>
           )}
-        </div>
-      </div>
 
-      {/* 5. Loss-Making Holdings Section */}
-      <LossMakingHoldingsCard holdings={holdings} />
+          {/* 2. Asset Class Breakdown Section */}
+          <AssetClassBreakdownCard holdings={holdings} />
 
-      {/* 6. Tax-Loss Harvesting Opportunity */}
-      <TaxLossHarvestingCard holdings={holdings} />
+          {/* 3. Main Holdings Table & Allocation Grid */}
+          <div className="space-y-4">
+            {/* Asset Class Filter Tabs */}
+            <AssetClassTabs
+              holdings={holdings}
+              selectedTab={selectedAssetTab}
+              onSelectTab={setSelectedAssetTab}
+            />
+
+            {/* Search, Filter, Sort Controls */}
+            <HoldingsFilterBar
+              sortValue={sortValue}
+              onSortChange={setSortValue}
+              filterValue={filterValue}
+              onFilterChange={setFilterValue}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <h2 className="mb-3 text-sm font-semibold">
+                  Holdings ({filteredHoldings.length})
+                </h2>
+                <HoldingsTable
+                  holdings={filteredHoldings}
+                  animateRows={shouldAnimateRows}
+                  foreignPriceCurrencies={foreignPriceCurrencies}
+                  displayNames={displayNames}
+                />
+              </div>
+              <div className="bg-card rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
+                <ExpenseBreakdownChart data={allocation} />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Recent Transactions */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold">Recent transactions</h2>
+            <div className="bg-card divide-border overflow-hidden rounded-2xl divide-y">
+              {recentInvestments?.slice(0, 10).map((inv) => (
+                <div key={inv.id} className="hover:bg-muted/40 flex items-center justify-between px-5 py-3.5 text-sm transition-colors">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">{inv.date}</span>
+                    <span
+                      className={cn(
+                        'rounded px-1.5 py-0.5 text-xs font-medium',
+                        inv.action.toUpperCase() === 'BUY' || inv.action.toUpperCase() === 'SIP'
+                          ? 'bg-success-subtle text-success'
+                          : 'bg-destructive-subtle text-destructive'
+                      )}
+                    >
+                      {inv.action.charAt(0).toUpperCase() + inv.action.slice(1).toLowerCase()}
+                    </span>
+                    <span className="truncate font-medium">{inv.symbol}</span>
+                    <span className="text-muted-foreground hidden text-xs sm:inline">
+                      {inv.quantity} @ {formatINR(inv.price)}
+                    </span>
+                  </div>
+                  <AmountText value={inv.quantity * inv.price} colorBySign={false} className="ml-4 shrink-0 font-medium" />
+                </div>
+              ))}
+              {(!recentInvestments || recentInvestments.length === 0) && (
+                <p className="text-muted-foreground p-8 text-center text-sm">No transactions found.</p>
+              )}
+            </div>
+          </div>
+
+          {/* 5. Loss-Making Holdings Section */}
+          <LossMakingHoldingsCard holdings={holdings} />
+
+          {/* 6. Tax-Loss Harvesting Opportunity */}
+          <TaxLossHarvestingCard holdings={holdings} />
+        </>
+      )}
     </div>
   );
 }

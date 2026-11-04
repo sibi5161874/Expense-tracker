@@ -34,19 +34,19 @@ export function StatCard({
   compactValue,
 }: StatCardProps) {
   return (
-    <div className="bg-card rounded-2xl p-5">
+    <div className="bg-card min-h-[72px] rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
-        <p className="text-muted-foreground text-sm">{label}</p>
-        <div className={cn("flex size-9 items-center justify-center rounded-full", ICON_TONE_CLASSES[tone])}>
-          <Icon className="size-4.5" />
+        <p className="text-muted-foreground text-xs sm:text-sm">{label}</p>
+        <div className={cn("flex size-8 sm:size-9 items-center justify-center rounded-full shrink-0", ICON_TONE_CLASSES[tone])}>
+          <Icon className="size-4 sm:size-4.5" />
         </div>
       </div>
       {compactValue !== undefined ? (
-        <p className="mt-3 text-2xl font-semibold tabular-nums">
-          <AmountText value={compactValue} compact colorBySign={false} className="text-2xl font-semibold" />
+        <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-semibold tabular-nums truncate">
+          <AmountText value={compactValue} compact colorBySign={false} className="text-xl sm:text-2xl font-semibold" />
         </p>
       ) : (
-        <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+        <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-semibold tabular-nums truncate">{value}</p>
       )}
       {trend && (
         <p

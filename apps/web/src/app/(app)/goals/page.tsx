@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Target } from 'lucide-react';
 import { useGoals } from '@/hooks/useGoals';
 import { GoalForm } from '@/components/GoalForm';
 import { GoalCard } from '@/components/goals/GoalCard';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import type { Goal } from '@repo/shared/types';
 
@@ -28,7 +29,7 @@ export default function GoalsPage() {
         title="Goals"
         description="Track progress toward your savings goals."
         action={
-          <Button onClick={() => setShowForm(true)}>
+          <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
             <Plus className="size-4" />
             Add Goal
           </Button>
@@ -45,8 +46,18 @@ export default function GoalsPage() {
             <GoalCard key={goal.id} goal={goal} onEdit={handleEdit} onDelete={handleDelete} isDeleting={isDeleting} />
           ))}
           {goals?.length === 0 && (
-            <div className="text-muted-foreground col-span-full rounded-2xl border border-dashed p-12 text-center">
-              No goals found. Add your first goal to get started.
+            <div className="col-span-full">
+              <EmptyState
+                icon={Target}
+                title="Add your first goal"
+                subtitle="Goals help you track progress toward what matters most."
+                action={
+                  <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
+                    <Plus className="size-4" />
+                    Create Goal
+                  </Button>
+                }
+              />
             </div>
           )}
         </div>
@@ -61,11 +72,12 @@ export default function GoalsPage() {
               ? {
                   id: editingGoal.id,
                   goal_name: editingGoal.goal_name,
-                  category: editingGoal.category,
                   target_amount: editingGoal.target_amount,
-                  saved_amount: editingGoal.saved_amount,
                   target_date: editingGoal.target_date,
+                  category: editingGoal.category,
                   priority: editingGoal.priority,
+                  saved_amount: editingGoal.saved_amount,
+                  icon: editingGoal.icon,
                 }
               : undefined
           }

@@ -231,7 +231,7 @@ export function DataTable<T>({
                 if (!isSearchControlled) setUncontrolledSearch(e.target.value);
               }}
               placeholder={searchPlaceholder}
-              className="pl-8"
+              className="h-11 sm:h-9 min-h-[44px] sm:min-h-0 pl-8"
             />
           </div>
         )}
@@ -244,7 +244,7 @@ export function DataTable<T>({
               onValueChange={(value) => setFilterValue(filter.id, (value as string) ?? '')}
               disabled={isLoading}
             >
-              <SelectTrigger className="w-fit">
+              <SelectTrigger className="h-11 sm:h-9 min-h-[44px] sm:min-h-0 w-fit">
                 <SelectValue placeholder={filter.label} />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +259,7 @@ export function DataTable<T>({
           ))}
 
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearSearchAndFilters}>
+            <Button variant="ghost" size="sm" className="min-h-[44px] sm:min-h-0" onClick={clearSearchAndFilters}>
               <X className="size-3.5" />
               Clear
             </Button>
@@ -441,7 +441,7 @@ export function DataTable<T>({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    className="h-11 min-h-[44px] w-full rounded-xl text-xs font-medium gap-1"
                     onClick={() => onPageChange(Math.max(0, page - 1))}
                     disabled={page === 0}
                     aria-label="Previous page"
@@ -452,7 +452,7 @@ export function DataTable<T>({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    className="h-11 min-h-[44px] w-full rounded-xl text-xs font-medium gap-1"
                     onClick={() => onPageChange(page + 1)}
                     disabled={page + 1 >= Math.ceil(totalCount / pageSize)}
                     aria-label="Next page"
@@ -544,7 +544,7 @@ export function DataTable<T>({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    className="h-11 min-h-[44px] w-full rounded-xl text-xs font-medium gap-1"
                     onClick={() => onPageChange(Math.max(0, page - 1))}
                     disabled={page === 0}
                     aria-label="Previous page"
@@ -555,7 +555,7 @@ export function DataTable<T>({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 w-full rounded-xl text-xs font-medium gap-1"
+                    className="h-11 min-h-[44px] w-full rounded-xl text-xs font-medium gap-1"
                     onClick={() => onPageChange(page + 1)}
                     disabled={!hasNextPage}
                     aria-label="Next page"

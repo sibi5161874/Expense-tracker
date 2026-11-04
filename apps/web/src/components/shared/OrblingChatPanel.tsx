@@ -135,7 +135,7 @@ export function OrblingChatPanel({
   return (
     // Anchored the same bottom offset as OrblingFloatingOrb's mobile position (bottom-24) so the
     // panel opens flush above the launcher instead of overlapping MobileNav's bar beneath it.
-    <div className="glass-surface-strong fixed right-4 bottom-24 z-50 flex h-[min(31rem,calc(100vh-9rem))] w-[calc(100vw-2rem)] max-w-[22.5rem] flex-col overflow-hidden rounded-3xl md:right-6 md:bottom-22 md:max-w-[24rem]">
+    <div data-chat-panel="true" className="glass-surface-strong fixed right-4 bottom-24 z-50 flex h-[min(31rem,calc(100vh-9rem))] w-[calc(100vw-2rem)] max-w-[22.5rem] flex-col overflow-hidden rounded-3xl md:right-6 md:bottom-22 md:max-w-[24rem]">
       <OrblingHeader mood={mood} onClose={onClose} />
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-3">

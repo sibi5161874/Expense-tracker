@@ -68,13 +68,23 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid w-full max-w-md grid-cols-5 items-center">
+      {/* Center Floating Action Button (FAB), offset cleanly above the bottom navigation */}
+      <button
+        type="button"
+        onClick={() => setQuickAddOpen(true)}
+        aria-label={t("nav.addTransaction")}
+        className="fixed left-1/2 -translate-x-1/2 bottom-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] z-30 flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/35 transition-transform hover:bg-emerald-600 active:scale-95 md:hidden"
+      >
+        <Plus className="size-6 stroke-[2.5]" />
+      </button>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 h-16 border-t border-border/80 bg-background/95 px-3 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl md:hidden">
+        <div className="mx-auto grid h-full w-full max-w-md grid-cols-4 items-center">
           {/* Col 1: Home */}
           <Link
             href="/dashboard"
             className={cn(
-              "flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
+              "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
               isHomeActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -86,7 +96,7 @@ export function MobileNav() {
           <Link
             href="/transactions"
             className={cn(
-              "flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
+              "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
               isActivityActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -94,24 +104,11 @@ export function MobileNav() {
             <span>{t("nav.activity")}</span>
           </Link>
 
-          {/* Col 3: Center Quick Add Button (Dedicated Slot, Zero Overlap) */}
-          <div className="flex flex-col items-center justify-center">
-            <button
-              type="button"
-              onClick={() => setQuickAddOpen(true)}
-              aria-label={t("nav.addTransaction")}
-              className="flex size-12 -mt-4 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 transition-transform hover:bg-emerald-600 active:scale-95"
-            >
-              <Plus className="size-6 stroke-[2.5]" />
-            </button>
-            <span className="text-[10px] font-medium text-muted-foreground mt-0.5">Add</span>
-          </div>
-
-          {/* Col 4: Portfolio */}
+          {/* Col 3: Portfolio */}
           <Link
             href="/portfolio"
             className={cn(
-              "flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
+              "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
               isPortfolioActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -119,12 +116,12 @@ export function MobileNav() {
             <span>{t("sidebar.portfolio")}</span>
           </Link>
 
-          {/* Col 5: More */}
+          {/* Col 4: More */}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
             className={cn(
-              "flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
+              "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
               moreActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >

@@ -52,7 +52,7 @@ export function AssetClassTabs({ holdings, selectedTab, onSelectTab }: AssetClas
               type="button"
               onClick={() => onSelectTab(tab.key)}
               className={cn(
-                'px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors cursor-pointer',
+                'min-h-[44px] inline-flex items-center justify-center px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors cursor-pointer',
                 isActive
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'

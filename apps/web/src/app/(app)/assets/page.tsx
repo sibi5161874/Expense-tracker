@@ -99,7 +99,7 @@ export default function AssetsPage() {
         description="Fixed deposits, gold, retirement accounts, and other holdings."
         action={
           canAdd ? (
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
               <Plus className="size-4" />
               Add {addLabel}
             </Button>
@@ -124,6 +124,8 @@ export default function AssetsPage() {
               items={section.items}
               getKey={(row) => row.id}
               emptyMessage={section.emptyMessage}
+              onAdd={canAdd ? () => setShowForm(true) : goToUpgrade}
+              addLabel={TAB_LABELS[section.tab]}
               renderCard={(row) => section.renderCard(row, (r) => setEditingRow({ tab: section.tab, row: r }))}
             />
           ))}

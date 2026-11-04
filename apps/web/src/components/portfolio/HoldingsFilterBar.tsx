@@ -71,7 +71,7 @@ export function HoldingsFilterBar({
           placeholder="Search symbol or name…"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="h-10 w-full pl-9"
+          className="h-11 sm:h-10 min-h-[44px] sm:min-h-0 w-full pl-9"
         />
       </div>
 
@@ -81,7 +81,7 @@ export function HoldingsFilterBar({
           value={filterValue}
           onValueChange={(val) => onFilterChange(val as FilterType)}
         >
-          <SelectTrigger className="h-10 w-full sm:w-36">
+          <SelectTrigger className="h-11 sm:h-10 min-h-[44px] sm:min-h-0 w-full sm:w-36">
             <SelectValue placeholder="Filter">
               {FILTER_OPTIONS.find((opt) => opt.value === filterValue)?.label ?? 'Filter'}
             </SelectValue>
@@ -100,7 +100,7 @@ export function HoldingsFilterBar({
           value={sortValue}
           onValueChange={(val) => onSortChange(val as SortKey)}
         >
-          <SelectTrigger className="h-10 w-full sm:w-52">
+          <SelectTrigger className="h-11 sm:h-10 min-h-[44px] sm:min-h-0 w-full sm:w-52">
             <SelectValue placeholder="Sort by">
               {SORT_OPTIONS.find((opt) => opt.value === sortValue)?.label ?? 'Sort by'}
             </SelectValue>
