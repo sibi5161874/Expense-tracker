@@ -20,6 +20,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { transactionTypeTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
 import { useTranslation } from '@/contexts/LocaleContext';
@@ -318,6 +319,7 @@ export default function TransactionsPage() {
           }
         />
       ) : (
+        <>
         <DataTable
           data={transactions}
           isLoading={isLoading}
@@ -387,6 +389,10 @@ export default function TransactionsPage() {
           }}
           animateRows={shouldAnimateRows}
         />
+        <div className="mt-8">
+          <AdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_LIST} />
+        </div>
+        </>
       )}
 
       {(showForm || editingTransaction) && (

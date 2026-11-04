@@ -51,6 +51,7 @@ export default function GoalsPage() {
                 icon={Target}
                 title="Add your first goal"
                 subtitle="Goals help you track progress toward what matters most."
+                adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_EMPTY}
                 action={
                   <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
                     <Plus className="size-4" />

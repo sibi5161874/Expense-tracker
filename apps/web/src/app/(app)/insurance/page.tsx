@@ -57,6 +57,7 @@ export default function InsurancePage() {
           icon={ShieldCheck}
           title="Add your first policy"
           subtitle="Track term, health, motor, and other policies — coverage, premiums, and due dates in one place."
+          adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_EMPTY}
           action={
             <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
               <Plus className="size-4" />

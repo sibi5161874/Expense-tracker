@@ -23,6 +23,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { investmentActionTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
 import { useTranslation } from '@/contexts/LocaleContext';
@@ -330,6 +331,7 @@ export default function InvestmentsPage() {
           icon={TrendingUp}
           title="No investment entries yet"
           description="Track your stock trades, mutual funds, SIPs, and dividends to view your portfolio analytics."
+          adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_EMPTY}
           action={
             <Button onClick={() => setShowForm(true)}>
               <Plus className="size-4" />
@@ -338,6 +340,7 @@ export default function InvestmentsPage() {
           }
         />
       ) : (
+        <>
         <DataTable
           data={investments}
           isLoading={isLoading}
@@ -404,6 +407,10 @@ export default function InvestmentsPage() {
             setPage(0);
           }}
         />
+        <div className="mt-8">
+          <AdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_LIST} />
+        </div>
+        </>
       )}
 
       {(showForm || editingInvestment) && (

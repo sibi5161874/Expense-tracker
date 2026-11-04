@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -42,6 +43,16 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {process.env.NEXT_PUBLIC_ADSENSE_ENABLED === 'true' &&
+          process.env.NEXT_PUBLIC_ADSENSE_CLIENT &&
+          process.env.NEXT_PUBLIC_E2E_MODE !== 'true' && (
+            <Script
+              id="adsense-script"
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+              strategy="afterInteractive"
+              crossOrigin="anonymous"
+            />
+          )}
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>

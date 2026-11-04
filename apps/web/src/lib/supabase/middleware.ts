@@ -24,6 +24,11 @@ const PUBLIC_PATHS = [
   "/auth/callback",
   "/privacy",
   "/terms",
+  // Google requests this directly as a static file to verify ad-serving authorization —
+  // same bug class as the webhook/cron entries below: the matcher excludes common image
+  // extensions but not .txt, so without this it 307s to /login before Next.js ever serves
+  // the static file from public/.
+  "/ads.txt",
   // Razorpay's server calls this directly and never has a session cookie —
   // it authenticates itself via HMAC signature, not the auth middleware.
   "/api/payments/webhook",

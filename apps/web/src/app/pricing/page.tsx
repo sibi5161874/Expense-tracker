@@ -6,6 +6,7 @@ import { PAID_TIER_ENABLED, PRICING, FREE_TIER_LIMITS } from '@repo/shared/confi
 import { REPORTS } from '@/lib/reportsRegistry';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { FadeIn } from '@/components/landing/FadeIn';
 
 function formatRupees(n: number) {
@@ -115,6 +116,10 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      <div className="my-12 max-w-4xl mx-auto px-4">
+        <AdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MARKETING} />
+      </div>
 
       <LandingFooter />
     </div>

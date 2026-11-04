@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { FadeIn } from '@/components/landing/FadeIn';
 
 const STATS = [
@@ -300,6 +301,10 @@ export default function FeaturesPage() {
           </div>
         </div>
       </section>
+
+      <div className="my-12 max-w-4xl mx-auto px-4">
+        <AdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MARKETING} />
+      </div>
 
       <LandingFooter />
     </div>

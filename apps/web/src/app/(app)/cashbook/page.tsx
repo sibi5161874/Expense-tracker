@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { cashbookFlowTone } from '@/lib/badgeTones';
 import { downloadCsvTemplate } from '@/lib/downloadCsvTemplate';
 import { useTranslation } from '@/contexts/LocaleContext';
@@ -249,6 +250,7 @@ export default function CashbookPage() {
           icon={BookOpen}
           title="No cashbook entries yet"
           description="Track personal lending, money borrowed, or debts owed to you in one organized cashbook."
+          adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_EMPTY}
           action={
             <Button onClick={() => setShowForm(true)}>
               <Plus className="size-4" />
@@ -338,6 +340,9 @@ export default function CashbookPage() {
               setPage(0);
             }}
           />
+          <div className="mt-8">
+            <AdBanner slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_LIST} />
+          </div>
         </>
       )}
 

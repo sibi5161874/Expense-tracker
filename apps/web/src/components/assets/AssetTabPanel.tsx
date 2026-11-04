@@ -40,6 +40,7 @@ export function AssetTabPanel<T>({
               icon={Landmark}
               title={emptyMessage}
               subtitle="Start tracking this asset to keep your net worth calculations accurate and up to date."
+              adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_EMPTY}
               action={
                 onAdd ? (
                   <Button onClick={onAdd} className="min-h-[44px]">

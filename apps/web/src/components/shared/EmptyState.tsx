@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { AdBanner } from '@/components/shared/AdBanner';
 import { cn } from '@/lib/utils';
 
 export interface EmptyStateProps {
@@ -10,6 +11,8 @@ export interface EmptyStateProps {
   subtitle?: string;
   action?: ReactNode;
   className?: string;
+  /** AdSense slot id — only pass this on routes approved for empty-state ads (see AdBanner usage). */
+  adSlot?: string;
 }
 
 /**
@@ -24,6 +27,7 @@ export function EmptyState({
   subtitle,
   action,
   className,
+  adSlot,
 }: EmptyStateProps) {
   const text = subtitle || description;
 
@@ -42,6 +46,7 @@ export function EmptyState({
             {action}
           </div>
         )}
+        {adSlot && <AdBanner slot={adSlot} className="mt-4" />}
       </CardContent>
     </Card>
   );
