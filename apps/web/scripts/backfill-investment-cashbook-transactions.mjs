@@ -37,7 +37,7 @@ function buildInvestmentMirror(row) {
   const gross = row.quantity * row.price;
 
   if (row.action === 'BUY' || row.action === 'SIP') {
-    const amount = gross + row.fees;
+    const amount = Math.round((gross + row.fees) * 100) / 100;
     if (!(amount > 0)) return null;
     return {
       type: 'Expense',
@@ -48,12 +48,16 @@ function buildInvestmentMirror(row) {
     };
   }
   if (row.action === 'SELL' || row.action === 'DIVIDEND') {
-    const amount = gross - row.fees;
+    const gross = row.action === 'DIVIDEND' && row.quantity === 0 ? row.price : row.quantity * row.price;
+    const amount = Math.round((gross - row.fees) * 100) / 100;
     if (!(amount > 0)) return null;
     return {
       type: 'Income',
       amount,
-      notes: `${row.action === 'SELL' ? 'Sold' : 'Received dividend on'} ${row.quantity} ${row.symbol} @ ₹${row.price} via Investment Log`,
+      notes:
+        row.action === 'DIVIDEND' && row.quantity === 0
+          ? `Received dividend on ${row.symbol} @ ₹${row.price} via Investment Log`
+          : `${row.action === 'SELL' ? 'Sold' : 'Received dividend on'} ${row.quantity} ${row.symbol} @ ₹${row.price} via Investment Log`,
       categoryName: 'Investment Returns',
       categoryType: 'Income',
     };

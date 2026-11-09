@@ -53,6 +53,19 @@ describe('buildInvestmentLogMirrorTransaction', () => {
     expect(result?.notes).toContain('Received dividend on');
   });
 
+  it('mirrors a DIVIDEND with quantity=0 using price as dividend amount', () => {
+    const result = buildInvestmentLogMirrorTransaction({ ...base, action: 'DIVIDEND', quantity: 0, price: 500, fees: 0 });
+    expect(result).toEqual({
+      date: '2026-01-05',
+      type: 'Income',
+      amount: 500,
+      from_account_id: 'account-1',
+      notes: 'Received dividend on RELIANCE @ ₹500 via Investment Log',
+      categoryName: INVESTMENT_INCOME_CATEGORY_NAME,
+      categoryType: 'Income',
+    });
+  });
+
   it('never mirrors a BONUS — no cash changes hands', () => {
     expect(buildInvestmentLogMirrorTransaction({ ...base, action: 'BONUS' })).toBeNull();
   });

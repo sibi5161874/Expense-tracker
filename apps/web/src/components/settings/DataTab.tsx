@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Download, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ const EASTER_EGG_SEQUENCE = ['in', 'it', 'in', 'it'];
 export function DataTab() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const [isExporting, setIsExporting] = useState(false);
+  // const [isExporting, setIsExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,6 +38,7 @@ export function DataTab() {
     }
   }
 
+  /*
   async function handleExport() {
     setIsExporting(true);
     try {
@@ -57,6 +58,7 @@ export function DataTab() {
       setIsExporting(false);
     }
   }
+  */
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -79,6 +81,7 @@ export function DataTab() {
 
   return (
     <div className="space-y-6">
+      {/* 
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Export your data</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">
@@ -90,6 +93,7 @@ export function DataTab() {
           {isExporting ? 'Preparing…' : 'Export all data (JSON)'}
         </Button>
       </div>
+      */}
 
       <div className="border-destructive/30 bg-destructive/5 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-destructive text-sm font-semibold">Delete account</h2>

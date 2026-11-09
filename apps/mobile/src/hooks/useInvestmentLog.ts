@@ -30,6 +30,8 @@ export function useInvestmentLog(opts: { page?: number } = {}) {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
     queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+    queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
   }
 
   const createMutation = useMutation({

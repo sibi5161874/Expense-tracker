@@ -34,6 +34,8 @@ export function useCashbook(opts: { page?: number } = {}) {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
     queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+    queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
   }
 
   const createMutation = useMutation({

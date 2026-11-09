@@ -3,6 +3,7 @@ import { Alert, FlatList, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Plus, TrendingUp, UploadCloud, Briefcase, Lock } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +27,7 @@ import { useThemeColor } from "@/lib/colors";
 type InvestmentLogEntry = NonNullable<Awaited<ReturnType<typeof getInvestmentLog>>>[number];
 
 export default function InvestmentsScreen() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<InvestmentLogEntry[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -225,13 +227,25 @@ export default function InvestmentsScreen() {
         templateColumns={INVESTMENT_LOG_TEMPLATE_COLUMNS}
         buildPlan={(records) => buildInvestmentLogImportPlan(records, buildNameIndex(accounts ?? []), existingKeys)}
         createBulk={(rows) => (user ? createInvestmentLogsBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
-        onImported={() => setPage(0)}
+        onImported={() => {
+          setPage(0);
+          queryClient.invalidateQueries({ queryKey: ["investmentLog"] });
+          queryClient.invalidateQueries({ queryKey: ["allInvestmentLog"] });
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        }}
       />
 
       <BrokerImportSheet
         visible={brokerImportOpen}
         onClose={() => setBrokerImportOpen(false)}
-        onImported={() => setPage(0)}
+        onImported={() => {
+          setPage(0);
+          queryClient.invalidateQueries({ queryKey: ["investmentLog"] });
+          queryClient.invalidateQueries({ queryKey: ["allInvestmentLog"] });
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        }}
       />
     </SafeAreaView>
   );

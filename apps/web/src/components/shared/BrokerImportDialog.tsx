@@ -157,6 +157,12 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
     queryClient.invalidateQueries({ queryKey: ['investmentLog'] });
     queryClient.invalidateQueries({ queryKey: ['allInvestmentLog'] });
     queryClient.invalidateQueries({ queryKey: ['holdings'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['transactionsCount'] });
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    queryClient.invalidateQueries({ queryKey: ['monthlyOverview'] });
+    queryClient.invalidateQueries({ queryKey: ['monthlyTransactionSummary'] });
+    queryClient.invalidateQueries({ queryKey: ['netWorth'] });
     toast.success(`Imported ${accumulated.committed} trade${accumulated.committed === 1 ? '' : 's'}.`);
   }
 

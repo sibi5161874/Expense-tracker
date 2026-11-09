@@ -5,7 +5,7 @@ import { buildInvestmentLogMirrorTransaction } from '../../logic/investmentMirro
 
 /** Finds a category by exact name+type for this user, creating it on first use — keeps the
  * mirrored cash transaction (below) in a real, filterable category instead of uncategorized. */
-async function findOrCreateCategory(
+export async function findOrCreateCategory(
   supabase: SupabaseClient<Database>,
   userId: string,
   name: string,

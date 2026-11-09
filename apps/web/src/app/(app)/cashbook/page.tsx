@@ -372,7 +372,16 @@ export default function CashbookPage() {
         <ImportDialog
           apiPath="/api/import/cashbook"
           entityLabel="cashbook"
-          invalidateQueryKeys={[['cashbook'], ['cashbookSummary']]}
+          invalidateQueryKeys={[
+            ['cashbook'],
+            ['cashbookSummary'],
+            ['transactions'],
+            ['transactionsCount'],
+            ['accounts'],
+            ['monthlyOverview'],
+            ['monthlyTransactionSummary'],
+            ['netWorth'],
+          ]}
           onClose={() => setShowImport(false)}
         />
       )}

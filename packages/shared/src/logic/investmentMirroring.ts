@@ -31,12 +31,15 @@ export function buildInvestmentLogMirrorTransaction(
 ): InvestmentLogMirrorTransaction | null {
   if (!data.linked_account_id) return null;
 
-  const gross = data.quantity * data.price;
+  const gross =
+    data.action === 'DIVIDEND' && data.quantity === 0
+      ? data.price
+      : data.quantity * data.price;
 
   switch (data.action) {
     case 'BUY':
     case 'SIP': {
-      const amount = gross + data.fees;
+      const amount = Math.round((gross + data.fees) * 100) / 100;
       if (!(amount > 0)) return null;
       return {
         date: data.date,
@@ -50,14 +53,17 @@ export function buildInvestmentLogMirrorTransaction(
     }
     case 'SELL':
     case 'DIVIDEND': {
-      const amount = gross - data.fees;
+      const amount = Math.round((gross - data.fees) * 100) / 100;
       if (!(amount > 0)) return null;
       return {
         date: data.date,
         type: 'Income',
         amount,
         from_account_id: data.linked_account_id,
-        notes: `${data.action === 'SELL' ? 'Sold' : 'Received dividend on'} ${data.quantity} ${data.symbol} @ ₹${data.price} via Investment Log`,
+        notes:
+          data.action === 'DIVIDEND' && data.quantity === 0
+            ? `Received dividend on ${data.symbol} @ ₹${data.price} via Investment Log`
+            : `${data.action === 'SELL' ? 'Sold' : 'Received dividend on'} ${data.quantity} ${data.symbol} @ ₹${data.price} via Investment Log`,
         categoryName: INVESTMENT_INCOME_CATEGORY_NAME,
         categoryType: 'Income',
       };

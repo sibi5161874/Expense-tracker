@@ -95,6 +95,9 @@ export function useInvestmentLog(
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
       queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
     },
   });
 
@@ -107,6 +110,9 @@ export function useInvestmentLog(
       queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
       queryClient.invalidateQueries({ queryKey: ['investmentLogCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
     },
   });
 

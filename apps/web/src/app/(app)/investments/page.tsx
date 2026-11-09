@@ -442,7 +442,17 @@ export default function InvestmentsPage() {
         <ImportDialog
           apiPath="/api/import/investment-log"
           entityLabel="investment log"
-          invalidateQueryKeys={[['investmentLog'], ['allInvestmentLog'], ['holdings']]}
+          invalidateQueryKeys={[
+            ['investmentLog'],
+            ['allInvestmentLog'],
+            ['holdings'],
+            ['transactions'],
+            ['transactionsCount'],
+            ['accounts'],
+            ['monthlyOverview'],
+            ['monthlyTransactionSummary'],
+            ['netWorth'],
+          ]}
           onClose={() => setShowImport(false)}
         />
       )}

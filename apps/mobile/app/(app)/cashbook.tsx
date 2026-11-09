@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, FlatList, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, Users, UploadCloud } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCashbook } from "@/hooks/useCashbook";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ import { useThemeColor } from "@/lib/colors";
 type CashbookEntry = NonNullable<Awaited<ReturnType<typeof getCashbook>>>[number];
 
 export default function CashbookScreen() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [items, setItems] = useState<CashbookEntry[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -210,7 +212,13 @@ export default function CashbookScreen() {
         templateColumns={CASHBOOK_TEMPLATE_COLUMNS}
         buildPlan={(records) => buildCashbookImportPlan(records, buildNameIndex(accounts ?? []), existingKeys)}
         createBulk={(rows) => (user ? createCashbookBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
-        onImported={() => setPage(0)}
+        onImported={() => {
+          setPage(0);
+          queryClient.invalidateQueries({ queryKey: ["cashbook"] });
+          queryClient.invalidateQueries({ queryKey: ["cashbookSummary"] });
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        }}
       />
     </SafeAreaView>
   );

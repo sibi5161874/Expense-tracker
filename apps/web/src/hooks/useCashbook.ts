@@ -97,6 +97,9 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
     },
   });
 
@@ -109,6 +112,9 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
     },
   });
 
