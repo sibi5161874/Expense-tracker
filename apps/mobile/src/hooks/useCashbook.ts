@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import { getCashbook, getCashbookSummary, createCashbook, updateCashbook, deleteCashbook } from '@repo/shared/queries/cashbook';
 import type { CashbookInput } from '@repo/shared/schemas';
+import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 /** Mirrors apps/web/src/hooks/useCashbook.ts. */
 export function useCashbook(opts: { page?: number } = {}) {
@@ -34,8 +35,7 @@ export function useCashbook(opts: { page?: number } = {}) {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
     queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
-    queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-    queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
+    invalidateBalanceSensitiveQueries(queryClient, userId);
   }
 
   const createMutation = useMutation({

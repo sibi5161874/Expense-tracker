@@ -5,12 +5,17 @@ import type { CashbookInput } from '../../schemas';
 import { createCashbook } from './createCashbook';
 
 /** Minimal fake of the Supabase fluent builder — just enough of `.from().insert().select()
- * .single()` and `.delete().eq()` for the two tables createCashbook touches (cashbook,
- * transactions). Not a real query engine: hand-wired to the exact chain createCashbook calls. */
-function createMockSupabase(opts: { transactionInsertError?: { message: string } | null } = {}) {
+ * .single()` and `.delete().eq()` for the three tables createCashbook touches (cashbook,
+ * categories, transactions). Not a real query engine: hand-wired to the exact chain
+ * createCashbook calls. */
+function createMockSupabase(opts: {
+  categoryExisting?: { id: string } | null;
+  transactionInsertError?: { message: string } | null;
+} = {}) {
   const calls = {
     transactionInserts: [] as Record<string, unknown>[],
     cashbookDeletes: [] as string[],
+    categoryInserts: [] as Record<string, unknown>[],
   };
 
   function from(table: string) {
@@ -27,6 +32,27 @@ function createMockSupabase(opts: { transactionInsertError?: { message: string }
             return { error: null };
           },
         }),
+      };
+    }
+    if (table === 'categories') {
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: opts.categoryExisting ?? { id: 'cat-existing' }, error: null }),
+              }),
+            }),
+          }),
+        }),
+        insert: (payload: Record<string, unknown>) => {
+          calls.categoryInserts.push(payload);
+          return {
+            select: () => ({
+              single: async () => ({ data: { id: 'cat-new' }, error: null }),
+            }),
+          };
+        },
       };
     }
     if (table === 'transactions') {

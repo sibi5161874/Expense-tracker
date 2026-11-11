@@ -4,6 +4,7 @@ import { useMemo, useRef } from 'react';
 import { TrendingUp, TrendingDown, Calendar, Tag } from 'lucide-react';
 import { useTransactionsInRange, yearRange } from '@/hooks/useReportsData';
 import { formatINR } from '@repo/shared/utils/currency';
+import { isOperationalTransaction } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StatCard } from '@/components/shared/StatCard';
 import { CashFlowChart } from '@/components/shared/CashFlowChart';
@@ -30,6 +31,7 @@ export function YearInReviewReport() {
     let totalExpense = 0;
 
     for (const t of transactions ?? []) {
+      if (!isOperationalTransaction(t)) continue;
       const monthIndex = Number(t.date.slice(5, 7)) - 1;
       const bucket = monthly[monthIndex];
       if (!bucket) continue;

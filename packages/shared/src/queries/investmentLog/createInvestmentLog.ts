@@ -59,6 +59,7 @@ export async function createInvestmentLog(
       from_account_id: mirror.from_account_id,
       category_id: categoryId,
       notes: mirror.notes,
+      source_investment_log_id: result.id,
     });
     if (txError) {
       // The Supabase JS client has no cross-table transaction — roll back the investment_log

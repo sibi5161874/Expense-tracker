@@ -33,6 +33,22 @@ function createMockSupabase(opts: {
         }),
       };
     }
+    if (table === 'categories') {
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: { id: 'cat-existing' }, error: null }),
+              }),
+            }),
+          }),
+        }),
+        insert: () => ({
+          select: () => ({ single: async () => ({ data: { id: 'cat-new' }, error: null }) }),
+        }),
+      };
+    }
     if (table === 'transactions') {
       return {
         insert: async (payload: Record<string, unknown>[]) => {

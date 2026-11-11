@@ -14,6 +14,7 @@ import {
   deleteTransaction,
 } from '@repo/shared/queries/transactions';
 import type { TransactionInput } from '@repo/shared/schemas';
+import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -43,7 +44,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return createTransaction(supabase, userId, data);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transactions', userId] }),
+    onSuccess: () => invalidateBalanceSensitiveQueries(queryClient, userId),
   });
 
   const updateMutation = useMutation({
@@ -52,7 +53,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return updateTransaction(supabase, userId, id, data);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transactions', userId] }),
+    onSuccess: () => invalidateBalanceSensitiveQueries(queryClient, userId),
   });
 
   const deleteMutation = useMutation({
@@ -61,7 +62,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return deleteTransaction(supabase, userId, id);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transactions', userId] }),
+    onSuccess: () => invalidateBalanceSensitiveQueries(queryClient, userId),
   });
 
   return {

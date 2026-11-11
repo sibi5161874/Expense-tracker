@@ -1,11 +1,19 @@
 import type { CashbookInput } from '../schemas';
 
+export const CASHBOOK_EXPENSE_CATEGORY_NAME = 'Cashbook Given';
+export const CASHBOOK_INCOME_CATEGORY_NAME = 'Cashbook Received';
+
 export interface CashbookMirrorTransaction {
   date: string;
   type: 'Income' | 'Expense';
   amount: number;
   from_account_id: string;
   notes: string;
+  /** Resolved to a real category id by the caller (find-or-create against the DB), same as
+   * investmentMirroring's mirror — lets reporting exclude these by category (RULES.md-style
+   * issue #18 fix: a loan/IOU is a capital movement, not operational income/expense). */
+  categoryName: string;
+  categoryType: 'Income' | 'Expense';
 }
 
 /**
@@ -32,5 +40,7 @@ export function buildCashbookMirrorTransaction(
       data.flow === 'Gave'
         ? `Lent to ${data.counterparty} via Cashbook`
         : `Borrowed from ${data.counterparty} via Cashbook`,
+    categoryName: data.flow === 'Gave' ? CASHBOOK_EXPENSE_CATEGORY_NAME : CASHBOOK_INCOME_CATEGORY_NAME,
+    categoryType: data.flow === 'Gave' ? 'Expense' : 'Income',
   };
 }

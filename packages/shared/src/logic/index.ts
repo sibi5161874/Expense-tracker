@@ -33,5 +33,6 @@ export * from './dividendDetection';
 export * from './orblingMoodMachine';
 export * from './investmentMirroring';
 export * from './cashbookMirroring';
+export * from './operationalTransactions';
 
 

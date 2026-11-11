@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types';
 import type { CashbookInput } from '../../schemas';
 import { buildCashbookMirrorTransaction } from '../../logic/cashbookMirroring';
+import { findOrCreateCategory } from '../investmentLog/createInvestmentLog';
 
 export async function createCashbookBulk(
   supabase: SupabaseClient<Database>,
@@ -19,19 +20,33 @@ export async function createCashbookBulk(
 
   // Mirror the cash side into `transactions` — otherwise lending/borrowing via cashbook
   // in bulk (e.g. CSV import) never touches the account it was actually paid from/into.
-  const mirrors = rows
-    .map((row) => buildCashbookMirrorTransaction(row))
-    .filter((m): m is NonNullable<typeof m> => m !== null);
+  // Paired against `data` (the inserted rows, with ids) by index — see the matching comment
+  // in createInvestmentLogsBulk.ts.
+  const mirrors = data
+    .map((inserted, i) => ({ cashbookId: inserted.id, mirror: buildCashbookMirrorTransaction(rows[i]!) }))
+    .filter((m): m is { cashbookId: string; mirror: NonNullable<ReturnType<typeof buildCashbookMirrorTransaction>> } => m.mirror !== null);
 
   if (mirrors.length > 0) {
-    const transactionsToInsert = mirrors.map((mirror) => ({
-      user_id: userId,
-      date: mirror.date,
-      type: mirror.type,
-      amount: mirror.amount,
-      from_account_id: mirror.from_account_id,
-      notes: mirror.notes,
-    }));
+    const categoryCache = new Map<string, string>();
+    const transactionsToInsert = [];
+    for (const { cashbookId, mirror } of mirrors) {
+      const catKey = `${mirror.categoryName}:${mirror.categoryType}`;
+      let categoryId = categoryCache.get(catKey);
+      if (!categoryId) {
+        categoryId = await findOrCreateCategory(supabase, userId, mirror.categoryName, mirror.categoryType);
+        categoryCache.set(catKey, categoryId);
+      }
+      transactionsToInsert.push({
+        user_id: userId,
+        date: mirror.date,
+        type: mirror.type,
+        amount: mirror.amount,
+        from_account_id: mirror.from_account_id,
+        category_id: categoryId,
+        notes: mirror.notes,
+        source_cashbook_id: cashbookId,
+      });
+    }
 
     const { error: txError } = await supabase.from('transactions').insert(transactionsToInsert);
     if (txError) {

@@ -18,6 +18,7 @@ import {
 import type { CashbookInput } from '@repo/shared/schemas';
 import { STALE_TIME_SHORT } from '@/lib/queryStaleTimes';
 import { useAccounts } from '@/hooks/useAccounts';
+import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 /** Removes rows with the given ids from every cached `['cashbook', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -97,9 +98,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
-      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -112,9 +111,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
-      queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -127,6 +124,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -151,6 +149,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -175,6 +174,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbook', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -189,6 +189,7 @@ export function useCashbook(
       queryClient.invalidateQueries({ queryKey: ['cashbookCount', userId] });
       queryClient.invalidateQueries({ queryKey: ['cashbookSummary', userId] });
       queryClient.invalidateQueries({ queryKey: ['contacts', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 

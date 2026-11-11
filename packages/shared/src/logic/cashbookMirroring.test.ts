@@ -17,6 +17,8 @@ describe('buildCashbookMirrorTransaction', () => {
       amount: 5000,
       from_account_id: 'account-1',
       notes: 'Lent to Ravi via Cashbook',
+      categoryName: 'Cashbook Given',
+      categoryType: 'Expense',
     });
   });
 
@@ -28,6 +30,8 @@ describe('buildCashbookMirrorTransaction', () => {
       amount: 5000,
       from_account_id: 'account-1',
       notes: 'Borrowed from Ravi via Cashbook',
+      categoryName: 'Cashbook Received',
+      categoryType: 'Income',
     });
   });
 

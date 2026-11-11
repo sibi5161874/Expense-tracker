@@ -103,6 +103,8 @@ export interface Database {
           from_account_id: string;
           to_account_id: string | null;
           notes: string | null;
+          source_investment_log_id: string | null;
+          source_cashbook_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -117,6 +119,8 @@ export interface Database {
           from_account_id: string;
           to_account_id?: string | null;
           notes?: string | null;
+          source_investment_log_id?: string | null;
+          source_cashbook_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["transactions"]["Insert"]>;
         Relationships: [
@@ -139,6 +143,20 @@ export interface Database {
             columns: ["to_account_id"];
             isOneToOne: false;
             referencedRelation: "accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_source_investment_log_id_fkey";
+            columns: ["source_investment_log_id"];
+            isOneToOne: false;
+            referencedRelation: "investment_log";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_source_cashbook_id_fkey";
+            columns: ["source_cashbook_id"];
+            isOneToOne: false;
+            referencedRelation: "cashbook";
             referencedColumns: ["id"];
           },
         ];

@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types';
 import type { CashbookInput } from '../../schemas';
 import { buildCashbookMirrorTransaction } from '../../logic/cashbookMirroring';
+import { findOrCreateCategory } from '../investmentLog/createInvestmentLog';
 
 export async function createCashbook(
   supabase: SupabaseClient<Database>,
@@ -23,13 +24,16 @@ export async function createCashbook(
   // never touches the account it was actually paid from/into.
   const mirror = buildCashbookMirrorTransaction(data);
   if (mirror) {
+    const categoryId = await findOrCreateCategory(supabase, userId, mirror.categoryName, mirror.categoryType);
     const { error: txError } = await supabase.from('transactions').insert({
       user_id: userId,
       date: mirror.date,
       type: mirror.type,
       amount: mirror.amount,
       from_account_id: mirror.from_account_id,
+      category_id: categoryId,
       notes: mirror.notes,
+      source_cashbook_id: result.id,
     });
     if (txError) {
       // The Supabase JS client has no cross-table transaction — roll back the cashbook row by

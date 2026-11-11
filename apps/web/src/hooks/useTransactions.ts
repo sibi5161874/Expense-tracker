@@ -21,6 +21,7 @@ import type { TransactionInput } from '@repo/shared/schemas';
 import { STALE_TIME_SHORT, STALE_TIME_LONG } from '@/lib/queryStaleTimes';
 import { useCategories } from '@/hooks/useCategories';
 import { useAccounts } from '@/hooks/useAccounts';
+import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 /** Removes rows with the given ids from every cached `['transactions', userId, ...]` page —
  * shared by both the single and bulk delete mutations' optimistic update. */
@@ -97,8 +98,7 @@ export function useTransactions(
       return createTransaction(supabase, userId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -108,8 +108,7 @@ export function useTransactions(
       return createTransactionsBulk(supabase, userId, rows);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -119,7 +118,7 @@ export function useTransactions(
       return updateTransaction(supabase, userId, id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -141,8 +140,7 @@ export function useTransactions(
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 
@@ -164,8 +162,7 @@ export function useTransactions(
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsCount', userId] });
+      invalidateBalanceSensitiveQueries(queryClient, userId);
     },
   });
 

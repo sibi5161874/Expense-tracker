@@ -20,15 +20,18 @@ export async function createInvestmentLogsBulk(
 
   // Mirror the cash side of entries into `transactions` — otherwise BUY/SELL/SIP/DIVIDEND
   // in bulk (CSV or Broker import) distorts net worth (portfolio updates, but cash balance stays put).
-  const mirrors = rows
-    .map((row) => buildInvestmentLogMirrorTransaction(row))
-    .filter((m): m is NonNullable<typeof m> => m !== null);
+  // Paired against `data` (the inserted rows, with ids) by index, not `rows` directly — a
+  // single bulk INSERT preserves input order, and the id is what lets an edit later find this
+  // exact mirror row again (see updateInvestmentLog.ts / issue #17).
+  const mirrors = data
+    .map((inserted, i) => ({ investmentLogId: inserted.id, mirror: buildInvestmentLogMirrorTransaction(rows[i]!) }))
+    .filter((m): m is { investmentLogId: string; mirror: NonNullable<ReturnType<typeof buildInvestmentLogMirrorTransaction>> } => m.mirror !== null);
 
   if (mirrors.length > 0) {
     const categoryCache = new Map<string, string>();
     const transactionsToInsert = [];
 
-    for (const mirror of mirrors) {
+    for (const { investmentLogId, mirror } of mirrors) {
       const catKey = `${mirror.categoryName}:${mirror.categoryType}`;
       let categoryId = categoryCache.get(catKey);
       if (!categoryId) {
@@ -44,6 +47,7 @@ export async function createInvestmentLogsBulk(
         from_account_id: mirror.from_account_id,
         category_id: categoryId,
         notes: mirror.notes,
+        source_investment_log_id: investmentLogId,
       });
     }
 

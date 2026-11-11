@@ -3,6 +3,7 @@
 import { useMemo, useRef } from 'react';
 import { useTransactionsInRange, monthsAgo } from '@/hooks/useReportsData';
 import { formatMonth } from '@repo/shared/utils';
+import { isOperationalTransaction } from '@repo/shared/logic';
 import { ReportContainer } from '@/components/shared/ReportContainer';
 import { StackedAreaChart } from '@/components/shared/StackedAreaChart';
 import { ErrorState } from '@/components/shared/QueryState';
@@ -18,7 +19,7 @@ export function SpendingTrendReport() {
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
 
   const { chartData, topCategories } = useMemo(() => {
-    const expenses = (transactions ?? []).filter((t) => t.type === 'Expense');
+    const expenses = (transactions ?? []).filter((t) => t.type === 'Expense' && isOperationalTransaction(t));
 
     const totalsByCategory = new Map<string, number>();
     for (const t of expenses) {

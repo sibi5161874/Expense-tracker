@@ -9,6 +9,7 @@ import {
   deleteInvestmentLog,
 } from '@repo/shared/queries/investmentLog';
 import type { InvestmentLogInput } from '@repo/shared/schemas';
+import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 /** Mirrors apps/web/src/hooks/useInvestmentLog.ts. */
 export function useInvestmentLog(opts: { page?: number } = {}) {
@@ -30,8 +31,7 @@ export function useInvestmentLog(opts: { page?: number } = {}) {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['investmentLog', userId] });
     queryClient.invalidateQueries({ queryKey: ['allInvestmentLog', userId] });
-    queryClient.invalidateQueries({ queryKey: ['transactions', userId] });
-    queryClient.invalidateQueries({ queryKey: ['accounts', userId] });
+    invalidateBalanceSensitiveQueries(queryClient, userId);
   }
 
   const createMutation = useMutation({
