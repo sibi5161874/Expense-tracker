@@ -82,6 +82,7 @@ export function formatCompactCurrency(amount: number, currencyCode: string = 'IN
         style: 'currency',
         currency: code,
         notation: 'compact',
+        minimumFractionDigits: 0,
         maximumFractionDigits: 1,
       });
     } catch {
@@ -89,6 +90,7 @@ export function formatCompactCurrency(amount: number, currencyCode: string = 'IN
         style: 'currency',
         currency: 'INR',
         notation: 'compact',
+        minimumFractionDigits: 0,
         maximumFractionDigits: 1,
       });
     }
