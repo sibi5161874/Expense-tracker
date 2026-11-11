@@ -54,7 +54,14 @@ export default defineConfig({
     // silently run the whole suite against production instead of the test project — fail fast
     // with "port in use" instead, and free the port first.
     reuseExistingServer: false,
-    timeout: 120_000,
+    // Turbopack's dev-mode persistent disk cache (`turbopackFileSystemCacheForDev`) isn't
+    // enabled on every machine running this suite — `next dev`'s own startup banner prints it
+    // as a disabled experiment (⨯) there. Without it, this webServer check — which hits the
+    // same root URL a test would, triggering the very first on-demand compile from a cold
+    // `.next` — pays the full cold-compile cost on every single run, with nothing cached from
+    // the last one. 120s intermittently wasn't enough; 300s comfortably clears it without
+    // masking a real crash (which fails immediately, not slowly).
+    timeout: 300_000,
     env: (() => {
       // NODE_ENV=test (set by .env.test.local, loaded above) must NOT reach `next dev` itself —
       // confirmed by hand: with it set, Turbopack serves a 404 for /login specifically (other
