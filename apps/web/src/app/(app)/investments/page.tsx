@@ -43,8 +43,11 @@ export default function InvestmentsPage() {
   const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [showBrokerImport, setShowBrokerImport] = useState(false);
+  // Issue #19: these were two independent booleans — nothing stopped both from being true at
+  // once, which would mount both ImportDialog and BrokerImportDialog's Radix overlays
+  // simultaneously (doubled backdrop, a focus trap on whichever mounted second). A single
+  // union guarantees only one import-type dialog is ever open.
+  const [activeImportModal, setActiveImportModal] = useState<'csv' | 'broker' | null>(null);
   const [editingInvestment, setEditingInvestment] = useState<InvestmentLogEntry | null>(null);
   const {
     data: investments,
@@ -216,7 +219,7 @@ export default function InvestmentsPage() {
             variant="outline"
             size="icon"
             className="size-10 shrink-0 rounded-xl"
-            onClick={() => setShowImport(true)}
+            onClick={() => setActiveImportModal('csv')}
             title="Import CSV"
             aria-label="Import CSV"
           >
@@ -227,7 +230,7 @@ export default function InvestmentsPage() {
               variant="outline"
               size="icon"
               className="size-10 shrink-0 rounded-xl"
-              onClick={() => setShowBrokerImport(true)}
+              onClick={() => setActiveImportModal('broker')}
               title="Import from Broker"
               aria-label="Import from Broker"
             >
@@ -285,12 +288,12 @@ export default function InvestmentsPage() {
                 <Download className="size-4" />
                 Download Template
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowImport(true)}>
+              <Button variant="outline" size="sm" onClick={() => setActiveImportModal('csv')}>
                 <UploadCloud className="size-4" />
                 Import CSV
               </Button>
               {hasFeature('brokerImport') ? (
-                <Button variant="outline" size="sm" onClick={() => setShowBrokerImport(true)}>
+                <Button variant="outline" size="sm" onClick={() => setActiveImportModal('broker')}>
                   <Landmark className="size-4" />
                   Import from Broker
                 </Button>
@@ -438,7 +441,7 @@ export default function InvestmentsPage() {
         />
       )}
 
-      {showImport && (
+      {activeImportModal === 'csv' && (
         <ImportDialog
           apiPath="/api/import/investment-log"
           entityLabel="investment log"
@@ -453,11 +456,21 @@ export default function InvestmentsPage() {
             ['monthlyTransactionSummary'],
             ['netWorth'],
           ]}
-          onClose={() => setShowImport(false)}
+          onClose={() => setActiveImportModal(null)}
+          onDownloadTemplate={() =>
+            downloadCsvTemplate(
+              'investment-log-template.csv',
+              INVESTMENT_LOG_TEMPLATE_COLUMNS,
+              INVESTMENT_LOG_TEMPLATE_EXAMPLE_ROW
+            )
+          }
+          switchToBrokerImport={hasFeature('brokerImport') ? () => setActiveImportModal('broker') : undefined}
         />
       )}
 
-      {showBrokerImport && <BrokerImportDialog onClose={() => setShowBrokerImport(false)} />}
+      {activeImportModal === 'broker' && (
+        <BrokerImportDialog onClose={() => setActiveImportModal(null)} />
+      )}
 
       {dialog}
       <ConfirmDialog

@@ -11,7 +11,7 @@ import { AssetTabPanel } from '@/components/assets/AssetTabPanel';
 import { AssetFormHost, type AssetTab, type AssetEditingState } from '@/components/assets/AssetFormHost';
 import { ProLockedButton } from '@/components/shared/ProGate';
 import { Button } from '@/components/ui/button';
-import { Tabs } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 
@@ -115,8 +115,18 @@ export default function AssetsPage() {
         <ErrorState error={error} />
       ) : (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AssetTab)}>
-          {/* No visible TabsList — navigation between asset types happens via the sidebar's
-              Assets sub-links now, so a redundant in-page tab bar would just duplicate it. */}
+          {/* Desktop navigates between asset types via the sidebar's Assets sub-links, so no
+              in-page TabsList is shown there (`md:hidden` below) — a redundant tab bar would
+              just duplicate it. Mobile has no sidebar at all (issue #21), so it needs its own
+              switcher; horizontally scrollable since there can be more asset classes than fit
+              one screen width. */}
+          <TabsList className="mb-2 flex w-full justify-start overflow-x-auto md:hidden">
+            {sections.map((section) => (
+              <TabsTrigger key={section.tab} value={section.tab} className="shrink-0">
+                {TAB_LABELS[section.tab]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {sections.map((section) => (
             <AssetTabPanel
               key={section.tab}

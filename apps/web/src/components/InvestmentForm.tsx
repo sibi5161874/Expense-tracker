@@ -7,6 +7,7 @@ import { investmentLogSchema, type InvestmentLogInput } from '@repo/shared/schem
 import { buildInvestmentLogMirrorTransaction } from '@repo/shared/logic';
 import { parseSupabaseError, formatINR } from '@repo/shared/utils';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useHoldings } from '@/hooks/useHoldings';
 import { useInvestmentLog } from '@/hooks/useInvestmentLog';
 import { useRefreshPrices } from '@/hooks/useRefreshPrices';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,14 @@ interface AssetFieldConfig {
   exchangePlaceholder: string;
   showExchange: boolean;
   helperText?: string;
+  /** Issue #20: a plain free-text Exchange field was prone to casing/typo errors (`nse`,
+   * `Nse`). A hard `<Select>` locked to just these values would break the real case this app
+   * already supports — US-listed stocks/ETFs (`AAPL` on NASDAQ) — so this is suggestions via
+   * `<datalist>`, not a closed enum: pick one to avoid a typo, or type anything else that's
+   * real. Only set for Stock/ETF, where "exchange" genuinely means a stock exchange; every
+   * other asset type's exchange field means something else entirely (AMC, wallet, issuer,
+   * location) and has no fixed set of values to suggest. */
+  exchangeSuggestions?: string[];
 }
 
 const ASSET_CONFIG: Record<AssetType, AssetFieldConfig> = {
@@ -38,6 +47,7 @@ const ASSET_CONFIG: Record<AssetType, AssetFieldConfig> = {
     exchangeLabel: 'Exchange',
     exchangePlaceholder: 'e.g., NSE, BSE, NASDAQ',
     showExchange: true,
+    exchangeSuggestions: ['NSE', 'BSE', 'NASDAQ', 'NYSE'],
   },
   ETF: {
     symbolLabel: 'ETF Symbol / Name',
@@ -45,6 +55,7 @@ const ASSET_CONFIG: Record<AssetType, AssetFieldConfig> = {
     exchangeLabel: 'Exchange',
     exchangePlaceholder: 'e.g., NSE, BSE',
     showExchange: true,
+    exchangeSuggestions: ['NSE', 'BSE'],
   },
   'Mutual Fund': {
     symbolLabel: 'Scheme / Fund Name',
@@ -92,6 +103,7 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
   const { createInvestmentLog, updateInvestmentLog } = useInvestmentLog();
   const { refresh } = useRefreshPrices();
   const [formError, setFormError] = useState<string | null>(null);
+  const { data: holdings } = useHoldings();
 
   const form = useForm<InvestmentLogInput>({
     resolver: zodResolver(investmentLogSchema),
@@ -229,7 +241,20 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
                         onClear={() => form.setValue('symbol', '')}
                       />
                     ) : (
-                      <Input placeholder={currentAssetConfig.symbolPlaceholder} {...field} />
+                      <>
+                        {/* Issue #20: existing holdings are now suggested as the user types,
+                            instead of a bare free-text field with zero autocomplete — a
+                            native <datalist> rather than a custom combobox, since the browser's
+                            own suggestion UI already does fuzzy substring matching for free. */}
+                        <Input placeholder={currentAssetConfig.symbolPlaceholder} list="investment-symbol-suggestions" {...field} />
+                        <datalist id="investment-symbol-suggestions">
+                          {(holdings ?? []).map((h) => (
+                            <option key={h.symbol} value={h.symbol}>
+                              {h.display_name ?? h.symbol}
+                            </option>
+                          ))}
+                        </datalist>
+                      </>
                     )}
                   </FormControl>
                   {currentAssetConfig.helperText && (
@@ -250,12 +275,23 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
                   <FormItem>
                     <FormLabel>{currentAssetConfig.exchangeLabel}</FormLabel>
                     <FormControl>
-                      <Input placeholder={currentAssetConfig.exchangePlaceholder} {...field} />
+                      <Input
+                        placeholder={currentAssetConfig.exchangePlaceholder}
+                        list={currentAssetConfig.exchangeSuggestions ? 'investment-exchange-suggestions' : undefined}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            )}
+            {currentAssetConfig.exchangeSuggestions && (
+              <datalist id="investment-exchange-suggestions">
+                {currentAssetConfig.exchangeSuggestions.map((ex) => (
+                  <option key={ex} value={ex} />
+                ))}
+              </datalist>
             )}
 
             <FormField

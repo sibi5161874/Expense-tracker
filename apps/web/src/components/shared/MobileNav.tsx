@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "@/contexts/LocaleContext";
 import { TransactionForm } from "@/components/TransactionForm";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import type { TranslationKey } from "@repo/shared/i18n";
 
 const MORE_LINKS: { href: string; labelKey: TranslationKey; icon: typeof LayoutDashboard }[] = [
@@ -53,10 +54,12 @@ export function MobileNav() {
   const { t } = useTranslation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const moreActive = MORE_LINKS.some((l) => pathname.startsWith(l.href));
 
   async function handleSignOut() {
+    setShowSignOutConfirm(false);
     setMoreOpen(false);
     await signOut();
     router.push("/login");
@@ -178,7 +181,7 @@ export function MobileNav() {
                 );
               })}
               <button
-                onClick={handleSignOut}
+                onClick={() => setShowSignOutConfirm(true)}
                 className="text-destructive hover:bg-destructive-subtle flex flex-col items-center gap-1.5 rounded-2xl p-2.5 text-center text-xs font-medium"
               >
                 <div className="flex size-10 items-center justify-center rounded-xl bg-destructive-subtle text-destructive">
@@ -190,6 +193,16 @@ export function MobileNav() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showSignOutConfirm}
+        onOpenChange={setShowSignOutConfirm}
+        title="Sign out?"
+        description="You'll need to log back in to see your data again."
+        confirmLabel="Sign out"
+        destructive={false}
+        onConfirm={handleSignOut}
+      />
     </>
   );
 }

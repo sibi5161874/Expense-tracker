@@ -48,6 +48,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { useTranslation } from "@/contexts/LocaleContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import { REPORTS, type ReportMeta } from "@/lib/reportsRegistry";
 import { isReportEnabled } from "@repo/shared/logic";
@@ -185,6 +186,8 @@ export function Sidebar() {
   const isActive = useIsActive();
   const pathname = usePathname();
   const { t } = useTranslation();
+
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   async function handleSignOut() {
     await signOut();
@@ -370,7 +373,7 @@ export function Sidebar() {
           )}
           {!collapsed && (
             <button
-              onClick={handleSignOut}
+              onClick={() => setShowSignOutConfirm(true)}
               aria-label={t("sidebar.signOut")}
               className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground rounded-md p-1.5 hover:bg-sidebar-accent/60"
             >
@@ -379,6 +382,15 @@ export function Sidebar() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={showSignOutConfirm}
+        onOpenChange={setShowSignOutConfirm}
+        title="Sign out?"
+        description="You'll need to log back in to see your data again."
+        confirmLabel="Sign out"
+        destructive={false}
+        onConfirm={handleSignOut}
+      />
     </aside>
   );
 }

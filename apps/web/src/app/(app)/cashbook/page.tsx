@@ -383,6 +383,9 @@ export default function CashbookPage() {
             ['netWorth'],
           ]}
           onClose={() => setShowImport(false)}
+          onDownloadTemplate={() =>
+            downloadCsvTemplate('cashbook-template.csv', CASHBOOK_TEMPLATE_COLUMNS, CASHBOOK_TEMPLATE_EXAMPLE_ROW)
+          }
         />
       )}
 

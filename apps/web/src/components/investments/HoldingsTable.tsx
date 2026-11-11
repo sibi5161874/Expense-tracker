@@ -104,6 +104,16 @@ export function HoldingsTable({
                   {displayNames?.[holding.symbol] ? `${holding.symbol} · ` : ''}
                   {holding.exchange} · {holding.unitsHeld} units
                   {foreignPriceCurrencies?.[holding.symbol] && ` · ${foreignPriceCurrencies[holding.symbol]}`}
+                  {/* Issue #23: the desktop table already flags this (below) — the mobile card
+                      stack had the same "silent $0/stale price" gap, so this mirrors it. */}
+                  {!holding.hasLivePrice && (
+                    <span
+                      title="No live price has ever been fetched for this symbol — showing the most recent trade price instead. Double-check the ticker and exchange suffix (e.g. RELIANCE.NS)."
+                      className="bg-warning-subtle text-warning-foreground ml-1.5 rounded px-1 py-0.5 text-[10px] font-semibold"
+                    >
+                      Est.
+                    </span>
+                  )}
                 </div>
                 <div className={cn('shrink-0 font-medium font-mono tabular-nums', isLoss ? 'text-destructive' : 'text-success')}>
                   {holding.returnPct >= 0 ? '+' : ''}{(holding.returnPct * 100).toFixed(2)}%

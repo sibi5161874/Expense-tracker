@@ -17,6 +17,14 @@ interface ImportDialogProps {
   invalidateQueryKeys: unknown[][];
   assetType?: string;
   onClose: () => void;
+  /** Issue #19: puts the template download right where the user is looking (inside the
+   * dropzone) instead of only on the page's outer toolbar, hidden once this dialog is open. */
+  onDownloadTemplate?: () => void;
+  /** Investments only: an inline "switch to Broker Import" prompt rendered below the dropzone.
+   * Takes the caller's own close+reopen pair rather than a bare toggle, so switching modes goes
+   * through the same single-active-modal state the page already enforces (issue #19's fix for
+   * two independent booleans letting both import dialogs mount at once). */
+  switchToBrokerImport?: () => void;
 }
 
 /** Rows per commit request — keeps each request well inside a serverless function's own
@@ -26,7 +34,15 @@ const COMMIT_CHUNK_SIZE = 200;
 
 type Step = 'select' | 'previewing' | 'preview' | 'committing' | 'partial' | 'done';
 
-export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, assetType: initialAssetType, onClose }: ImportDialogProps) {
+export function ImportDialog({
+  apiPath,
+  entityLabel,
+  invalidateQueryKeys,
+  assetType: initialAssetType,
+  onClose,
+  onDownloadTemplate,
+  switchToBrokerImport,
+}: ImportDialogProps) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('select');
   const [selectedAssetType, setSelectedAssetType] = useState<string>(initialAssetType || 'Stock');
@@ -186,7 +202,17 @@ export function ImportDialog({ apiPath, entityLabel, invalidateQueryKeys, assetT
                 accept=".csv"
                 title="Click to choose a CSV file"
                 subtitle="or drag and drop"
+                onDownloadTemplate={onDownloadTemplate}
               />
+              {switchToBrokerImport && (
+                <button
+                  type="button"
+                  onClick={switchToBrokerImport}
+                  className="text-muted-foreground mt-3 block text-xs underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Importing from Zerodha, Groww, or Upstox? Switch to Broker Import.
+                </button>
+              )}
               <p className="text-muted-foreground mt-3 text-xs">
                 Dates in <code>YYYY-MM-DD</code> (e.g. 2026-07-19) always work, and common
                 formats like <code>DD-MM-YYYY</code> are accepted too. If Excel shows a date

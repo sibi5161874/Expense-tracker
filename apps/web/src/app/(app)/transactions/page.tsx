@@ -38,8 +38,10 @@ export default function TransactionsPage() {
   const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
   const [view, setView] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [showBankImport, setShowBankImport] = useState(false);
+  // Issue #19: see the matching comment in investments/page.tsx — a single union in place of
+  // two independent booleans guarantees the CSV and bank-statement import dialogs can never
+  // both be mounted (and their Radix overlays stacked) at once.
+  const [activeImportModal, setActiveImportModal] = useState<'csv' | 'bank' | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ ids: string[]; clear: () => void } | null>(null);
@@ -198,7 +200,7 @@ export default function TransactionsPage() {
             variant="outline"
             size="icon"
             className="size-10 shrink-0 rounded-xl"
-            onClick={() => setShowImport(true)}
+            onClick={() => setActiveImportModal('csv')}
             title="Import CSV"
             aria-label="Import CSV"
           >
@@ -209,7 +211,7 @@ export default function TransactionsPage() {
               variant="outline"
               size="icon"
               className="size-10 shrink-0 rounded-xl"
-              onClick={() => setShowBankImport(true)}
+              onClick={() => setActiveImportModal('bank')}
               title="Import from Bank"
               aria-label="Import from Bank"
             >
@@ -266,12 +268,12 @@ export default function TransactionsPage() {
                 <Download className="size-4" />
                 Download Template
               </Button>
-              <Button variant="outline" onClick={() => setShowImport(true)}>
+              <Button variant="outline" onClick={() => setActiveImportModal('csv')}>
                 <UploadCloud className="size-4" />
                 Import CSV
               </Button>
               {hasFeature('bankStatementImport') ? (
-                <Button variant="outline" onClick={() => setShowBankImport(true)}>
+                <Button variant="outline" onClick={() => setActiveImportModal('bank')}>
                   <Landmark className="size-4" />
                   Import from Bank
                 </Button>
@@ -417,16 +419,21 @@ export default function TransactionsPage() {
         />
       )}
 
-      {showImport && (
+      {activeImportModal === 'csv' && (
         <ImportDialog
           apiPath="/api/import/transactions"
           entityLabel="transaction"
           invalidateQueryKeys={[['transactions'], ['monthlyOverview']]}
-          onClose={() => setShowImport(false)}
+          onClose={() => setActiveImportModal(null)}
+          onDownloadTemplate={() =>
+            downloadCsvTemplate('transactions-template.csv', TRANSACTIONS_TEMPLATE_COLUMNS, TRANSACTIONS_TEMPLATE_EXAMPLE_ROW)
+          }
         />
       )}
 
-      {showBankImport && <BankStatementImportDialog onClose={() => setShowBankImport(false)} />}
+      {activeImportModal === 'bank' && (
+        <BankStatementImportDialog onClose={() => setActiveImportModal(null)} />
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

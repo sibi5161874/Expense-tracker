@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AccountsTab } from '@/components/settings/AccountsTab';
 import { CategoriesTab } from '@/components/settings/CategoriesTab';
@@ -36,6 +36,16 @@ export default function ConfigPage() {
       <PageHeader title="Config" description="Accounts, categories, sub-categories, and budget limits." />
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ConfigTab)}>
+        {/* Issue #21: switching between these tabs only existed as the desktop Sidebar's
+            nested "Config" group — reachable on mobile only by hard-coding ?tab= in the URL,
+            with no way to discover or switch tabs once on the page. Desktop keeps using the
+            sidebar (unchanged) via `md:hidden`; this is purely the mobile-visible equivalent. */}
+        <TabsList className="mb-2 w-full md:hidden">
+          <TabsTrigger value="accounts">Accounts</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+        </TabsList>
         <TabsContent value="accounts" className="mt-6">
           <AccountsTab />
         </TabsContent>

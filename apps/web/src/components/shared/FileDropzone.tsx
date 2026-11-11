@@ -12,6 +12,11 @@ interface FileDropzoneProps {
   subtitle: string;
   /** Shown instead of `subtitle` while `disabled` — e.g. "Select an account first". */
   disabledSubtitle?: string;
+  /** Issue #19: the "download the expected CSV format" link lived only on the page's outer
+   * toolbar, invisible once the import dialog itself was open — right when a user actually
+   * needs it. Rendering it inside the dropzone puts it where the user is already looking. */
+  onDownloadTemplate?: () => void;
+  downloadTemplateLabel?: string;
 }
 
 /**
@@ -20,7 +25,16 @@ interface FileDropzoneProps {
  * event handlers at all — only the click-to-browse path actually worked. This wires real
  * `onDragOver`/`onDrop` handlers so drag-and-drop does what the label already claimed to do.
  */
-export function FileDropzone({ onFile, disabled, accept = '.csv', title, subtitle, disabledSubtitle }: FileDropzoneProps) {
+export function FileDropzone({
+  onFile,
+  disabled,
+  accept = '.csv',
+  title,
+  subtitle,
+  disabledSubtitle,
+  onDownloadTemplate,
+  downloadTemplateLabel = 'Download sample CSV template',
+}: FileDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -50,20 +64,31 @@ export function FileDropzone({ onFile, disabled, accept = '.csv', title, subtitl
   }
 
   return (
-    <label
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        'flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center transition-colors',
-        disabled ? 'border-border/60 cursor-not-allowed opacity-50' : 'border-border/60 hover:bg-muted/40 cursor-pointer',
-        isDragOver && !disabled && 'border-primary bg-primary/5'
+    <div className="flex flex-col items-center gap-2">
+      <label
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          'flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center transition-colors',
+          disabled ? 'border-border/60 cursor-not-allowed opacity-50' : 'border-border/60 hover:bg-muted/40 cursor-pointer',
+          isDragOver && !disabled && 'border-primary bg-primary/5'
+        )}
+      >
+        <UploadCloud className="text-muted-foreground size-8" />
+        <span className="text-sm font-medium">{title}</span>
+        <span className="text-muted-foreground text-xs">{disabled && disabledSubtitle ? disabledSubtitle : subtitle}</span>
+        <input type="file" accept={accept} className="hidden" disabled={disabled} onChange={handleChange} />
+      </label>
+      {onDownloadTemplate && (
+        <button
+          type="button"
+          onClick={onDownloadTemplate}
+          className="text-primary text-xs font-medium underline-offset-2 hover:underline"
+        >
+          {downloadTemplateLabel}
+        </button>
       )}
-    >
-      <UploadCloud className="text-muted-foreground size-8" />
-      <span className="text-sm font-medium">{title}</span>
-      <span className="text-muted-foreground text-xs">{disabled && disabledSubtitle ? disabledSubtitle : subtitle}</span>
-      <input type="file" accept={accept} className="hidden" disabled={disabled} onChange={handleChange} />
-    </label>
+    </div>
   );
 }
