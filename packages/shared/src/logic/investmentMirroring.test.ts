@@ -85,4 +85,40 @@ describe('buildInvestmentLogMirrorTransaction', () => {
       buildInvestmentLogMirrorTransaction({ ...base, action: 'SELL', quantity: 1, price: 10, fees: 50 })
     ).toBeNull();
   });
+
+  it('mirrors a BUY with 0 fees as a strictly positive Expense', () => {
+    const result = buildInvestmentLogMirrorTransaction({ ...base, action: 'BUY', fees: 0 });
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe('Expense');
+    expect(result?.amount).toBe(25000);
+    expect(result?.amount).toBeGreaterThan(0);
+  });
+
+  it('mirrors a SELL with 0 fees as a strictly positive Income', () => {
+    const result = buildInvestmentLogMirrorTransaction({ ...base, action: 'SELL', fees: 0 });
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe('Income');
+    expect(result?.amount).toBe(25000);
+    expect(result?.amount).toBeGreaterThan(0);
+  });
+
+  it('accurately rounds fractional quantities and decimal prices to 2 decimal places', () => {
+    const result = buildInvestmentLogMirrorTransaction({
+      ...base,
+      action: 'BUY',
+      quantity: 1.5,
+      price: 333.333,
+      fees: 1.25,
+    });
+    expect(result).not.toBeNull();
+    // 1.5 * 333.333 = 499.9995; 499.9995 + 1.25 = 501.2495 -> rounds to 501.25
+    expect(result?.amount).toBe(501.25);
+    expect(result?.type).toBe('Expense');
+  });
+
+  it('returns null if gross + fees equals 0 or is negative', () => {
+    expect(
+      buildInvestmentLogMirrorTransaction({ ...base, action: 'BUY', quantity: 0, price: 0, fees: 0 })
+    ).toBeNull();
+  });
 });

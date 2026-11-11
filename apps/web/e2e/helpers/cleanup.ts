@@ -10,10 +10,26 @@ export async function cleanupTestData() {
   const admin = supabaseAdmin();
   const userId = await getTestUserId();
 
+  // Find all E2E test accounts so any transactions referencing them are deleted first
+  const { data: e2eAccounts } = await admin
+    .from('accounts')
+    .select('id')
+    .eq('user_id', userId)
+    .like('name', '[E2E]%');
+
+  if (e2eAccounts && e2eAccounts.length > 0) {
+    const accountIds = e2eAccounts.map((a) => a.id);
+    await admin.from('transactions').delete().eq('user_id', userId).in('from_account_id', accountIds);
+    await admin.from('transactions').delete().eq('user_id', userId).in('to_account_id', accountIds);
+    await admin.from('investment_log').delete().eq('user_id', userId).in('linked_account_id', accountIds);
+  }
+
   await admin.from('transactions').delete().eq('user_id', userId).like('notes', '[E2E]%');
+  await admin.from('transactions').delete().eq('user_id', userId).like('notes', '%via Investment Log%');
   await admin.from('goals').delete().eq('user_id', userId).like('goal_name', '[E2E]%');
   await admin.from('investment_log').delete().eq('user_id', userId).like('notes', '[E2E]%');
+  await admin.from('investment_log').delete().eq('user_id', userId).like('notes', '[INTEGRATION]%');
   await admin.from('insurance_policies').delete().eq('user_id', userId).like('insurer', '[E2E]%');
-  // Accounts last — some transactions seeded by other tests may still reference them.
+  // Accounts last — now safe to delete without foreign key constraint violations
   await admin.from('accounts').delete().eq('user_id', userId).like('name', '[E2E]%');
 }

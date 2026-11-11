@@ -16,7 +16,8 @@ try {
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:4000';
 
 export default defineConfig({
-  testDir: './e2e/personas',
+  testDir: './e2e',
+  testMatch: '**/*.spec.ts',
   globalSetup: './e2e/helpers/setup.ts',
   globalTeardown: './e2e/helpers/teardown.ts',
   fullyParallel: true,
@@ -53,7 +54,7 @@ export default defineConfig({
     // silently run the whole suite against production instead of the test project — fail fast
     // with "port in use" instead, and free the port first.
     reuseExistingServer: false,
-    timeout: 60_000,
+    timeout: 120_000,
     env: (() => {
       // NODE_ENV=test (set by .env.test.local, loaded above) must NOT reach `next dev` itself —
       // confirmed by hand: with it set, Turbopack serves a 404 for /login specifically (other

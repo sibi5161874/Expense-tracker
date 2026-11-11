@@ -38,7 +38,7 @@ export default async function globalSetup(config: FullConfig) {
     await page.goto(`${baseURL}/login`, { timeout: 60_000 });
     // Small delay to allow React 19 hydration to complete on cold compile
     await page.waitForTimeout(2000);
-    await page.getByPlaceholder('you@example.com').waitFor({ state: 'visible' });
+    await page.getByPlaceholder('you@example.com').waitFor({ state: 'visible', timeout: 60_000 });
     await page.getByPlaceholder('you@example.com').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.getByRole('button', { name: 'Log in' }).click();
@@ -111,13 +111,14 @@ export async function seedTestData() {
   if (accountsError) throw accountsError;
 
   const checking = accounts.find((a) => a.name === '[E2E] Checking')!;
+  const today = new Date().toISOString().split('T')[0];
 
   const { error: txError } = await admin.from('transactions').insert([
-    { user_id: userId, date: '2026-01-05', type: 'Income', amount: 85_000, from_account_id: checking.id, notes: '[E2E] Salary' },
-    { user_id: userId, date: '2026-01-07', type: 'Expense', amount: 1_250, from_account_id: checking.id, notes: '[E2E] Groceries' },
-    { user_id: userId, date: '2026-01-10', type: 'Expense', amount: 450, from_account_id: checking.id, notes: '[E2E] Transport' },
-    { user_id: userId, date: '2026-01-12', type: 'Expense', amount: 2_000, from_account_id: checking.id, notes: '[E2E] Rent share' },
-    { user_id: userId, date: '2026-01-15', type: 'Income', amount: 3_000, from_account_id: checking.id, notes: '[E2E] Freelance' },
+    { user_id: userId, date: today, type: 'Income', amount: 85_000, from_account_id: checking.id, notes: '[E2E] Salary' },
+    { user_id: userId, date: today, type: 'Expense', amount: 1_250, from_account_id: checking.id, notes: '[E2E] Groceries' },
+    { user_id: userId, date: today, type: 'Expense', amount: 450, from_account_id: checking.id, notes: '[E2E] Transport' },
+    { user_id: userId, date: today, type: 'Expense', amount: 2_000, from_account_id: checking.id, notes: '[E2E] Rent share' },
+    { user_id: userId, date: today, type: 'Income', amount: 3_000, from_account_id: checking.id, notes: '[E2E] Freelance' },
   ]);
   if (txError) throw txError;
 

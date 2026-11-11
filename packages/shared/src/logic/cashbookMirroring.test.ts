@@ -38,4 +38,16 @@ describe('buildCashbookMirrorTransaction', () => {
   it('never mirrors a non-positive amount', () => {
     expect(buildCashbookMirrorTransaction({ ...base, flow: 'Gave', amount: 0 })).toBeNull();
   });
+
+  it('never mirrors a negative amount', () => {
+    expect(buildCashbookMirrorTransaction({ ...base, flow: 'Gave', amount: -100 })).toBeNull();
+  });
+
+  it('guarantees positive amount when flow is Received', () => {
+    const result = buildCashbookMirrorTransaction({ ...base, flow: 'Received', amount: 2500.5 });
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe('Income');
+    expect(result?.amount).toBe(2500.5);
+    expect(result?.amount).toBeGreaterThan(0);
+  });
 });

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   build:
@@ -195,8 +195,12 @@ jobs:
       - name: Start web and run E2E
         if: steps.secrets-check.outputs.configured == 'true'
         working-directory: apps/web
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_HACKER_EMAIL: ${{ secrets.TEST_HACKER_EMAIL }}
+          TEST_HACKER_PASSWORD: ${{ secrets.TEST_HACKER_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RLS_TEST_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_BASE_URL: http://localhost:4000
         run: |
-          pnpm start &
-          npx wait-on http://localhost:3000
-          cd ../..
-          pnpm test:e2e
+          pnpm run test:e2e:personas

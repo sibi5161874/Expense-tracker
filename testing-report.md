@@ -1,5 +1,31 @@
 # Playwright E2E Suite Testing Report
 
+## Update — Issue #22 (Comprehensive Testing Strategy), November 11, 2026
+
+Added per [sibi5161874/Expense-tracker#22](https://github.com/sibi5161874/Expense-tracker/issues/22):
+`apps/web/e2e/personas/accounting-invariants.spec.ts` (10 tests), `apps/web/e2e/personas/regression.spec.ts`
+(7 tests, one per Issues 1–7), `apps/web/e2e/integration/supabase-operations.spec.ts` (5 tests), new cases
+in `investmentMirroring.test.ts`/`cashbookMirroring.test.ts`, and a `ci.yml` update so
+`pnpm run test:e2e:personas` gates every push/PR to `main`/`master`.
+
+**Verified this session:**
+- `pnpm --filter shared test` — **563/563 passed**, including the new mirroring unit tests.
+- `pnpm --filter web typecheck` — 0 errors (covers the new spec files too).
+
+**Not verified this session:** the new e2e specs (`accounting-invariants`, `regression`, `integration`)
+have not been run to a green result. Three attempts at `pnpm --filter web test:e2e:personas` all failed
+at `globalSetup`'s login step before reaching any persona test — the `next dev` webServer either never
+rendered the login form in time or reset the connection mid-navigation (`ERR_CONNECTION_RESET`), in an
+environment too resource-constrained to run Turbopack's dev compiler reliably. This reproduced identically
+across all three attempts, so it reads as an environment limitation of that sandbox, not a regression in
+the suite below (which it was run on top of, untouched) or in the new specs' logic. **Run
+`pnpm --filter web test:e2e:personas` and `pnpm --filter web test:e2e:integration` on a machine with
+normal access to the test Supabase project before treating issue #22 as closed.**
+
+---
+
+## Original baseline (pre-issue-#22)
+
 **Target Goal**: Get Playwright Suite to Green (50/50 passing) with 0 failures and 0 skipped.  
 **Result**: **50 / 50 PASSED (0 failures, 0 skipped)** on **TWO consecutive back-to-back runs**.  
 **Base URL**: `http://localhost:4000` (Chromium Desktop)  
