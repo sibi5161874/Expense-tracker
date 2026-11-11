@@ -35,10 +35,14 @@ export default async function globalSetup(config: FullConfig) {
   let lastUrl = '';
   let lastBodyText = '';
   for (let attempt = 1; attempt <= 3 && !loggedIn; attempt++) {
-    await page.goto(`${baseURL}/login`, { timeout: 60_000 });
+    // 120s, not 60s: a genuinely cold Turbopack compile of /login alone has been observed
+    // taking ~30-38s on real hardware (not just this suite's own sandbox), and a second
+    // Fast-Refresh rebuild can fire mid-wait and stack on top of that — 60s left too little
+    // margin and intermittently timed out here before ever reaching a real test failure.
+    await page.goto(`${baseURL}/login`, { timeout: 120_000 });
     // Small delay to allow React 19 hydration to complete on cold compile
     await page.waitForTimeout(2000);
-    await page.getByPlaceholder('you@example.com').waitFor({ state: 'visible', timeout: 60_000 });
+    await page.getByPlaceholder('you@example.com').waitFor({ state: 'visible', timeout: 120_000 });
     await page.getByPlaceholder('you@example.com').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.getByRole('button', { name: 'Log in' }).click();
