@@ -159,7 +159,7 @@ async function backfillInvestmentLog() {
         const categoryId = await findOrCreateCategory(row.user_id, mirror.categoryName, mirror.categoryType);
         const { error: insertError } = await admin
           .from('transactions')
-          .insert({ user_id: row.user_id, category_id: categoryId, ...txShape });
+          .insert({ user_id: row.user_id, category_id: categoryId, source_investment_log_id: row.id, ...txShape });
         if (insertError) throw insertError;
       }
       created++;
@@ -202,7 +202,9 @@ async function backfillCashbook() {
 
       console.log(`${APPLY ? 'CREATE' : 'DRY RUN'} cashbook ${row.id} -> ${mirror.type} ${mirror.amount} (${mirror.notes})`);
       if (APPLY) {
-        const { error: insertError } = await admin.from('transactions').insert({ user_id: row.user_id, ...txShape });
+        const { error: insertError } = await admin
+          .from('transactions')
+          .insert({ user_id: row.user_id, source_cashbook_id: row.id, ...txShape });
         if (insertError) throw insertError;
       }
       created++;
