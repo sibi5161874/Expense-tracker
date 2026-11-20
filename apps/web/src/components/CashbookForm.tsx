@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { AccountSelectField } from '@/components/shared/form-fields/AccountSelectField';
 import { ContactSelectField } from '@/components/shared/form-fields/ContactSelectField';
 import { NotesField } from '@/components/shared/form-fields/NotesField';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface CashbookFormProps {
   onSuccess: () => void;
@@ -26,6 +27,10 @@ interface CashbookFormProps {
 }
 
 export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { data: accounts } = useAccounts(true);
   const { createCashbook, updateCashbook } = useCashbook();
   const [formError, setFormError] = useState<string | null>(null);
@@ -59,14 +64,14 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
       } else {
         await createCashbook(data);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Cashbook Entry' : 'Add Cashbook Entry'}</DialogTitle>
@@ -159,7 +164,7 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

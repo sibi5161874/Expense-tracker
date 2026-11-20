@@ -24,6 +24,8 @@ import { HoldingsFilterBar } from '@/components/portfolio/HoldingsFilterBar';
 import { LoadingState, ErrorState } from '@/components/shared/QueryState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { AmountText } from '@/components/shared/AmountText';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { MarketHeatmapClient } from '@/components/portfolio/MarketHeatmapClient';
 import { useTranslation } from '@/contexts/LocaleContext';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +38,9 @@ export default function PortfolioPage() {
   const { t } = useTranslation();
   // Refreshes quietly when prices are over a day old; the button below stays for an on-demand refresh.
   useAutoRefreshPrices();
+
+  // View state: Holdings vs Market Heatmap
+  const [portfolioView, setPortfolioView] = useState<'holdings' | 'market'>('holdings');
 
   // Filter & sort state for holdings table
   const [selectedAssetTab, setSelectedAssetTab] = useState('All');
@@ -170,16 +175,32 @@ export default function PortfolioPage() {
       )}
 
       {holdings.length === 0 ? (
-        <EmptyState
-          icon={LineChart}
-          title="No holdings yet"
-          subtitle="Your portfolio holdings are computed automatically from your investment log. Log your first stock or mutual fund trade to start tracking."
-          action={
-            <Button onClick={() => router.push('/investments')} className="min-h-[44px]">
-              Log Investment
-            </Button>
-          }
-        />
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <SegmentedControl
+              options={[
+                { value: 'holdings', label: 'Holdings' },
+                { value: 'market', label: 'Market' },
+              ]}
+              value={portfolioView}
+              onChange={(val) => setPortfolioView(val as 'holdings' | 'market')}
+            />
+          </div>
+          {portfolioView === 'market' ? (
+            <MarketHeatmapClient />
+          ) : (
+            <EmptyState
+              icon={LineChart}
+              title="No holdings yet"
+              subtitle="Your portfolio holdings are computed automatically from your investment log. Log your first stock or mutual fund trade to start tracking."
+              action={
+                <Button onClick={() => router.push('/investments')} className="min-h-[44px]">
+                  Log Investment
+                </Button>
+              }
+            />
+          )}
+        </div>
       ) : (
         <>
           {/* 1. KPI Summary Grid (2x2 on mobile, 4 columns on lg) */}
@@ -217,42 +238,59 @@ export default function PortfolioPage() {
           {/* 2. Asset Class Breakdown Section */}
           <AssetClassBreakdownCard holdings={holdings} />
 
-          {/* 3. Main Holdings Table & Allocation Grid */}
+          {/* 3. Main Holdings Table & Allocation Grid OR Market Heatmap */}
           <div className="space-y-4">
-            {/* Asset Class Filter Tabs */}
-            <AssetClassTabs
-              holdings={holdings}
-              selectedTab={selectedAssetTab}
-              onSelectTab={setSelectedAssetTab}
-            />
-
-            {/* Search, Filter, Sort Controls */}
-            <HoldingsFilterBar
-              sortValue={sortValue}
-              onSortChange={setSortValue}
-              filterValue={filterValue}
-              onFilterChange={setFilterValue}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <h2 className="mb-3 text-sm font-semibold">
-                  Holdings ({filteredHoldings.length})
-                </h2>
-                <HoldingsTable
-                  holdings={filteredHoldings}
-                  animateRows={shouldAnimateRows}
-                  foreignPriceCurrencies={foreignPriceCurrencies}
-                  displayNames={displayNames}
-                />
-              </div>
-              <div className="bg-card rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
-                <ExpenseBreakdownChart data={allocation} />
-              </div>
+            <div className="flex items-center justify-between">
+              <SegmentedControl
+                options={[
+                  { value: 'holdings', label: 'Holdings' },
+                  { value: 'market', label: 'Market' },
+                ]}
+                value={portfolioView}
+                onChange={(val) => setPortfolioView(val as 'holdings' | 'market')}
+              />
             </div>
+
+            {portfolioView === 'market' ? (
+              <MarketHeatmapClient />
+            ) : (
+              <>
+                {/* Asset Class Filter Tabs */}
+                <AssetClassTabs
+                  holdings={holdings}
+                  selectedTab={selectedAssetTab}
+                  onSelectTab={setSelectedAssetTab}
+                />
+
+                {/* Search, Filter, Sort Controls */}
+                <HoldingsFilterBar
+                  sortValue={sortValue}
+                  onSortChange={setSortValue}
+                  filterValue={filterValue}
+                  onFilterChange={setFilterValue}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                />
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <h2 className="mb-3 text-sm font-semibold">
+                      Holdings ({filteredHoldings.length})
+                    </h2>
+                    <HoldingsTable
+                      holdings={filteredHoldings}
+                      animateRows={shouldAnimateRows}
+                      foreignPriceCurrencies={foreignPriceCurrencies}
+                      displayNames={displayNames}
+                    />
+                  </div>
+                  <div className="bg-card rounded-2xl p-5">
+                    <h2 className="mb-4 text-sm font-semibold">Allocation by symbol</h2>
+                    <ExpenseBreakdownChart data={allocation} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* 4. Recent Transactions */}

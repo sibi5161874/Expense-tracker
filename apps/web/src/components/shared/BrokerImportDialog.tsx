@@ -13,8 +13,8 @@ import { InstitutionLogo } from '@/components/shared/InstitutionLogo';
 import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { ColumnMapper, BROKER_MAPPABLE_FIELDS } from '@/components/shared/ColumnMapper';
-import { ImportConfidenceNotice, needsReviewAcknowledgement } from '@/components/shared/ImportConfidenceNotice';
 import { chunkCsv } from '@/lib/chunkCsv';
+import { isExcelFile, parseExcelToCsv } from '@/lib/excelParser';
 import { findBroker } from '@repo/shared/logic';
 
 interface BrokerImportDialogProps {
@@ -40,7 +40,6 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [remainingChunks, setRemainingChunks] = useState<string[]>([]);
   const [remainingRowOffset, setRemainingRowOffset] = useState(0);
@@ -69,28 +68,26 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
       return;
     }
     setErrorMessage(null);
+    setStep('previewing');
 
-    // A broker's "CSV" export button sometimes actually delivers an Excel binary — file.text()
-    // decodes that as garbage instead of throwing, which used to surface as an unreadable
-    // mapping step instead of telling the user what's actually wrong with the file.
-    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    const isZipBased = head[0] === 0x50 && head[1] === 0x4b; // .xlsx/.xls (2007+), also .docx/.zip
-    const isLegacyXls = head[0] === 0xd0 && head[1] === 0xcf && head[2] === 0x11 && head[3] === 0xe0; // .xls (97-2003)
-    if (isZipBased || isLegacyXls) {
-      toast.error(
-        `${file.name} looks like an Excel file, not a CSV. In Excel, use "Save As" → "CSV UTF-8 (Comma delimited)", then upload that file instead.`
-      );
+    let text = '';
+    try {
+      if (await isExcelFile(file)) {
+        text = await parseExcelToCsv(file);
+      } else {
+        text = await file.text();
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to parse spreadsheet file');
+      setStep('options');
       return;
     }
 
-    const text = await file.text();
     setCsvText(text);
-    setStep('previewing');
     try {
       const preview = await runImport(text, false);
       if (preview) {
         setResult(preview);
-        setReviewAcknowledged(false);
         setStep('preview');
       }
     } catch (err) {
@@ -183,11 +180,7 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
   }
 
   const mappingComplete = ['date', 'symbol', 'tradeType', 'quantity', 'price'].every((f) => !!mapping[f]);
-  const needsReview =
-    !!result &&
-    result.mappingSource !== undefined &&
-    needsReviewAcknowledgement(result.mappingSource, result.institutionConfidence ?? null);
-  const canConfirm = !!result && result.validCount > 0 && (!needsReview || reviewAcknowledged);
+  const canConfirm = !!result && result.validCount > 0;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -243,9 +236,9 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
             <FileDropzone
               onFile={handleFile}
               disabled={!linkedAccountId}
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               title="Click to choose your tradebook file"
-              subtitle="CSV export from your broker"
+              subtitle="CSV or Excel (.xlsx) export from your broker"
               disabledSubtitle="Select a linked account first"
             />
           </div>
@@ -255,16 +248,6 @@ export function BrokerImportDialog({ onClose }: BrokerImportDialogProps) {
 
         {step === 'mapping' && (
           <ColumnMapper headers={headers} fields={BROKER_MAPPABLE_FIELDS} value={mapping} onChange={setMapping} />
-        )}
-
-        {step === 'preview' && result && result.mappingSource && (
-          <ImportConfidenceNotice
-            institutionLabel={findBroker(broker)?.label ?? broker}
-            mappingSource={result.mappingSource}
-            institutionConfidence={result.institutionConfidence ?? null}
-            acknowledged={reviewAcknowledged}
-            onAcknowledgedChange={setReviewAcknowledged}
-          />
         )}
 
         {(step === 'preview' || step === 'committing' || step === 'partial' || step === 'done') && result && (

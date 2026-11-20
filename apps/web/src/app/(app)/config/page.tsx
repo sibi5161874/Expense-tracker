@@ -8,11 +8,18 @@ import { AccountsTab } from '@/components/settings/AccountsTab';
 import { CategoriesTab } from '@/components/settings/CategoriesTab';
 import { BudgetsTab } from '@/components/settings/BudgetsTab';
 import { RecurringTab } from '@/components/settings/RecurringTab';
+import { GroqKeySettings } from '@/components/settings/GroqKeySettings';
 
-type ConfigTab = 'accounts' | 'categories' | 'budgets' | 'recurring';
+type ConfigTab = 'accounts' | 'categories' | 'budgets' | 'recurring' | 'ai';
 
 function isConfigTab(value: string | null): value is ConfigTab {
-  return value === 'accounts' || value === 'categories' || value === 'budgets' || value === 'recurring';
+  return (
+    value === 'accounts' ||
+    value === 'categories' ||
+    value === 'budgets' ||
+    value === 'recurring' ||
+    value === 'ai'
+  );
 }
 
 export default function ConfigPage() {
@@ -45,6 +52,7 @@ export default function ConfigPage() {
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          <TabsTrigger value="ai">AI Bot</TabsTrigger>
         </TabsList>
         <TabsContent value="accounts" className="mt-6">
           <AccountsTab />
@@ -57,6 +65,9 @@ export default function ConfigPage() {
         </TabsContent>
         <TabsContent value="recurring" className="mt-6">
           <RecurringTab />
+        </TabsContent>
+        <TabsContent value="ai" className="mt-6">
+          <GroqKeySettings />
         </TabsContent>
       </Tabs>
     </div>

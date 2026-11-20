@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { GroqKeySettings } from './GroqKeySettings';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -88,6 +89,8 @@ export function PreferencesTab() {
 
   return (
     <div className="space-y-6">
+      <GroqKeySettings />
+
       <div className="bg-card border-border/60 rounded-2xl border p-5 shadow-sm">
         <h2 className="text-sm font-semibold">Appearance</h2>
         <p className="text-muted-foreground mt-1 mb-4 text-sm">Switch between light and dark mode.</p>

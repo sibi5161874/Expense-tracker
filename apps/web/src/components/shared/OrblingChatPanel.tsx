@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowUpRight, Check, Loader2, Send } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpRight, Check, KeyRound, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AiMarkdown } from './AiMarkdown';
@@ -9,6 +10,7 @@ import { OrblingHeader } from './OrblingHeader';
 import { OrblingStatus, Orbling } from '@/components/orbling';
 import { useOrblingPalette } from '@/hooks/useOrblingPalette';
 import { useStaggeredSteps, type StaggeredStep } from '@/hooks/useStaggeredSteps';
+import { useUserGroqKey } from '@/hooks/useUserGroqKey';
 import type { OrblingMood } from '@/hooks/useOrblingMood';
 
 const SHOWCASE_MOODS: OrblingMood[] = [
@@ -127,6 +129,7 @@ export function OrblingChatPanel({
   const palette = useOrblingPalette();
   const [showcaseMood, playShowcase] = useMoodShowcase();
   const liveSteps = useStaggeredSteps(pendingSteps);
+  const { hasKey } = useUserGroqKey();
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -151,6 +154,29 @@ export function OrblingChatPanel({
               <Orbling mood={showcaseMood ?? mood} size={64} palette={palette} heat={false} />
             </button>
             <h3 className="text-base font-semibold text-foreground">What can I help with?</h3>
+
+            {!hasKey && (
+              <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-left">
+                <div className="flex items-start gap-2.5">
+                  <KeyRound className="size-4 shrink-0 text-amber-400 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">Groq API Key Required</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Set up your free Groq key in Config to enable AI answers.
+                    </p>
+                    <Link
+                      href="/config?tab=ai"
+                      onClick={onClose}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-0.5"
+                    >
+                      Configure Key in Config
+                      <ArrowUpRight className="size-3" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="w-full space-y-2">
               {SUGGESTIONS.map((s) => (
                 <button

@@ -13,10 +13,10 @@ import { InstitutionLogo } from '@/components/shared/InstitutionLogo';
 import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { ColumnMapper, BANK_MAPPABLE_FIELDS } from '@/components/shared/ColumnMapper';
-import { ImportConfidenceNotice, needsReviewAcknowledgement } from '@/components/shared/ImportConfidenceNotice';
 import { DividendReviewList, type DividendRowState } from '@/components/shared/DividendReviewList';
 import { useImportDividends } from '@/hooks/useImportDividends';
 import { chunkCsv } from '@/lib/chunkCsv';
+import { isExcelFile, parseExcelToCsv } from '@/lib/excelParser';
 import { findBank } from '@repo/shared/logic';
 import type { DividendEntryInput } from '@repo/shared/schemas';
 
@@ -44,7 +44,6 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [remainingChunks, setRemainingChunks] = useState<string[]>([]);
   const [remainingRowOffset, setRemainingRowOffset] = useState(0);
@@ -107,29 +106,26 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
       return;
     }
     setErrorMessage(null);
+    setStep('previewing');
 
-    // Some banks' "CSV" export button actually delivers an Excel file (.xlsx/.xls, sometimes
-    // even with a .csv extension) — file.text() decodes that binary as garbage text instead of
-    // throwing, which used to surface as unreadable "PK□□"-style column names in the mapping
-    // step below rather than a clear error. Check the format's real magic bytes first.
-    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    const isZipBased = head[0] === 0x50 && head[1] === 0x4b; // .xlsx/.xls (2007+), also .docx/.zip
-    const isLegacyXls = head[0] === 0xd0 && head[1] === 0xcf && head[2] === 0x11 && head[3] === 0xe0; // .xls (97-2003)
-    if (isZipBased || isLegacyXls) {
-      toast.error(
-        `${file.name} looks like an Excel file, not a CSV. In Excel, use "Save As" → "CSV UTF-8 (Comma delimited)", then upload that file instead.`
-      );
+    let text = '';
+    try {
+      if (await isExcelFile(file)) {
+        text = await parseExcelToCsv(file);
+      } else {
+        text = await file.text();
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to parse spreadsheet file');
+      setStep('options');
       return;
     }
 
-    const text = await file.text();
     setCsvText(text);
-    setStep('previewing');
     try {
       const preview = await runImport(text, false);
       if (preview) {
         setResult(preview);
-        setReviewAcknowledged(false);
         initDividendRowState(preview);
         setStep('preview');
       }
@@ -287,10 +283,6 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   }
 
   const mappingComplete = !!mapping.date && !!mapping.description && (!!mapping.debit || !!mapping.credit || !!mapping.amount);
-  const needsReview =
-    !!result &&
-    result.mappingSource !== undefined &&
-    needsReviewAcknowledgement(result.mappingSource, result.institutionConfidence ?? null);
   const dividendCandidates = result?.dividendCandidates ?? [];
   const dividendRowsValid = dividendCandidates.every((c) => {
     const state = dividendRowState[c.row];
@@ -300,7 +292,6 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
   const canConfirm =
     !!result &&
     (result.validCount > 0 || dividendCandidates.length > 0) &&
-    (!needsReview || reviewAcknowledged) &&
     dividendRowsValid;
 
   return (
@@ -362,9 +353,9 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
             <FileDropzone
               onFile={handleFile}
               disabled={!accountId}
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               title="Click to choose your statement file"
-              subtitle="CSV export from your bank"
+              subtitle="CSV or Excel (.xlsx) export from your bank"
               disabledSubtitle="Select an account first"
             />
           </div>
@@ -374,16 +365,6 @@ export function BankStatementImportDialog({ onClose }: BankStatementImportDialog
 
         {step === 'mapping' && (
           <ColumnMapper headers={headers} fields={BANK_MAPPABLE_FIELDS} value={mapping} onChange={setMapping} />
-        )}
-
-        {step === 'preview' && result && result.mappingSource && (
-          <ImportConfidenceNotice
-            institutionLabel={findBank(bank)?.label ?? bank}
-            mappingSource={result.mappingSource}
-            institutionConfidence={result.institutionConfidence ?? null}
-            acknowledged={reviewAcknowledged}
-            onAcknowledgedChange={setReviewAcknowledged}
-          />
         )}
 
         {step === 'preview' && dividendCandidates.length > 0 && (

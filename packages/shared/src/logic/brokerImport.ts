@@ -3,8 +3,25 @@ import { parseAmount, createDedupChecker, type ImportPlan, type ImportRowError, 
 import { parseBankDate } from './bankStatementImport';
 import { detectBrokerMapping } from './columnHeuristics';
 import { BROKERS, findBroker } from './institutions';
+import {
+  findHeaderRow,
+  normalizeHeaders,
+  detectPriceFormat,
+  parseDate,
+} from './csvParserHelpers';
 
 export { BROKERS, findBroker };
+
+export interface ParsedTrade {
+  symbol: string;
+  action: 'BUY' | 'SELL';
+  quantity: number;
+  perSharePrice: number;
+  totalAmount: number;
+  date: string;
+  fees: number;
+  exchange?: string;
+}
 
 /**
  * Broker tradebook import — mirrors the bank statement importer: columns are
@@ -68,13 +85,58 @@ function readField(record: Record<string, string>, column: string | undefined): 
 /**
  * Brokers spell buy/sell inconsistently — Zerodha uses buy/sell, Upstox BUY/SELL,
  * some exports use B/S, and CAS-style statements use Purchase/Redemption.
- * Anything not recognizable as one of the two directions is rejected rather than
- * defaulted, since guessing the wrong side would invert a position.
+ * Also handles statuses like "Executed", "Completed", "Buy Executed", etc.
+ * Any casing (small letters, ALL CAPS, Capitalized) and compound phrases are parsed flexibly.
  */
-export function normalizeTradeType(raw: string): 'BUY' | 'SELL' | null {
-  const value = raw.trim().toLowerCase();
-  if (/^(buy|b|purchase|bought|subscription|sip)$/.test(value)) return 'BUY';
-  if (/^(sell|s|sale|sold|redemption|redeem)$/.test(value)) return 'SELL';
+export function normalizeTradeType(raw: string, record?: Record<string, string>): 'BUY' | 'SELL' | null {
+  const value = (raw ?? '').trim().toLowerCase();
+  if (!value) return null;
+
+  // 1. Direct exact tokens (handles any casing, leading/trailing whitespace)
+  if (/^(buy|b|purchase|purchased|bought|subscription|sip|received|credit|cr|long)$/.test(value)) {
+    return 'BUY';
+  }
+  if (/^(sell|s|sale|sold|redemption|redeem|outward|debit|dr|short)$/.test(value)) {
+    return 'SELL';
+  }
+
+  // 2. Substring & compound tokens (e.g. "BUY - EXECUTED", "EXECUTED (BUY)", "BUY EXECUTED", "DELIVERY BUY", "SELL EXECUTED")
+  if (/\b(buy|bought|purchase|subscription|sip)\b/.test(value)) {
+    return 'BUY';
+  }
+  if (/\b(sell|sold|sale|redemption|redeem)\b/.test(value)) {
+    return 'SELL';
+  }
+
+  // 3. Status terms (e.g. "Executed", "Complete", "Completed", "Filled", "Traded", "Success")
+  if (/^(executed|complete|completed|filled|traded|success|successful|done|ok)$/.test(value)) {
+    // If the full record is available, check other columns for trade direction
+    if (record) {
+      for (const [col, val] of Object.entries(record)) {
+        const colNorm = col.trim().toLowerCase();
+        // Skip status column itself and standard numerical/date columns
+        if (
+          colNorm.includes('status') ||
+          colNorm === 'date' ||
+          colNorm === 'symbol' ||
+          colNorm === 'price' ||
+          colNorm === 'quantity'
+        ) {
+          continue;
+        }
+        const valNorm = (val ?? '').trim().toLowerCase();
+        if (/\b(buy|bought|purchase|subscription|sip)\b/.test(valNorm)) {
+          return 'BUY';
+        }
+        if (/\b(sell|sold|sale|redemption|redeem)\b/.test(valNorm)) {
+          return 'SELL';
+        }
+      }
+    }
+    // If no other column specifies sell, an executed trade entry in an orderbook is an execution (default BUY)
+    return 'BUY';
+  }
+
   return null;
 }
 
@@ -114,9 +176,12 @@ export function buildBrokerImportPlan(
     }
 
     const rawTradeType = readField(record, mapping.tradeType);
-    const action = normalizeTradeType(rawTradeType);
+    const action = normalizeTradeType(rawTradeType, record);
     if (!action) {
-      errors.push({ row, reason: `Unrecognized trade type "${rawTradeType}" (expected buy/sell)` });
+      errors.push({
+        row,
+        reason: `Unrecognized trade type "${rawTradeType}". Expected BUY or SELL (e.g. Buy, Sell, Purchase, Executed)`,
+      });
       continue;
     }
 
@@ -164,4 +229,133 @@ export function buildBrokerImportPlan(
   }
 
   return { errors, validRows, duplicateCount };
+}
+
+/**
+ * Parses raw CSV/spreadsheet rows from any Indian broker file with metadata
+ * detection and Zerodha (per-share) vs Groww (total) automatic price resolution.
+ */
+export function parseBrokerFile(rawRows: string[][]): {
+  trades: ParsedTrade[];
+  meta: { headerIndex: number; priceFormat: 'per_share' | 'total'; skipped: number };
+  errors: string[];
+} {
+  const headerIndex = findHeaderRow(rawRows, 'broker');
+  if (headerIndex === -1) {
+    return {
+      trades: [],
+      meta: { headerIndex: -1, priceFormat: 'per_share', skipped: 0 },
+      errors: ['Could not detect header row. Expected Symbol, Qty, Price columns.'],
+    };
+  }
+
+  const rawHeaders = rawRows[headerIndex] ?? [];
+  const normalized = normalizeHeaders(rawHeaders);
+  const priceFormat = detectPriceFormat(normalized);
+
+  const symbolIdx = normalized.indexOf('symbol');
+  const actionIdx =
+    normalized.indexOf('action') !== -1
+      ? normalized.indexOf('action')
+      : normalized.indexOf('trade_type') !== -1
+        ? normalized.indexOf('trade_type')
+        : normalized.indexOf('type');
+  const qtyIdx = normalized.indexOf('quantity');
+  const priceIdx = normalized.indexOf('price');
+  const totalIdx = normalized.indexOf('total');
+  const dateIdx = normalized.indexOf('date');
+  const feesIdx = normalized.indexOf('fees');
+  const exchangeIdx = normalized.indexOf('exchange');
+
+  const trades: ParsedTrade[] = [];
+  const errors: string[] = [];
+  let skipped = 0;
+
+  for (let i = headerIndex + 1; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    if (!row || row.length === 0 || row.every((c) => !c.trim())) {
+      skipped++;
+      continue;
+    }
+
+    const rowObj: Record<string, string> = {};
+    for (let c = 0; c < rawHeaders.length; c++) {
+      rowObj[rawHeaders[c] ?? `col_${c}`] = row[c] ?? '';
+    }
+
+    const symbol = (symbolIdx !== -1 ? row[symbolIdx] : '')?.trim() || '';
+    if (!symbol) {
+      skipped++;
+      continue;
+    }
+
+    const rawDate = (dateIdx !== -1 ? row[dateIdx] : '')?.trim() || '';
+    const date = parseDate(rawDate);
+    if (!date) {
+      errors.push(`Row ${i + 1}: Invalid date "${rawDate}"`);
+      continue;
+    }
+
+    const rawAction = (actionIdx !== -1 ? row[actionIdx] : '')?.trim() || '';
+    const action = normalizeTradeType(rawAction, rowObj);
+    if (!action) {
+      errors.push(`Row ${i + 1}: Unrecognized trade type "${rawAction}"`);
+      continue;
+    }
+
+    const rawQty = (qtyIdx !== -1 ? row[qtyIdx] : '')?.trim() || '';
+    const quantity = parseAmount(rawQty);
+    if (quantity === null || quantity <= 0) {
+      errors.push(`Row ${i + 1}: Invalid quantity "${rawQty}"`);
+      continue;
+    }
+
+    let perSharePrice = 0;
+    let totalAmount = 0;
+
+    if (priceFormat === 'total' && totalIdx !== -1 && row[totalIdx]) {
+      const rawTot = row[totalIdx]!.trim();
+      const parsedTot = parseAmount(rawTot);
+      if (parsedTot === null || parsedTot < 0) {
+        errors.push(`Row ${i + 1}: Invalid total amount "${rawTot}"`);
+        continue;
+      }
+      totalAmount = parsedTot;
+      perSharePrice = Number((totalAmount / quantity).toFixed(4));
+    } else {
+      const rawPr = (priceIdx !== -1 ? row[priceIdx] : '')?.trim() || '';
+      const parsedPr = parseAmount(rawPr);
+      if (parsedPr === null || parsedPr < 0) {
+        errors.push(`Row ${i + 1}: Invalid price "${rawPr}"`);
+        continue;
+      }
+      perSharePrice = parsedPr;
+      totalAmount = Number((quantity * perSharePrice).toFixed(2));
+    }
+
+    const rawFees = (feesIdx !== -1 ? row[feesIdx] : '')?.trim() || '';
+    const fees = parseAmount(rawFees) ?? 0;
+    const exchange = (exchangeIdx !== -1 ? row[exchangeIdx] : '')?.trim() || 'NSE';
+
+    trades.push({
+      symbol,
+      action,
+      quantity,
+      perSharePrice,
+      totalAmount,
+      date,
+      fees,
+      exchange,
+    });
+  }
+
+  return {
+    trades,
+    meta: {
+      headerIndex,
+      priceFormat,
+      skipped,
+    },
+    errors,
+  };
 }

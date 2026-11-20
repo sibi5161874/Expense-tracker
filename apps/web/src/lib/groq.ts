@@ -9,7 +9,11 @@ import Groq from 'groq-sdk';
  */
 let client: Groq | null = null;
 
-export function getGroqClient(): Groq | null {
+export function getGroqClient(apiKeyOverride?: string | null): Groq | null {
+  if (apiKeyOverride?.trim()) {
+    return new Groq({ apiKey: apiKeyOverride.trim() });
+  }
+
   if (client) return client;
 
   const apiKey = process.env.GROQ_API_KEY;

@@ -28,7 +28,7 @@ interface FileDropzoneProps {
 export function FileDropzone({
   onFile,
   disabled,
-  accept = '.csv',
+  accept = '.csv,.xlsx,.xls',
   title,
   subtitle,
   disabledSubtitle,

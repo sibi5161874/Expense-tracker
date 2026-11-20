@@ -52,6 +52,7 @@ const PUBLIC_PATHS = [
   "/api/live-price/universal",
   "/api/live-price/history",
   "/api/stock/fundamentals",
+  "/api/market/heatmap",
 ];
 
 export async function updateSession(request: NextRequest) {

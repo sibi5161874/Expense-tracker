@@ -20,6 +20,7 @@ import { AccountSelectField } from '@/components/shared/form-fields/AccountSelec
 import { CategorySelectField } from '@/components/shared/form-fields/CategorySelectField';
 import { NotesField } from '@/components/shared/form-fields/NotesField';
 import { useTranslation } from '@/contexts/LocaleContext';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface TransactionFormProps {
   onSuccess: () => void;
@@ -28,6 +29,10 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { data: accounts } = useAccounts(true);
   const { data: categories } = useCategories();
   const { createTransaction, updateTransaction } = useTransactions();
@@ -54,14 +59,14 @@ export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFor
         await createTransaction(data);
         toast.success(t('toast.transaction.added'));
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
@@ -159,7 +164,7 @@ export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFor
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

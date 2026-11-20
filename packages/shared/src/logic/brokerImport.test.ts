@@ -92,12 +92,42 @@ describe('resolveBrokerMapping', () => {
 });
 
 describe('normalizeTradeType', () => {
-  it.each(['buy', 'BUY', 'B', 'Purchase', 'bought', 'SIP'])('reads %s as BUY', (input) => {
+  it.each([
+    'buy',
+    'BUY',
+    'B',
+    'Purchase',
+    'bought',
+    'SIP',
+    'Executed',
+    'executed',
+    'EXECUTED',
+    'Buy (Executed)',
+    'EXECUTED (BUY)',
+    'BUY EXECUTED',
+    'Delivery Buy',
+  ])('reads %s as BUY', (input) => {
     expect(normalizeTradeType(input)).toBe('BUY');
   });
 
-  it.each(['sell', 'SELL', 'S', 'Sale', 'sold', 'Redemption'])('reads %s as SELL', (input) => {
+  it.each([
+    'sell',
+    'SELL',
+    'S',
+    'Sale',
+    'sold',
+    'Redemption',
+    'Sell Executed',
+    'EXECUTED (SELL)',
+    'SELL EXECUTED',
+  ])('reads %s as SELL', (input) => {
     expect(normalizeTradeType(input)).toBe('SELL');
+  });
+
+  it('inspects record fields if trade type is a status like Executed', () => {
+    expect(normalizeTradeType('Executed', { action: 'SELL' })).toBe('SELL');
+    expect(normalizeTradeType('Executed', { type: 'BUY' })).toBe('BUY');
+    expect(normalizeTradeType('Complete', { transaction_type: 'SELL' })).toBe('SELL');
   });
 
   it.each(['bonus', 'split', '', 'xyz'])('rejects %s rather than defaulting a side', (input) => {

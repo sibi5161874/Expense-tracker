@@ -24,7 +24,6 @@ import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { PickerField } from "@/components/common/PickerField";
 import { ColumnMapper, BANK_MAPPABLE_FIELDS } from "@/components/shared/ColumnMapper";
-import { ImportConfidenceNotice, needsReviewAcknowledgement } from "@/components/shared/ImportConfidenceNotice";
 import { ImportResultSummary, type ImportResult } from "@/components/shared/ImportResultSummary";
 import { useThemeColor } from "@/lib/colors";
 
@@ -75,7 +74,6 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
 
   function reset() {
     setStep("options");
@@ -84,7 +82,6 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
     setErrorMessage(null);
     setHeaders([]);
     setMapping({});
-    setReviewAcknowledged(false);
   }
 
   async function runImport(csv: string, commit: boolean, overrideMapping?: Record<string, string>): Promise<ImportResult | null> {
@@ -154,7 +151,6 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
       const preview = await runImport(text, false);
       if (preview) {
         setResult(preview);
-        setReviewAcknowledged(false);
         setStep("preview");
       }
     } catch (e) {
@@ -196,9 +192,7 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
   }
 
   const mappingComplete = !!mapping.date && !!mapping.description && (!!mapping.debit || !!mapping.credit || !!mapping.amount);
-  const needsReview =
-    !!result && result.mappingSource !== undefined && needsReviewAcknowledgement(result.mappingSource, result.institutionConfidence ?? null);
-  const canConfirm = !!result && result.validCount > 0 && (!needsReview || reviewAcknowledged);
+  const canConfirm = !!result && result.validCount > 0;
 
   return (
     <Modal
@@ -268,16 +262,6 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
           {step === "previewing" && <AppText className="py-8 text-center text-sm text-muted-foreground">Reading file…</AppText>}
 
           {step === "mapping" && <ColumnMapper headers={headers} fields={BANK_MAPPABLE_FIELDS} value={mapping} onChange={setMapping} />}
-
-          {step === "preview" && result && result.mappingSource && (
-            <ImportConfidenceNotice
-              institutionLabel={findBank(bank)?.label ?? bank}
-              mappingSource={result.mappingSource}
-              institutionConfidence={result.institutionConfidence ?? null}
-              acknowledged={reviewAcknowledged}
-              onAcknowledgedChange={setReviewAcknowledged}
-            />
-          )}
 
           {(step === "preview" || step === "committing" || step === "done") && result && (
             <ImportResultSummary result={result} step={step} />

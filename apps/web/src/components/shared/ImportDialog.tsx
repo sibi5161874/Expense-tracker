@@ -10,6 +10,7 @@ import { ImportResultSummary, type ImportResult } from '@/components/shared/Impo
 import { FileDropzone } from '@/components/shared/FileDropzone';
 import { MAX_IMPORT_FILE_SIZE_BYTES } from '@/lib/importLimits';
 import { chunkCsv } from '@/lib/chunkCsv';
+import { isExcelFile, parseExcelToCsv } from '@/lib/excelParser';
 
 interface ImportDialogProps {
   apiPath: string;
@@ -75,24 +76,23 @@ export function ImportDialog({
       return;
     }
     setErrorMessage(null);
+    setFileName(file.name);
+    setStep('previewing');
 
-    // A file saved from Excel with a .csv extension is sometimes still a real .xlsx/.xls binary
-    // — file.text() decodes that as garbage instead of throwing, which used to surface as a
-    // confusing "headers don't match" error instead of telling the user what's actually wrong.
-    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    const isZipBased = head[0] === 0x50 && head[1] === 0x4b; // .xlsx/.xls (2007+), also .docx/.zip
-    const isLegacyXls = head[0] === 0xd0 && head[1] === 0xcf && head[2] === 0x11 && head[3] === 0xe0; // .xls (97-2003)
-    if (isZipBased || isLegacyXls) {
-      toast.error(
-        `${file.name} looks like an Excel file, not a CSV. In Excel, use "Save As" → "CSV UTF-8 (Comma delimited)", then upload that file instead.`
-      );
+    let text = '';
+    try {
+      if (await isExcelFile(file)) {
+        text = await parseExcelToCsv(file);
+      } else {
+        text = await file.text();
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to parse spreadsheet file');
+      setStep('select');
       return;
     }
 
-    setFileName(file.name);
-    const text = await file.text();
     setCsvText(text);
-    setStep('previewing');
     try {
       const preview = await runImport(text, false);
       setResult(preview);
@@ -199,9 +199,9 @@ export function ImportDialog({
             <>
               <FileDropzone
                 onFile={handleFile}
-                accept=".csv"
-                title="Click to choose a CSV file"
-                subtitle="or drag and drop"
+                accept=".csv,.xlsx,.xls"
+                title="Click to choose a CSV or Excel file"
+                subtitle="or drag and drop (.csv, .xlsx)"
                 onDownloadTemplate={onDownloadTemplate}
               />
               {switchToBrokerImport && (

@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface AccountFormProps {
   onSuccess: () => void;
@@ -22,6 +23,10 @@ interface AccountFormProps {
 }
 
 export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { createAccount, updateAccount } = useAccounts();
   const { hasFeature } = useEntitlements();
   const canUseMultiCurrency = hasFeature('multiCurrency');
@@ -44,14 +49,14 @@ export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) 
       } else {
         await createAccount(data);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Account' : 'Add Account'}</DialogTitle>
@@ -161,7 +166,7 @@ export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) 
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

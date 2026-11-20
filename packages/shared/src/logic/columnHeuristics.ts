@@ -95,11 +95,11 @@ const BROKER_FIELD_PATTERNS: Record<string, FieldPatterns> = {
   },
   tradeType: {
     patterns: [
-      /^(trade|transaction|order)\s*type$/,
-      /^(type|side|buy sell|buy\/sell|action)$/,
-      /\b(trade type|transaction type|buy sell|side|action)\b/,
+      /^(trade|transaction|order|txn)\s*(type|action|side|direction)$/,
+      /^(type|side|action|direction|buy\s*sell|buy\/sell|b\/s|b\s*s)$/,
+      /\b(trade type|transaction type|buy sell|order side|side|action|direction)\b/,
     ],
-    exclude: [/asset|instrument|product|order\s*type$/],
+    exclude: [/asset|instrument|product|order\s*type$|order\s*status|trade\s*status|status$/],
   },
   quantity: {
     patterns: [/^(quantity|qty|units|shares)$/, /\b(quantity|qty|units|shares)\b/],

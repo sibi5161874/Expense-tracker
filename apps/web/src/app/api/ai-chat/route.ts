@@ -246,9 +246,16 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const groq = getGroqClient();
+  const userApiKey = req.headers.get('x-groq-api-key')?.trim() || null;
+  const groq = getGroqClient(userApiKey);
   if (!groq) {
-    return NextResponse.json({ error: 'The AI assistant is not configured yet.' }, { status: 503 });
+    return NextResponse.json(
+      {
+        error: 'GROQ_KEY_REQUIRED',
+        message: 'Please set up your Groq API key in Config > AI Bot or Settings > Preferences to start chatting.',
+      },
+      { status: 503 }
+    );
   }
 
   // Trial/Pro get unlimited questions; Free is capped per calendar month — cheap enough per
@@ -416,12 +423,21 @@ export async function POST(req: Request) {
         close();
       } catch (e) {
         const isTimeout = e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError');
+        const errorMessage = e instanceof Error ? e.message.toLowerCase() : '';
+        const isAuthError =
+          errorMessage.includes('api key') ||
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('invalid_api_key') ||
+          (typeof e === 'object' && e !== null && 'status' in e && (e as { status: unknown }).status === 401);
+
         logError('ai-chat.send', e, { userId: user.id, requestId });
         send({
           type: 'error',
-          message: isTimeout
-            ? "The assistant didn't respond in time — please try again."
-            : "Couldn't reach the AI assistant, please try again.",
+          message: isAuthError
+            ? 'Invalid Groq API Key. Please verify or update your key in Config > AI Bot or Settings > Preferences.'
+            : isTimeout
+              ? "The assistant didn't respond in time — please try again."
+              : "Couldn't reach the AI assistant, please try again.",
         });
         close();
       }

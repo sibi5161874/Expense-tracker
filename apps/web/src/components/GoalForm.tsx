@@ -21,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useDialogState } from '@/hooks/useDialogState';
 
 /** Goals created before the dedicated `icon` column (2026-10-29) stored an emoji as a
  * literal prefix on `goal_name` instead — this still strips that off for display/editing
@@ -41,6 +42,10 @@ interface GoalFormProps {
 }
 
 export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { createGoal, updateGoal } = useGoals();
   const [formError, setFormError] = useState<string | null>(null);
   const legacyEmoji = extractEmoji(editing?.goal_name).emoji;
@@ -71,14 +76,14 @@ export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
       } else {
         await createGoal(data);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Goal' : 'Add Goal'}</DialogTitle>
@@ -206,7 +211,7 @@ export function GoalForm({ onSuccess, onCancel, editing }: GoalFormProps) {
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

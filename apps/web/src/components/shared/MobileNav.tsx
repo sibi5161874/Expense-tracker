@@ -71,24 +71,14 @@ export function MobileNav() {
 
   return (
     <>
-      {/* Center Floating Action Button (FAB), offset cleanly above the bottom navigation */}
-      <button
-        type="button"
-        onClick={() => setQuickAddOpen(true)}
-        aria-label={t("nav.addTransaction")}
-        className="fixed left-1/2 -translate-x-1/2 bottom-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] z-30 flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/35 transition-transform hover:bg-emerald-600 active:scale-95 md:hidden"
-      >
-        <Plus className="size-6 stroke-[2.5]" />
-      </button>
-
-      <nav className="fixed inset-x-0 bottom-0 z-30 h-16 border-t border-border/80 bg-background/95 px-3 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid h-full w-full max-w-md grid-cols-4 items-center">
+      <nav className="fixed inset-x-0 bottom-0 z-30 h-16 border-t border-border/80 bg-background/95 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl md:hidden">
+        <div className="mx-auto grid h-full w-full max-w-md grid-cols-5 items-center">
           {/* Col 1: Home */}
           <Link
             href="/dashboard"
             className={cn(
               "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
-              isHomeActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              isHomeActive ? "text-emerald-500 font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <LayoutDashboard className="size-5" />
@@ -100,32 +90,44 @@ export function MobileNav() {
             href="/transactions"
             className={cn(
               "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
-              isActivityActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              isActivityActive ? "text-emerald-500 font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <ArrowLeftRight className="size-5" />
             <span>{t("nav.activity")}</span>
           </Link>
 
-          {/* Col 3: Portfolio */}
+          {/* Col 3: Center Quick Add FAB (+) — nestled cleanly between Activity & Portfolio, raised with -top-5 */}
+          <div className="flex items-center justify-center relative h-full">
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(true)}
+              aria-label={t("nav.addTransaction")}
+              className="absolute -top-5 flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/35 border-4 border-background transition-transform hover:bg-emerald-600 active:scale-95"
+            >
+              <Plus className="size-6 stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* Col 4: Portfolio */}
           <Link
             href="/portfolio"
             className={cn(
               "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
-              isPortfolioActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              isPortfolioActive ? "text-emerald-500 font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <PieChart className="size-5" />
             <span>{t("sidebar.portfolio")}</span>
           </Link>
 
-          {/* Col 4: More */}
+          {/* Col 5: More */}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
             className={cn(
               "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-medium transition-colors",
-              moreActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              moreActive ? "text-emerald-500 font-semibold" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <MoreHorizontal className="size-5" />

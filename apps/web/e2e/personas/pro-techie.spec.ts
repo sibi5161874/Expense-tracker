@@ -107,4 +107,28 @@ test.describe('pro-techie — edge cases', () => {
 
     await context.close();
   });
+
+  test('Market heatmap renders 50 tiles at /portfolio', async ({ page }) => {
+    const expectNoErrors = watchForConsoleErrors(page);
+    await page.goto('/portfolio');
+
+    // Click the "Market" tab in the SegmentedControl
+    const marketTab = page.getByRole('tab', { name: 'Market' });
+    await expect(marketTab).toBeVisible();
+    await marketTab.click();
+
+    // Verify Market Heatmap header is visible
+    await expect(page.getByText('Nifty 50 Market Heatmap')).toBeVisible();
+
+    // Verify that the treemap container and stock tiles are rendered
+    await expect(page.getByText('RELIANCE')).toBeVisible({ timeout: 10_000 });
+
+    // Test switching index to S&P 500
+    const indexBtn = page.getByRole('button', { name: /Nifty 50 Index/i });
+    await indexBtn.click();
+    await page.getByText(/S&P 500 Index/i).first().click();
+    await expect(page.getByText('AAPL')).toBeVisible({ timeout: 10_000 });
+
+    expectNoErrors();
+  });
 });

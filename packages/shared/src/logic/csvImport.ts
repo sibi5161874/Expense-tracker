@@ -3,6 +3,8 @@ import { transactionSchema, type TransactionInput } from '../schemas/transaction
 import { investmentLogSchema, type InvestmentLogInput } from '../schemas/investmentLog.schema';
 import { cashbookSchema, type CashbookInput } from '../schemas/cashbook.schema';
 import { parseIsoDate, parseDayMonthYearDate, parseExcelSerialDate } from './dateParsing';
+import { parseAmount } from './csvParserHelpers';
+export { parseAmount } from './csvParserHelpers';
 
 export interface ImportRowError {
   row: number;
@@ -79,35 +81,7 @@ export function resolveNameToId(index: Map<string, string>, name: string): { id:
  * "NIL"). Those mean "no value", and coercing them to 0 would fabricate a
  * transaction amount.
  */
-export function parseAmount(value: string): number | null {
-  if (!value) return null;
 
-  const trimmed = value.trim();
-  if (trimmed === '') return null;
-
-  // Parenthesised values are negative in accounting notation: (500) === -500.
-  const isParenthesisedNegative = /^\(.*\)$/.test(trimmed);
-
-  const cleaned = trimmed
-    .replace(/^\(|\)$/g, '')
-    // Currency symbols and ISO codes that appear inline in real exports.
-    .replace(/(?:₹|rs\.?|inr|usd|\$|aed|qar|sgd)/gi, '')
-    // Digit-group separators. Safe to drop wholesale because a decimal point is
-    // the only separator that carries meaning here.
-    .replace(/,/g, '')
-    .replace(/\s+/g, '')
-    .trim();
-
-  // Guard against strings that survive cleaning but aren't numbers ("-", "N.A.",
-  // "NIL", "abc"). Number('') is 0 and Number('-') is NaN, so an explicit
-  // numeric-shape check is clearer than relying on those quirks.
-  if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return null;
-
-  const n = Number(cleaned);
-  if (!Number.isFinite(n)) return null;
-
-  return isParenthesisedNegative ? -Math.abs(n) : n;
-}
 
 /**
  * Accepts ISO `YYYY-MM-DD`, unambiguous `D-M-Y`/`D/M/Y` dates (where one component is >12, so

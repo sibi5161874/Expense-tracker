@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CategorySelectField } from '@/components/shared/form-fields/CategorySelectField';
+import { useDialogState } from '@/hooks/useDialogState';
 
 const SUGGESTION_MONTHS_BACK = 3;
 
@@ -24,6 +25,10 @@ interface BudgetLimitFormProps {
 }
 
 export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { data: categories } = useCategories('Expense');
   const { createBudgetLimit, updateBudgetLimit } = useBudgetLimits();
   const [formError, setFormError] = useState<string | null>(null);
@@ -51,14 +56,14 @@ export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFor
       } else {
         await createBudgetLimit(data);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Budget Limit' : 'Add Budget Limit'}</DialogTitle>
@@ -107,7 +112,7 @@ export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFor
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

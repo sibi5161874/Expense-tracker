@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface CategoryFormProps {
   onSuccess: () => void;
@@ -19,6 +20,10 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ onSuccess, onCancel, editing }: CategoryFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { createCategory, updateCategory } = useCategories();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -35,14 +40,14 @@ export function CategoryForm({ onSuccess, onCancel, editing }: CategoryFormProps
       } else {
         await createCategory(data);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle>
@@ -92,7 +97,7 @@ export function CategoryForm({ onSuccess, onCancel, editing }: CategoryFormProps
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

@@ -7,6 +7,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { MotionProvider } from "@/components/shared/MotionProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_BRANDING } from "@repo/shared/config";
 
@@ -58,8 +59,10 @@ export default function RootLayout({
             <AuthProvider>
               <CurrencyProvider>
                 <LocaleProvider>
-                  {children}
-                  <Toaster />
+                  <MotionProvider>
+                    {children}
+                    <Toaster />
+                  </MotionProvider>
                 </LocaleProvider>
               </CurrencyProvider>
             </AuthProvider>

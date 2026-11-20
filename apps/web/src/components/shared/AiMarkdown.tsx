@@ -58,16 +58,19 @@ export function AiMarkdown({ content, className }: AiMarkdownProps) {
             );
           },
           hr: () => <hr className="my-3 border-border/60" />,
-          a: ({ children, href }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary font-medium underline underline-offset-2 hover:opacity-80 transition-opacity"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ children, href }) => {
+            const isInternal = href?.startsWith('/');
+            return (
+              <a
+                href={href}
+                target={isInternal ? '_self' : '_blank'}
+                rel={isInternal ? undefined : 'noopener noreferrer'}
+                className="text-primary font-medium underline underline-offset-2 hover:opacity-80 transition-opacity"
+              >
+                {children}
+              </a>
+            );
+          },
         }}
       >
         {content}

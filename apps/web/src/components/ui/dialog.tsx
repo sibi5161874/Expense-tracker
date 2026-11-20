@@ -31,7 +31,10 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/40 backdrop-blur-xs duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/45 backdrop-blur-xs",
+        "data-open:animate-in data-open:fade-in-0 data-open:duration-200 data-open:ease-out",
+        "data-closed:animate-out data-closed:fade-out-0 data-closed:duration-150 data-closed:ease-in",
+        "motion-reduce:animate-none",
         className
       )}
       {...props}
@@ -58,12 +61,18 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
+          // Base layout & glass surface
+          "glass-surface-strong fixed z-50 flex flex-col overflow-hidden text-sm text-popover-foreground shadow-2xl outline-none",
           // Mobile: Native bottom sheet anchored to bottom with smooth slide up
-          "glass-surface-strong fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-border/80 text-sm text-popover-foreground shadow-2xl duration-200 outline-none",
-          "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom",
+          "inset-x-0 bottom-0 max-h-[88vh] w-full rounded-t-3xl border-t border-border/80",
+          "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-open:duration-200 data-open:ease-out",
+          "data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom data-closed:duration-150 data-closed:ease-in",
           // Desktop: Centered modal popup using inset-0 m-auto to avoid translate conflicts with animations
           "sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh] sm:w-full sm:max-w-md sm:translate-none sm:rounded-2xl sm:border sm:border-border sm:ring-1 sm:ring-foreground/10",
-          "sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
+          "sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-open:duration-200 sm:data-open:ease-out",
+          "sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0 sm:data-closed:duration-150 sm:data-closed:ease-in",
+          // Accessibility: instantaneous fallback for prefers-reduced-motion
+          "motion-reduce:animate-none",
           className
         )}
         {...props}

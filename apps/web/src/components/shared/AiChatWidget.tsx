@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useOrblingMood } from '@/hooks/useOrblingMood';
+import { getStoredGroqKey } from '@/lib/groqStorage';
 import { OrblingFloatingOrb } from './OrblingFloatingOrb';
 import { OrblingChatPanel, type ChatMessage } from './OrblingChatPanel';
 
@@ -124,20 +125,59 @@ export function AiChatWidget() {
     setInput('');
 
     const assistantMsgId = `assistant-${Date.now()}`;
+    const userGroqKey = getStoredGroqKey();
+
+    // If user has not set up their Groq API token yet, guide them directly to the Config / Settings page
+    if (!userGroqKey) {
+      act({ type: 'FIRST_TOKEN' });
+      setIsAwaitingFirstToken(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantMsgId,
+          role: 'assistant',
+          content: `### 🔑 Groq API Key Required\n\nTo chat with the AI financial assistant, please set up your **free Groq API key** in the **Config** or **Settings** page.\n\n**Quick 30-Second Setup (₹0 Cost):**\n1. Visit [console.groq.com/keys](https://console.groq.com/keys) to create your free key (no card required).\n2. Open **[Config ➔ AI Bot](/config?tab=ai)** or **[Settings ➔ Preferences](/settings?tab=preferences)** and paste your key.\n\nOnce configured, I'll be ready to analyze your net worth, investments, and expenses!`,
+          timestamp: formatTime(),
+        },
+      ]);
+      act({ type: 'STREAM_DONE' });
+      return;
+    }
+
     let streamedAny = false;
     let steps: string[] = [];
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (userGroqKey) {
+        headers['x-groq-api-key'] = userGroqKey;
+      }
+
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ messages: nextMessages.map((m) => ({ role: m.role, content: m.content })) }),
         signal: AbortSignal.timeout(35_000),
       });
 
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? 'Something went wrong.');
+        if (body?.error === 'GROQ_KEY_REQUIRED') {
+          act({ type: 'FIRST_TOKEN' });
+          setIsAwaitingFirstToken(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMsgId,
+              role: 'assistant',
+              content: `### 🔑 Groq API Key Required\n\nPlease set up your **free Groq API key** in **[Config ➔ AI Bot](/config?tab=ai)** or **[Settings ➔ Preferences](/settings?tab=preferences)** to start chatting with your financial assistant.\n\nGet your free key at [console.groq.com/keys](https://console.groq.com/keys).`,
+              timestamp: formatTime(),
+            },
+          ]);
+          act({ type: 'STREAM_DONE' });
+          return;
+        }
+        throw new Error(body?.message ?? body?.error ?? 'Something went wrong.');
       }
 
       for await (const event of readChatStream(res.body)) {

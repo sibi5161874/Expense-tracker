@@ -1,6 +1,7 @@
 'use client';
 
 import { Info, Trash2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/contexts/LocaleContext';
@@ -55,14 +56,17 @@ export function ConfirmDialog({
       <DialogContent>
         <DialogHeader className="gap-2">
           <div className="flex items-center gap-3">
-            <div
+            <motion.div
+              initial={{ scale: 0.82, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', duration: 0.35, bounce: 0.25 }}
               className={cn(
                 'flex size-9 shrink-0 items-center justify-center rounded-full',
                 destructive ? 'bg-destructive/10 text-destructive' : 'bg-info/10 text-info'
               )}
             >
               {destructive ? <Trash2 className="size-4" /> : <Info className="size-4" />}
-            </div>
+            </motion.div>
             <DialogTitle>{title}</DialogTitle>
           </div>
           {description && <DialogDescription className="pl-12">{description}</DialogDescription>}

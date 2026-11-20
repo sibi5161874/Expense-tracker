@@ -13,7 +13,23 @@ import { BANKS, findBank } from './institutions';
 import { detectDividendCandidate } from './dividendDetection';
 import { parseIsoDate, parseDayMonthYearDate } from './dateParsing';
 
+import {
+  findHeaderRow,
+  normalizeHeaders,
+  parseDate,
+  parseTransactionType,
+} from './csvParserHelpers';
+
 export { BANKS, findBank };
+
+export interface ParsedTransaction {
+  date: string;
+  description: string;
+  type: 'Income' | 'Expense' | 'Transfer';
+  amount: number;
+  reference?: string;
+  balance?: number;
+}
 
 /**
  * Native bank statement import — parses a bank's own NetBanking export as-is,
@@ -313,4 +329,121 @@ export function buildBankStatementImportPlan(
   }
 
   return { errors, validRows, duplicateCount, dividendCandidates };
+}
+
+/**
+ * Parses raw CSV/spreadsheet rows from any Indian bank statement file with metadata
+ * header offset detection and multi-format column parsing (Dr/Cr or separate debit/credit).
+ */
+export function parseBankFile(rawRows: string[][]): {
+  transactions: ParsedTransaction[];
+  meta: { headerIndex: number; skipped: number };
+  errors: string[];
+} {
+  const headerIndex = findHeaderRow(rawRows, 'bank');
+  if (headerIndex === -1) {
+    return {
+      transactions: [],
+      meta: { headerIndex: -1, skipped: 0 },
+      errors: ['Could not detect bank statement headers.'],
+    };
+  }
+
+  const rawHeaders = rawRows[headerIndex] ?? [];
+  const normalized = normalizeHeaders(rawHeaders);
+
+  const dateIdx = normalized.indexOf('date');
+  const descIdx = normalized.indexOf('description');
+  const debitIdx = normalized.indexOf('debit');
+  const creditIdx = normalized.indexOf('credit');
+  const amountIdx = normalized.indexOf('amount');
+  const typeIdx = normalized.indexOf('type');
+  const refIdx = normalized.indexOf('reference');
+  const balIdx = normalized.indexOf('balance');
+
+  const transactions: ParsedTransaction[] = [];
+  const errors: string[] = [];
+  let skipped = 0;
+
+  for (let i = headerIndex + 1; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    if (!row || row.length === 0 || row.every((c) => !c.trim())) {
+      skipped++;
+      continue;
+    }
+
+    const rowObj: Record<string, string> = {};
+    for (let c = 0; c < rawHeaders.length; c++) {
+      rowObj[rawHeaders[c] ?? `col_${c}`] = row[c] ?? '';
+    }
+
+    const rawDate = (dateIdx !== -1 ? row[dateIdx] : '')?.trim() || '';
+    const date = parseDate(rawDate);
+    if (!date) {
+      skipped++;
+      continue;
+    }
+
+    const description = (descIdx !== -1 ? row[descIdx] : '')?.trim() || 'Transaction';
+
+    let amount = 0;
+    let type: 'Income' | 'Expense' | 'Transfer' = 'Expense';
+
+    if (debitIdx !== -1 || creditIdx !== -1) {
+      const rawDebit = debitIdx !== -1 ? row[debitIdx] ?? '' : '';
+      const rawCredit = creditIdx !== -1 ? row[creditIdx] ?? '' : '';
+      const debit = parseAmount(rawDebit);
+      const credit = parseAmount(rawCredit);
+
+      if (debit !== null && debit > 0) {
+        amount = debit;
+        type = 'Expense';
+      } else if (credit !== null && credit > 0) {
+        amount = credit;
+        type = 'Income';
+      } else if (amountIdx !== -1) {
+        const rawAmt = row[amountIdx] ?? '';
+        const parsedAmt = parseAmount(rawAmt);
+        if (parsedAmt !== null && parsedAmt !== 0) {
+          amount = Math.abs(parsedAmt);
+          type = parsedAmt > 0 ? 'Income' : 'Expense';
+        }
+      }
+    } else if (amountIdx !== -1) {
+      const rawAmt = row[amountIdx] ?? '';
+      const parsedAmt = parseAmount(rawAmt);
+      if (parsedAmt !== null) {
+        amount = Math.abs(parsedAmt);
+        const inferredType = parseTransactionType(rowObj);
+        type = inferredType ?? (parsedAmt >= 0 ? 'Income' : 'Expense');
+      }
+    }
+
+    if (amount <= 0) {
+      skipped++;
+      continue;
+    }
+
+    const reference = refIdx !== -1 ? row[refIdx]?.trim() : undefined;
+    const rawBal = balIdx !== -1 ? row[balIdx] : '';
+    const balance = rawBal ? parseAmount(rawBal) ?? undefined : undefined;
+
+    transactions.push({
+      date,
+      description,
+      type,
+      amount,
+      reference,
+      balance,
+    });
+  }
+
+  return {
+    transactions,
+    meta: {
+      headerIndex,
+      skipped,
+    },
+    errors,
+  };
 }

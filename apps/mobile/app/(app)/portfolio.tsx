@@ -22,6 +22,8 @@ import { AssetClassBreakdownCard } from "@/components/portfolio/AssetClassBreakd
 import { AssetClassTabs } from "@/components/portfolio/AssetClassTabs";
 import { HoldingsFilterBar } from "@/components/portfolio/HoldingsFilterBar";
 import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
+import { MarketHeatmap } from "@/components/portfolio/MarketHeatmap";
 import { useThemeColor } from "@/lib/colors";
 
 export default function PortfolioScreen() {
@@ -32,6 +34,9 @@ export default function PortfolioScreen() {
   const primary = useThemeColor("primary");
   const warning = useThemeColor("warning");
   const mutedForeground = useThemeColor("mutedForeground");
+
+  // View state: Holdings vs Market Heatmap
+  const [portfolioView, setPortfolioView] = useState<"holdings" | "market">("holdings");
 
   // Filter & sort state
   const [selectedAssetTab, setSelectedAssetTab] = useState("All");
@@ -173,37 +178,54 @@ export default function PortfolioScreen() {
             {/* 2. Asset Class Breakdown Section */}
             <AssetClassBreakdownCard holdings={holdings} />
 
-            {/* 3. Asset Holdings & Allocation */}
-            <View className="gap-3">
-              <AssetClassTabs
-                holdings={holdings}
-                selectedTab={selectedAssetTab}
-                onSelectTab={setSelectedAssetTab}
+            {/* 3. Asset Holdings & Allocation OR Market Heatmap */}
+            <View className="flex-row items-center justify-between">
+              <SegmentedControl
+                options={[
+                  { value: "holdings", label: "Holdings" },
+                  { value: "market", label: "Market" },
+                ]}
+                value={portfolioView}
+                onChange={(val) => setPortfolioView(val as "holdings" | "market")}
               />
-
-              <HoldingsFilterBar
-                sortValue={sortValue}
-                onSortChange={setSortValue}
-                filterValue={filterValue}
-                onFilterChange={setFilterValue}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-              />
-
-              <View className="flex-row items-center justify-between pt-1">
-                <AppText className="text-sm font-semibold">
-                  Holdings ({filteredHoldings.length})
-                </AppText>
-              </View>
-
-              <HoldingsList holdings={filteredHoldings} />
             </View>
 
-            {allocation.length > 0 && (
-              <View className="gap-3 rounded-2xl bg-card p-4">
-                <AppText className="text-sm font-semibold">Allocation by symbol</AppText>
-                <CategoryBarList data={allocation} />
-              </View>
+            {portfolioView === "market" ? (
+              <MarketHeatmap />
+            ) : (
+              <>
+                <View className="gap-3">
+                  <AssetClassTabs
+                    holdings={holdings}
+                    selectedTab={selectedAssetTab}
+                    onSelectTab={setSelectedAssetTab}
+                  />
+
+                  <HoldingsFilterBar
+                    sortValue={sortValue}
+                    onSortChange={setSortValue}
+                    filterValue={filterValue}
+                    onFilterChange={setFilterValue}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                  />
+
+                  <View className="flex-row items-center justify-between pt-1">
+                    <AppText className="text-sm font-semibold">
+                      Holdings ({filteredHoldings.length})
+                    </AppText>
+                  </View>
+
+                  <HoldingsList holdings={filteredHoldings} />
+                </View>
+
+                {allocation.length > 0 && (
+                  <View className="gap-3 rounded-2xl bg-card p-4">
+                    <AppText className="text-sm font-semibold">Allocation by symbol</AppText>
+                    <CategoryBarList data={allocation} />
+                  </View>
+                )}
+              </>
             )}
 
             {/* 4. Loss-Making Holdings Section */}
