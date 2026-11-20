@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useId } from 'react';
+import { motion } from 'framer-motion';
 import type { SymbolHolding } from '@repo/shared/logic';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,8 @@ export function AssetClassTabs({ holdings, selectedTab, onSelectTab }: AssetClas
     ];
   }, [holdings]);
 
+  const layoutId = useId();
+
   return (
     <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
       <div className="flex gap-2 min-w-max pb-1">
@@ -52,14 +55,23 @@ export function AssetClassTabs({ holdings, selectedTab, onSelectTab }: AssetClas
               type="button"
               onClick={() => onSelectTab(tab.key)}
               className={cn(
-                'min-h-[44px] inline-flex items-center justify-center px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors cursor-pointer',
+                'relative min-h-[44px] inline-flex items-center justify-center px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors cursor-pointer',
                 isActive
-                  ? 'bg-primary text-primary-foreground border-primary'
+                  ? 'text-primary-foreground border-transparent'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
               )}
             >
-              {tab.label}
-              <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>
+              {isActive && (
+                <motion.div
+                  layoutId={`asset-class-tab-${layoutId}`}
+                  className="absolute inset-0 rounded-full bg-primary"
+                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center">
+                {tab.label}
+                <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>
+              </span>
             </button>
           );
         })}
