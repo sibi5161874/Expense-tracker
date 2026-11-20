@@ -26,9 +26,10 @@ interface TransactionFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   editing?: { id: string } & TransactionInput;
+  initialValues?: Partial<TransactionInput>;
 }
 
-export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFormProps) {
+export function TransactionForm({ onSuccess, onCancel, editing, initialValues }: TransactionFormProps) {
   const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
     onSuccess,
     onCancel,
@@ -42,8 +43,14 @@ export function TransactionForm({ onSuccess, onCancel, editing }: TransactionFor
   const form = useForm<TransactionInput>({
     resolver: zodResolver(transactionSchema),
     defaultValues: editing ?? {
-      type: 'Expense',
-      date: new Date().toISOString().split('T')[0],
+      type: initialValues?.type ?? 'Expense',
+      amount: initialValues?.amount,
+      from_account_id: initialValues?.from_account_id ?? '',
+      category_id: initialValues?.category_id,
+      sub_category: initialValues?.sub_category,
+      to_account_id: initialValues?.to_account_id,
+      date: initialValues?.date ?? new Date().toISOString().split('T')[0],
+      notes: initialValues?.notes ?? '',
     },
   });
 

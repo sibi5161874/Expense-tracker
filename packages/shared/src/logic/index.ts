@@ -36,5 +36,6 @@ export * from './orblingMoodMachine';
 export * from './investmentMirroring';
 export * from './cashbookMirroring';
 export * from './operationalTransactions';
+export * from './nlpParser';
 
 

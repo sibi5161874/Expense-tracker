@@ -20,6 +20,7 @@ import { AccountSelectField } from '@/components/shared/form-fields/AccountSelec
 import { NotesField } from '@/components/shared/form-fields/NotesField';
 import { InvestmentActionFields } from '@/components/investments/InvestmentActionFields';
 import { MutualFundPicker } from '@/components/investments/MutualFundPicker';
+import { useDialogState } from '@/hooks/useDialogState';
 
 type AssetType = InvestmentLogInput['asset_type'];
 
@@ -96,9 +97,14 @@ interface InvestmentFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   editing?: { id: string } & InvestmentLogInput;
+  initialValues?: Partial<InvestmentLogInput>;
 }
 
-export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormProps) {
+export function InvestmentForm({ onSuccess, onCancel, editing, initialValues }: InvestmentFormProps) {
+  const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
+    onSuccess,
+    onCancel,
+  });
   const { data: accounts } = useAccounts(true);
   const { createInvestmentLog, updateInvestmentLog } = useInvestmentLog();
   const { refresh } = useRefreshPrices();
@@ -108,10 +114,16 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
   const form = useForm<InvestmentLogInput>({
     resolver: zodResolver(investmentLogSchema),
     defaultValues: editing ?? {
-      action: 'BUY',
-      asset_type: 'Stock',
-      date: new Date().toISOString().split('T')[0],
-      fees: 0,
+      action: initialValues?.action ?? 'BUY',
+      asset_type: initialValues?.asset_type ?? 'Stock',
+      symbol: initialValues?.symbol ?? '',
+      quantity: initialValues?.quantity,
+      price: initialValues?.price,
+      fees: initialValues?.fees ?? 0,
+      exchange: initialValues?.exchange ?? (initialValues?.asset_type === 'Mutual Fund' ? 'AMFI' : initialValues?.asset_type === 'Crypto' ? 'CRYPTO' : 'NSE'),
+      linked_account_id: initialValues?.linked_account_id ?? '',
+      notes: initialValues?.notes ?? '',
+      date: initialValues?.date ?? new Date().toISOString().split('T')[0],
     },
   });
 
@@ -169,14 +181,14 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
         // the new holding showing a bare scheme code until the next automatic refresh.
         if (data.asset_type === 'Mutual Fund') refresh().catch(() => undefined);
       }
-      onSuccess();
+      handleSuccess();
     } catch (error) {
       setFormError(parseSupabaseError(error as Error));
     }
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={open} onOpenChange={setOpen} onOpenChangeComplete={onOpenChangeComplete}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Investment' : 'Add Investment'}</DialogTitle>
@@ -342,7 +354,7 @@ export function InvestmentForm({ onSuccess, onCancel, editing }: InvestmentFormP
             </DialogBody>
 
             <DialogFooter className="sm:justify-stretch">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>

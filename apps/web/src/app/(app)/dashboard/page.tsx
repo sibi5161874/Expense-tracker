@@ -29,6 +29,7 @@ import { PassiveIncomeWidget } from '@/components/dashboard/PassiveIncomeWidget'
 import { DashboardInsightCard } from '@/components/dashboard/DashboardInsightCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { QuickAddInput } from '@/components/dashboard/QuickAddInput';
 import { ErrorState } from '@/components/shared/QueryState';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -113,6 +114,8 @@ export default function DashboardPage() {
           </Button>
         }
       />
+
+      <QuickAddInput />
 
       {isLoading ? (
         <DashboardSkeleton />

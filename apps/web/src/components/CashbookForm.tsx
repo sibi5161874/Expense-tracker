@@ -24,9 +24,10 @@ interface CashbookFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   editing?: { id: string } & CashbookInput;
+  initialValues?: Partial<CashbookInput>;
 }
 
-export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps) {
+export function CashbookForm({ onSuccess, onCancel, editing, initialValues }: CashbookFormProps) {
   const { open, setOpen, handleClose, handleSuccess, onOpenChangeComplete } = useDialogState({
     onSuccess,
     onCancel,
@@ -38,8 +39,12 @@ export function CashbookForm({ onSuccess, onCancel, editing }: CashbookFormProps
   const form = useForm<CashbookInput>({
     resolver: zodResolver(cashbookSchema),
     defaultValues: editing ?? {
-      flow: 'Gave',
-      date: new Date().toISOString().split('T')[0],
+      flow: initialValues?.flow ?? 'Gave',
+      amount: initialValues?.amount,
+      counterparty: initialValues?.counterparty ?? '',
+      account_used_id: initialValues?.account_used_id ?? '',
+      notes: initialValues?.notes ?? '',
+      date: initialValues?.date ?? new Date().toISOString().split('T')[0],
     },
   });
 
