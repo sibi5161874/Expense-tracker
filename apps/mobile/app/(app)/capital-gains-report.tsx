@@ -1,19 +1,15 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { computeCapitalGains } from "@repo/shared/logic";
-import { formatINR } from "@repo/shared/utils/currency";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { StatusBadge } from "@/components/common/Badge";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Capital Gains Report Container
+ */
 export default function CapitalGainsReportScreen() {
   const { data: investments, isLoading, error } = useAllInvestmentLog();
   const [selectedFY, setSelectedFY] = useState<string>("all");
-  const primary = useThemeColor("primary");
 
   const report = useMemo(() => {
     return computeCapitalGains(investments ?? []);
@@ -66,171 +62,99 @@ export default function CapitalGainsReportScreen() {
     };
   }, [report, selectedFY]);
 
-  const sheets = [
-    {
-      name: "Capital Gains",
-      rows: filteredTrades.map((t) => ({
-        Symbol: t.symbol,
-        "Asset Type": t.assetType,
-        "Buy Date": t.buyDate,
-        "Sell Date": t.sellDate,
-        "Holding Days": t.holdingDays,
-        Category: t.taxType,
-        Quantity: t.quantity,
-        "Buy Cost": t.buyCost,
-        "Sell Proceeds": t.sellProceeds,
-        "Realized Gain": t.gain,
-        "Gain %": t.gainPct,
-        "Financial Year": t.financialYear,
-      })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader
-          title="Capital Gains (STCG/LTCG)"
-          description="FIFO realized gains & Indian tax season classification."
-        />
-
-        {!isLoading && filteredTrades.length > 0 && (
-          <ReportExportBar
-            title="Capital Gains Report"
-            description={`Realized P&L: ${formatINR(activeSummary.totalNetGains)} (${selectedFY === "all" ? "All Years" : selectedFY})`}
-            sheets={sheets}
-          />
-        )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Capital Gains (STCG/LTCG)</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>FIFO realized gains & tax classification</Text>
+        </View>
 
         {/* FY Selector Pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-1">
-          <View className="flex-row gap-2">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
             <Pressable
               onPress={() => setSelectedFY("all")}
-              className={`rounded-full px-4 py-1.5 ${selectedFY === "all" ? "bg-primary" : "bg-card border border-border"}`}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor: selectedFY === "all" ? "#2563eb" : "#f3f4f6",
+                borderRadius: 20,
+              }}
             >
-              <AppText className={`text-xs font-semibold ${selectedFY === "all" ? "text-primary-foreground" : "text-muted-foreground"}`}>
-                All Years
-              </AppText>
+              <Text style={{ color: selectedFY === "all" ? "#ffffff" : "#000000", fontWeight: "600" }}>All Years</Text>
             </Pressable>
             {report.availableFYs.map((fy) => (
               <Pressable
                 key={fy}
                 onPress={() => setSelectedFY(fy)}
-                className={`rounded-full px-4 py-1.5 ${selectedFY === fy ? "bg-primary" : "bg-card border border-border"}`}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  backgroundColor: selectedFY === fy ? "#2563eb" : "#f3f4f6",
+                  borderRadius: 20,
+                }}
               >
-                <AppText className={`text-xs font-semibold ${selectedFY === fy ? "text-primary-foreground" : "text-muted-foreground"}`}>
-                  {fy}
-                </AppText>
+                <Text style={{ color: selectedFY === fy ? "#ffffff" : "#000000", fontWeight: "600" }}>{fy}</Text>
               </Pressable>
             ))}
           </View>
         </ScrollView>
 
-        {/* Summary Metric Cards */}
-        <View className="grid grid-cols-2 gap-3">
-          <View className="rounded-2xl bg-card p-4">
-            <AppText className="text-xs text-muted-foreground">Total Realized P&L</AppText>
-            <AppText className={`mt-1 text-lg font-bold ${activeSummary.totalNetGains >= 0 ? "text-success" : "text-destructive"}`}>
-              {activeSummary.totalNetGains >= 0 ? "+" : ""}{formatINR(activeSummary.totalNetGains)}
-            </AppText>
-            <AppText className="mt-0.5 text-[11px] text-muted-foreground">
-              Sales: {formatINR(activeSummary.totalSellProceeds)}
-            </AppText>
-          </View>
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
 
-          <View className="rounded-2xl bg-card p-4">
-            <AppText className="text-xs text-muted-foreground">Short Term (STCG)</AppText>
-            <AppText className={`mt-1 text-lg font-bold ${activeSummary.netStcg >= 0 ? "text-success" : "text-destructive"}`}>
-              {activeSummary.netStcg >= 0 ? "+" : ""}{formatINR(activeSummary.netStcg)}
-            </AppText>
-            <AppText className="mt-0.5 text-[11px] text-muted-foreground">
-              Gains: {formatINR(activeSummary.stcgGains)}
-            </AppText>
+        {/* Summary KPIs */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>FY: {activeSummary.financialYear}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Total Realized P&L:</Text>
+            <Text
+              style={{
+                fontWeight: "bold",
+                color: activeSummary.totalNetGains >= 0 ? "#16a34a" : "#dc2626",
+              }}
+            >
+              ₹{activeSummary.totalNetGains.toLocaleString("en-IN")}
+            </Text>
           </View>
-
-          <View className="rounded-2xl bg-card p-4">
-            <AppText className="text-xs text-muted-foreground">Long Term (LTCG)</AppText>
-            <AppText className={`mt-1 text-lg font-bold ${activeSummary.netLtcg >= 0 ? "text-success" : "text-destructive"}`}>
-              {activeSummary.netLtcg >= 0 ? "+" : ""}{formatINR(activeSummary.netLtcg)}
-            </AppText>
-            <AppText className="mt-0.5 text-[11px] text-muted-foreground">
-              Gains: {formatINR(activeSummary.ltcgGains)}
-            </AppText>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>STCG (Net):</Text>
+            <Text style={{ fontWeight: "600" }}>₹{activeSummary.netStcg.toLocaleString("en-IN")}</Text>
           </View>
-
-          <View className="rounded-2xl bg-card p-4">
-            <AppText className="text-xs text-muted-foreground">Cost Basis</AppText>
-            <AppText className="mt-1 text-lg font-bold">
-              {formatINR(activeSummary.totalCostBasis)}
-            </AppText>
-            <AppText className="mt-0.5 text-[11px] text-muted-foreground">
-              {filteredTrades.length} trade{filteredTrades.length === 1 ? "" : "s"}
-            </AppText>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>LTCG (Net):</Text>
+            <Text style={{ fontWeight: "600" }}>₹{activeSummary.netLtcg.toLocaleString("en-IN")}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Total Cost Basis:</Text>
+            <Text style={{ fontWeight: "600" }}>₹{activeSummary.totalCostBasis.toLocaleString("en-IN")}</Text>
           </View>
         </View>
 
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : filteredTrades.length === 0 ? (
-          <AppText className="py-8 text-center text-sm text-muted-foreground">
-            No realized trades found in this financial year.
-          </AppText>
-        ) : (
-          <View className="gap-3">
-            <AppText className="text-xs font-semibold text-muted-foreground uppercase">
-              Matched Trades ({filteredTrades.length})
-            </AppText>
-            {filteredTrades.map((t, idx) => {
-              const isPositive = t.gain >= 0;
-              return (
-                <View key={`${t.symbol}-${t.sellDate}-${idx}`} className="gap-3 rounded-2xl bg-card p-4">
-                  <View className="flex-row items-center justify-between">
-                    <View>
-                      <AppText className="font-semibold">{t.symbol}</AppText>
-                      <AppText className="text-xs text-muted-foreground">{t.assetType}</AppText>
-                    </View>
-                    <StatusBadge tone={t.taxType === "LTCG" ? "neutral" : "info"}>
-                      {`${t.taxType} (${t.holdingDays}d)`}
-                    </StatusBadge>
-                  </View>
-
-                  <View className="flex-row justify-between text-xs">
-                    <View>
-                      <AppText className="text-xs text-muted-foreground">Buy Date</AppText>
-                      <AppText className="text-xs font-medium">{t.buyDate}</AppText>
-                    </View>
-                    <View>
-                      <AppText className="text-xs text-muted-foreground">Sell Date</AppText>
-                      <AppText className="text-xs font-medium">{t.sellDate}</AppText>
-                    </View>
-                    <View className="items-end">
-                      <AppText className="text-xs text-muted-foreground">Qty Sold</AppText>
-                      <AppText className="text-xs font-medium">{t.quantity}</AppText>
-                    </View>
-                  </View>
-
-                  <View className="flex-row items-center justify-between border-t border-border/50 pt-2.5">
-                    <View>
-                      <AppText className="text-xs text-muted-foreground">
-                        Cost: {formatINR(t.buyCost)} → Proceeds: {formatINR(t.sellProceeds)}
-                      </AppText>
-                    </View>
-                    <View className="items-end">
-                      <AppText className={`text-sm font-bold ${isPositive ? "text-success" : "text-destructive"}`}>
-                        {isPositive ? "+" : ""}{formatINR(t.gain)}
-                      </AppText>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        {/* Matched Trades List */}
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Trades ({filteredTrades.length})</Text>
+          {filteredTrades.map((t, idx) => (
+            <View
+              key={`${t.symbol}-${t.sellDate}-${idx}`}
+              style={{ padding: 12, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 6, gap: 4 }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ fontWeight: "bold" }}>{t.symbol} ({t.taxType})</Text>
+                <Text style={{ fontWeight: "bold", color: t.gain >= 0 ? "#16a34a" : "#dc2626" }}>
+                  {t.gain >= 0 ? "+" : ""}₹{t.gain.toLocaleString("en-IN")}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                Buy: {t.buyDate} &bull; Sell: {t.sellDate} &bull; Held: {t.holdingDays}d &bull; Qty: {t.quantity}
+              </Text>
+            </View>
+          ))}
+          {!isLoading && filteredTrades.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No realized trades found for this selection.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,25 +1,16 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
-import { TrendingUp, TrendingDown, PiggyBank } from "lucide-react-native";
 import { useTransactionsForDate } from "@/hooks/useTransactions";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { AmountText } from "@/components/common/AmountText";
-import { StatusBadge } from "@/components/common/Badge";
-import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
-import { transactionTypeTone } from "@/lib/badgeTones";
-import { useThemeColor } from "@/lib/colors";
 
-/** Reached from TransactionsCalendarView.tsx (flat route + `?date=` param, same convention
- * as stock-detail.tsx — see that file's header comment for why not a nested dynamic
- * segment). Mirrors apps/web/src/app/(app)/transactions/date/[date]/page.tsx. */
+/**
+ * Headless Transactions By Date Container
+ */
 export default function TransactionsByDateScreen() {
   const { date: dateParam } = useLocalSearchParams<{ date: string }>();
   const date = dateParam ?? "";
   const { data: transactions, isLoading, error } = useTransactionsForDate(date);
-  const primary = useThemeColor("primary");
 
   const summary = useMemo(() => {
     const totalIn = (transactions ?? []).reduce((sum, t) => (t.type === "Income" ? sum + t.amount : sum), 0);
@@ -27,54 +18,53 @@ export default function TransactionsByDateScreen() {
     return { totalIn, totalOut, net: totalIn - totalOut };
   }, [transactions]);
 
-  const kpis: KpiStatItem[] = [
-    { label: "Total In", value: summary.totalIn, icon: TrendingUp, tone: "success" },
-    { label: "Total Out", value: summary.totalOut, icon: TrendingDown, tone: "destructive" },
-    { label: "Net", value: summary.net, icon: PiggyBank, tone: summary.net >= 0 ? "success" : "destructive" },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title={date} description="Transactions on this day." />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb", gap: 8 }}>
+        <Text style={{ fontSize: 24, fontWeight: "bold" }}>{date || "Transactions on Date"}</Text>
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <Text style={{ color: "#16a34a", fontWeight: "600" }}>+₹{summary.totalIn.toLocaleString("en-IN")}</Text>
+          <Text style={{ color: "#dc2626", fontWeight: "600" }}>-₹{summary.totalOut.toLocaleString("en-IN")}</Text>
+          <Text style={{ fontWeight: "bold" }}>Net: ₹{summary.net.toLocaleString("en-IN")}</Text>
+        </View>
+      </View>
 
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (transactions ?? []).length === 0 ? (
-          <AppText className="text-sm text-muted-foreground">No transactions on this date.</AppText>
-        ) : (
-          <>
-            <KpiGrid items={kpis} />
-            <View className="gap-2">
-              {(transactions ?? []).map((t) => (
-                <View key={t.id} className="flex-row items-center justify-between gap-3 rounded-2xl bg-card p-4">
-                  <View className="flex-1 flex-row items-center gap-3">
-                    <StatusBadge tone={transactionTypeTone(t.type)}>{t.type}</StatusBadge>
-                    <View className="flex-1">
-                      <AppText className="text-sm font-medium" numberOfLines={1}>
-                        {t.category?.name ?? "Uncategorized"}
-                      </AppText>
-                      <AppText className="text-xs text-muted-foreground" numberOfLines={1}>
-                        {t.from_account?.name ?? ""}
-                        {t.notes ? ` — ${t.notes}` : ""}
-                      </AppText>
-                    </View>
-                  </View>
-                  <AmountText
-                    value={t.amount}
-                    sign={t.type === "Income" ? "positive" : t.type === "Expense" ? "negative" : "neutral"}
-                    className="text-sm font-semibold"
-                  />
-                </View>
-              ))}
+      {isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
+      {error && <Text style={{ color: "#b91c1c", margin: 16 }}>{error.message}</Text>}
+
+      <FlatList
+        data={transactions ?? []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }}
+        ListEmptyComponent={
+          !isLoading ? <Text style={{ color: "#6b7280" }}>No transactions on this date.</Text> : null
+        }
+        renderItem={({ item }) => (
+          <View
+            style={{
+              padding: 12,
+              borderWidth: 1,
+              borderColor: "#e5e7eb",
+              borderRadius: 6,
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            <View>
+              <Text style={{ fontWeight: "600" }}>{item.notes || "Uncategorized"}</Text>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>{item.type}</Text>
             </View>
-          </>
+            <Text
+              style={{
+                fontWeight: "bold",
+                color: item.type === "Income" ? "#16a34a" : "#dc2626",
+              }}
+            >
+              {item.type === "Income" ? "+" : "-"}₹{Number(item.amount).toLocaleString("en-IN")}
+            </Text>
+          </View>
         )}
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 }

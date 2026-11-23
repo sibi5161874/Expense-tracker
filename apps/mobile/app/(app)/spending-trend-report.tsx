@@ -1,25 +1,18 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactionsInRange, monthsAgo } from "@/hooks/useReportsData";
 import { formatMonth } from "@repo/shared/utils";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
 const MONTHS_BACK = 6;
 
-/** Mobile equivalent of SpendingTrendReport.tsx. Web shows one stacked area chart across
- * 6 months; RN has no stacked-area chart primitive available, so this shows the same top-5
- * category data as a per-month breakdown list instead — same underlying numbers, laid out
- * as 6 stacked sections rather than one chart. */
+/**
+ * Headless Spending Trend Report Container
+ */
 export default function SpendingTrendReportScreen() {
   const from = monthsAgo(MONTHS_BACK - 1);
   const to = formatMonth(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)) + "-01";
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
-  const primary = useThemeColor("primary");
 
   const monthlyBreakdowns = useMemo(() => {
     const expenses = (transactions ?? []).filter((t) => t.type === "Expense");
@@ -39,38 +32,31 @@ export default function SpendingTrendReportScreen() {
     });
   }, [transactions]);
 
-  const sheets = [
-    {
-      name: "Spending Trend",
-      rows: monthlyBreakdowns.flatMap(({ month, data }) => data.map((d) => ({ Month: month, Category: d.name, Amount: d.value }))),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title="Spending Trend" description={`Top expense categories over the last ${MONTHS_BACK} months.`} />
-        {!isLoading && (
-          <ReportExportBar
-            title="Spending Trend"
-            description={`Top expense categories over the last ${MONTHS_BACK} months.`}
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (
-          monthlyBreakdowns.map(({ month, data }) => (
-            <View key={month} className="gap-3 rounded-2xl bg-card p-4">
-              <AppText className="text-sm font-semibold">{month}</AppText>
-              <CategoryBarList data={data} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Spending Trend</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Top expense categories over the last {MONTHS_BACK} months</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        <View style={{ gap: 12 }}>
+          {monthlyBreakdowns.map(({ month, data }) => (
+            <View key={month} style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 14, gap: 6 }}>
+              <Text style={{ fontSize: 14, fontWeight: "bold" }}>{month}</Text>
+              {data.map((cat) => (
+                <View key={cat.name} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ color: "#4b5563" }}>{cat.name}</Text>
+                  <Text style={{ fontWeight: "600" }}>₹{cat.value.toLocaleString("en-IN")}</Text>
+                </View>
+              ))}
+              {data.length === 0 && <Text style={{ color: "#9ca3af", fontSize: 12 }}>No expenses recorded.</Text>}
             </View>
-          ))
-        )}
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

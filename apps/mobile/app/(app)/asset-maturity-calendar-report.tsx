@@ -1,22 +1,17 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFixedDeposits, useLoanLiabilities } from "@/hooks/useAssets";
 import { useInsurancePolicies } from "@/hooks/useInsurancePolicies";
 import { calculateDaysLeft, calculateDaysUntilDue, calculateFixedDepositStatus, calculatePremiumStatus } from "@repo/shared/logic";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { StatusBadge } from "@/components/common/Badge";
-import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { fixedDepositStatusTone, premiumStatusTone } from "@/lib/badgeTones";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Asset Maturity Calendar Container
+ */
 export default function AssetMaturityCalendarReportScreen() {
   const { data: fds, isLoading: fdsLoading, error: fdsError } = useFixedDeposits();
   const { data: liabilities, isLoading: liabilitiesLoading, error: liabilitiesError } = useLoanLiabilities();
   const { data: policies, isLoading: policiesLoading, error: policiesError } = useInsurancePolicies();
-  const primary = useThemeColor("primary");
 
   const sortedFds = useMemo(
     () => (fds ? [...fds].filter((fd) => !fd.withdrawn).sort((a, b) => a.maturity_date.localeCompare(b.maturity_date)) : []),
@@ -30,94 +25,65 @@ export default function AssetMaturityCalendarReportScreen() {
   const isLoading = fdsLoading || liabilitiesLoading || policiesLoading;
   const error = fdsError || liabilitiesError || policiesError;
 
-  const sheets = [
-    {
-      name: "FD Maturities",
-      rows: sortedFds.map((fd) => ({ Bank: fd.bank, "Maturity Date": fd.maturity_date, Value: fd.maturity_value })),
-    },
-    {
-      name: "Insurance Premiums",
-      rows: sortedPolicies.map((p) => ({ Insurer: p.insurer, "Due Date": p.premium_due_date, Premium: p.premium_amount })),
-    },
-    {
-      name: "Open Liabilities",
-      rows: (liabilities ?? []).map((l) => ({ Lender: l.lender, Outstanding: l.outstanding, "Months Left": l.months_left ?? "-" })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader
-          title="Asset Maturity Calendar"
-          description="FDs and insurance premiums by date. Loans show months remaining, not a specific due date."
-        />
-        {!isLoading && (
-          <ReportExportBar
-            title="Asset Maturity Calendar"
-            description="FDs and insurance premiums by date. Loans show months remaining, not a specific due date."
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (
-          <>
-            <View className="gap-3">
-              <AppText className="text-sm font-semibold">Fixed Deposit Maturities</AppText>
-              {sortedFds.length === 0 ? (
-                <AppText className="text-sm text-muted-foreground">No active fixed deposits.</AppText>
-              ) : (
-                sortedFds.map((fd) => (
-                  <ReportRow
-                    key={fd.id}
-                    title={fd.bank}
-                    subtitle={`Matures ${fd.maturity_date} · ${calculateDaysLeft(fd.maturity_date)}d left`}
-                    badge={<StatusBadge tone={fixedDepositStatusTone(calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn))}>{calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn)}</StatusBadge>}
-                    values={[{ label: "Value", value: fd.maturity_value }]}
-                  />
-                ))
-              )}
-            </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Asset Maturity Calendar</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Fixed deposit maturities and insurance premium due dates</Text>
+        </View>
 
-            <View className="gap-3">
-              <AppText className="text-sm font-semibold">Insurance Premium Due Dates</AppText>
-              {sortedPolicies.length === 0 ? (
-                <AppText className="text-sm text-muted-foreground">No insurance policies found.</AppText>
-              ) : (
-                sortedPolicies.map((p) => (
-                  <ReportRow
-                    key={p.id}
-                    title={p.insurer}
-                    subtitle={`${p.policy_type} · due ${p.premium_due_date} · ${calculateDaysUntilDue(p.premium_due_date)}d`}
-                    badge={<StatusBadge tone={premiumStatusTone(calculatePremiumStatus(p.premium_due_date))}>{calculatePremiumStatus(p.premium_due_date)}</StatusBadge>}
-                    values={[{ label: "Premium", value: p.premium_amount }]}
-                  />
-                ))
-              )}
-            </View>
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
 
-            <View className="gap-3">
-              <AppText className="text-sm font-semibold">Open Liabilities</AppText>
-              {(liabilities ?? []).length === 0 ? (
-                <AppText className="text-sm text-muted-foreground">No open liabilities.</AppText>
-              ) : (
-                (liabilities ?? []).map((l) => (
-                  <ReportRow
-                    key={l.id}
-                    title={l.lender}
-                    subtitle={l.months_left != null ? `${l.months_left} months left` : undefined}
-                    values={[{ label: "Outstanding", value: l.outstanding, sign: "negative" }]}
-                  />
-                ))
-              )}
+        {/* FDs */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Fixed Deposit Maturities</Text>
+          {sortedFds.map((fd) => (
+            <View key={fd.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ fontWeight: "600" }}>{fd.bank}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                  Matures {fd.maturity_date} &bull; {calculateDaysLeft(fd.maturity_date)}d left ({calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn)})
+                </Text>
+              </View>
+              <Text style={{ fontWeight: "bold" }}>₹{Number(fd.maturity_value).toLocaleString("en-IN")}</Text>
             </View>
-          </>
-        )}
+          ))}
+          {!isLoading && sortedFds.length === 0 && <Text style={{ color: "#6b7280" }}>No active FDs.</Text>}
+        </View>
+
+        {/* Insurance */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Insurance Premiums Due</Text>
+          {sortedPolicies.map((p) => (
+            <View key={p.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ fontWeight: "600" }}>{p.insurer}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                  Due {p.premium_due_date} &bull; {calculateDaysUntilDue(p.premium_due_date)}d ({calculatePremiumStatus(p.premium_due_date)})
+                </Text>
+              </View>
+              <Text style={{ fontWeight: "bold" }}>₹{Number(p.premium_amount).toLocaleString("en-IN")}</Text>
+            </View>
+          ))}
+          {!isLoading && sortedPolicies.length === 0 && <Text style={{ color: "#6b7280" }}>No policies found.</Text>}
+        </View>
+
+        {/* Liabilities */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Open Liabilities</Text>
+          {(liabilities ?? []).map((l) => (
+            <View key={l.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ fontWeight: "600" }}>{l.lender}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>{l.months_left != null ? `${l.months_left} months left` : "-"}</Text>
+              </View>
+              <Text style={{ fontWeight: "bold", color: "#dc2626" }}>-₹{Number(l.outstanding).toLocaleString("en-IN")}</Text>
+            </View>
+          ))}
+          {!isLoading && (liabilities ?? []).length === 0 && <Text style={{ color: "#6b7280" }}>No open liabilities.</Text>}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

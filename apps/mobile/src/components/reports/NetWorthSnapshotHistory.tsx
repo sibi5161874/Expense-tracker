@@ -43,7 +43,7 @@ export function NetWorthSnapshotHistory({ currentBreakdown }: { currentBreakdown
     if (!canTakeSnapshot) {
       Alert.alert("Pro feature", "You've used this month's free snapshots.", [
         { text: "Not now", style: "cancel" },
-        { text: "View plans", onPress: () => router.push("/(app)/billing") },
+        { text: "View plans", onPress: () => router.push("/billing") },
       ]);
       return;
     }

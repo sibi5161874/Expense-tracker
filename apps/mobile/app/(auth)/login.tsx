@@ -1,129 +1,161 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, View, Linking, Alert } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppText } from "@/components/common/AppText";
-import { TextField } from "@/components/common/TextField";
-import { Button } from "@/components/common/Button";
 
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL;
-
+/**
+ * Headless Login Container
+ * Pure functional authentication container supporting Email/Password, Google OAuth, and Anonymous sign-in.
+ */
 export default function LoginScreen() {
-  const { signIn, signInWithGoogle, signInAnonymously } = useAuth();
+  const { user, loading: authLoading, signIn, signInWithGoogle, signInAnonymously } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [continuingAnonymously, setContinuingAnonymously] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function handleGoogleSignIn() {
-    setError(null);
-    setGoogleLoading(true);
-    const { error, cancelled } = await signInWithGoogle();
-    setGoogleLoading(false);
-    if (cancelled) return;
-    if (error) {
-      setError(error.message);
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, authLoading]);
+
+  async function handleLogin() {
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.");
       return;
     }
-    router.replace("/(app)/dashboard");
-  }
-
-  async function handleSubmit() {
     setError(null);
-    setSubmitting(true);
-    const { error } = await signIn(email, password);
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
-      return;
+    setLoading(true);
+    try {
+      const { error: err } = await signIn(email.trim(), password);
+      if (err) {
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
+      router.replace("/dashboard");
+    } catch (e: any) {
+      setError(e?.message || "Failed to sign in. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    router.replace("/(app)/dashboard");
   }
 
-  function handleForgotPassword() {
-    router.push("/(auth)/forgot-password");
-  }
-
-  // Opt-in only — an explicit tap, never automatic, so this never silently hides the login
-  // form for someone who already has a real account from the web app.
-  async function handleContinueAnonymously() {
+  async function handleGoogle() {
     setError(null);
-    setContinuingAnonymously(true);
-    const { error } = await signInAnonymously();
-    setContinuingAnonymously(false);
-    if (error) {
-      setError(error.message);
-      return;
+    setLoading(true);
+    try {
+      const { error: err, cancelled } = await signInWithGoogle();
+      if (cancelled) {
+        setLoading(false);
+        return;
+      }
+      if (err) {
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
+      router.replace("/dashboard");
+    } catch (e: any) {
+      setError(e?.message || "Google sign in failed.");
+    } finally {
+      setLoading(false);
     }
-    router.replace("/(app)/dashboard");
+  }
+
+  async function handleGuest() {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: err } = await signInAnonymously();
+      if (err) {
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
+      router.replace("/dashboard");
+    } catch (e: any) {
+      setError(e?.message || "Guest sign in failed.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1 bg-background"
-    >
-      <View className="flex-1 justify-center gap-6 p-6">
-        <View className="gap-1.5">
-          <AppText className="text-2xl font-bold tracking-tight">Welcome back</AppText>
-          <AppText className="text-sm text-muted-foreground">
-            Sign in with the account you created on the web app.
-          </AppText>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
+      <View style={{ gap: 16 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 28, fontWeight: "bold" }}>Sign In</Text>
+          <Text style={{ fontSize: 14, color: "#6b7280" }}>Access your KashMap wealth dashboard</Text>
         </View>
 
-        <View className="gap-4">
-          <TextField
-            label="Email"
+        {error && (
+          <View style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
+            <Text style={{ color: "#b91c1c" }}>{error}</Text>
+          </View>
+        )}
+
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>Email</Text>
+          <TextInput
+            placeholder="you@example.com"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
-            placeholder="you@example.com"
+            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
           />
-          <TextField
-            label="Password"
+        </View>
+
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>Password</Text>
+          <TextInput
+            placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="••••••••"
+            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
           />
-          <AppText className="text-right text-xs text-primary" onPress={handleForgotPassword}>
-            Forgot password?
-          </AppText>
-          {error && <AppText className="text-sm text-destructive">{error}</AppText>}
         </View>
 
-        <Button onPress={handleSubmit} disabled={submitting || !email || !password}>
-          {submitting ? "Signing in..." : "Log in"}
-        </Button>
+        <Pressable
+          disabled={loading}
+          onPress={handleLogin}
+          style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center" }}
+        >
+          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={{ color: "#ffffff", fontWeight: "600" }}>Sign In</Text>}
+        </Pressable>
 
-        <View className="flex-row items-center gap-3">
-          <View className="h-px flex-1 bg-border" />
-          <AppText className="text-xs uppercase text-muted-foreground">Or continue with</AppText>
-          <View className="h-px flex-1 bg-border" />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8 }}>
+          <Pressable onPress={() => router.push("/forgot-password")}>
+            <Text style={{ color: "#2563eb", fontSize: 13 }}>Forgot Password?</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/signup")}>
+            <Text style={{ color: "#2563eb", fontSize: 13 }}>Create Account</Text>
+          </Pressable>
         </View>
 
-        <Button variant="outline" onPress={handleGoogleSignIn} disabled={googleLoading}>
-          {googleLoading ? "Signing in..." : "Google"}
-        </Button>
+        <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 8 }} />
 
-        <Button variant="ghost" onPress={() => router.push("/(auth)/signup")}>
-          Don't have an account? Sign up
-        </Button>
+        <Pressable
+          disabled={loading}
+          onPress={handleGoogle}
+          style={{ padding: 12, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, alignItems: "center" }}
+        >
+          <Text style={{ fontWeight: "600" }}>Continue with Google</Text>
+        </Pressable>
 
-        <View className="items-center gap-2">
-          <AppText className="text-xs text-muted-foreground">Or, try it out first</AppText>
-          <Button variant="outline" onPress={handleContinueAnonymously} disabled={continuingAnonymously}>
-            {continuingAnonymously ? "Setting up..." : "Continue without an account"}
-          </Button>
-          <AppText className="px-4 text-center text-xs text-muted-foreground">
-            Your data stays on this device's account until you add an email — do that from Settings before
-            switching phones or reinstalling, or it can't be recovered.
-          </AppText>
-        </View>
+        <Pressable
+          disabled={loading}
+          onPress={handleGuest}
+          style={{ padding: 12, backgroundColor: "#f3f4f6", borderRadius: 6, alignItems: "center" }}
+        >
+          <Text style={{ color: "#374151" }}>Explore as Guest (Anonymous)</Text>
+        </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

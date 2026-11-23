@@ -1,82 +1,65 @@
-import { useCallback } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
-import { useFocusEffect } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useEntitlements } from "@/hooks/useEntitlements";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { useThemeColor } from "@/lib/colors";
+import { PRICING } from "@repo/shared/config";
 
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL;
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://kashmap.in";
 
 /**
- * Reuses apps/web's Razorpay checkout inside a WebView rather than reimplementing it
- * natively — there's no Razorpay React Native SDK compatible with Expo Go. The WebView
- * loads `${WEB_APP_URL}/mobile-checkout`, a bridge page that establishes the same
- * Supabase session client-side from tokens passed in the URL hash (see that page's own
- * header comment for why the hash, not a query param), then renders the exact BillingTab
- * component web's own Settings → Billing tab uses — one plan UI, one checkout flow.
+ * Headless Billing Container
+ * Pure functional data container for subscription tier, trial status, and lifetime checkout link.
  */
 export default function BillingScreen() {
-  const { session, user } = useAuth();
-  const { tier } = useEntitlements();
-  const queryClient = useQueryClient();
-  const primary = useThemeColor("primary");
+  const { data: profile, isLoading } = useUserProfile();
+  const { tier, isPro, isTrialing, trialDaysRemaining } = useEntitlements();
 
-  // The checkout that actually changes `tier` happens inside the WebView's own JS
-  // context, invisible to this screen's React state — re-fetching the profile whenever
-  // this screen regains focus (e.g. the user backs out after finishing checkout) is what
-  // picks up the change, rather than any state passed back out of the WebView.
-  useFocusEffect(
-    useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
-    }, [queryClient, user?.id])
-  );
-
-  if (!WEB_APP_URL) {
-    return (
-      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-        <View className="gap-4 p-4">
-          <PageHeader title="Billing" description="Manage your plan." />
-          <AppText className="text-sm text-destructive">
-            EXPO_PUBLIC_WEB_APP_URL is not configured — billing needs the deployed web app's
-            URL to load checkout.
-          </AppText>
-        </View>
-      </SafeAreaView>
-    );
+  function openCheckout() {
+    Linking.openURL(`${WEB_APP_URL}/pricing`);
   }
-
-  if (!session) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={primary} />
-      </SafeAreaView>
-    );
-  }
-
-  const checkoutUrl = `${WEB_APP_URL}/mobile-checkout#access_token=${encodeURIComponent(
-    session.access_token
-  )}&refresh_token=${encodeURIComponent(session.refresh_token)}`;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <View className="p-4 pb-2">
-        <PageHeader title="Billing" description={`Current plan: ${tier === "pro" ? "Pro" : tier === "trial" ? "Trial" : "Free"}`} />
-      </View>
-      <WebView
-        source={{ uri: checkoutUrl }}
-        style={{ flex: 1 }}
-        startInLoadingState
-        renderLoading={() => (
-          <View className="absolute inset-0 items-center justify-center bg-background">
-            <ActivityIndicator color={primary} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Billing & Entitlements</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Manage your subscription and Pro access</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+
+        {/* Current Plan */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase" }}>
+            Current Status
+          </Text>
+          <Text style={{ fontSize: 22, fontWeight: "bold", textTransform: "uppercase" }}>{tier} Tier</Text>
+          {isTrialing && (
+            <Text style={{ fontSize: 14, color: "#2563eb" }}>Trial Active: {trialDaysRemaining} days remaining</Text>
+          )}
+          {isPro && (
+            <Text style={{ fontSize: 14, color: "#16a34a" }}>Lifetime License Active — All Features Unlocked</Text>
+          )}
+        </View>
+
+        {/* Pricing Options */}
+        {!isPro && (
+          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>Upgrade to Pro (Lifetime)</Text>
+            <Text style={{ fontSize: 14, color: "#4b5563" }}>
+              Unlock Bank Statement Import, Broker CAS Parser, Capital Gains Tax Reports, and Live Portfolio Valuation.
+            </Text>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>₹{PRICING.lifetime.priceRupees} one-time</Text>
+
+            <Pressable
+              onPress={openCheckout}
+              style={{ padding: 12, backgroundColor: "#16a34a", borderRadius: 6, alignItems: "center" }}
+            >
+              <Text style={{ color: "#ffffff", fontWeight: "600" }}>Upgrade to Lifetime Pro</Text>
+            </Pressable>
           </View>
         )}
-      />
+      </ScrollView>
     </SafeAreaView>
   );
 }

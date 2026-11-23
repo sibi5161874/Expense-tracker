@@ -90,7 +90,7 @@ function LiveBenchmarkChart() {
           <AppText className="text-center text-sm text-muted-foreground">
             Take a net worth snapshot to start comparing your growth against Nifty 50.
           </AppText>
-          <Button onPress={() => router.push("/(app)/net-worth-report")}>Take a Snapshot</Button>
+          <Button onPress={() => router.push("/net-worth-report")}>Take a Snapshot</Button>
         </View>
       ) : series.length === 0 ? (
         <AppText className="py-4 text-sm text-muted-foreground">No Nifty 50 history for this range yet.</AppText>
@@ -120,7 +120,7 @@ export function PortfolioBenchmarkChart() {
       feature="livePriceRefresh"
       title="Portfolio vs Nifty 50"
       description="See how your net worth growth stacks up against the market, over any time range."
-      onUpgradePress={() => router.push("/(app)/billing")}
+      onUpgradePress={() => router.push("/billing")}
     >
       {hasFeature("livePriceRefresh") ? <LiveBenchmarkChart /> : <BenchmarkPlaceholder />}
     </ProBlurredPreview>

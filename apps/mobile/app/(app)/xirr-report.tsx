@@ -1,21 +1,16 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TrendingUp } from "lucide-react-native";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { computePortfolioXirr, groupInvestmentsBySymbol } from "@repo/shared/logic";
-import { formatINR } from "@repo/shared/utils/currency";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { StatusBadge } from "@/components/common/Badge";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless XIRR Return Analysis Container
+ */
 export default function XirrReportScreen() {
   const { data: investments, isLoading: isLogsLoading, error: logsError } = useAllInvestmentLog();
   const { data: holdingRows, isLoading: isHoldingsLoading, error: holdingsError } = useHoldings();
-  const primary = useThemeColor("primary");
 
   const report = useMemo(() => {
     const livePriceOverrides = Object.fromEntries((holdingRows ?? []).map((h) => [h.symbol, h.live_price]));
@@ -33,124 +28,67 @@ export default function XirrReportScreen() {
   const isLoading = isLogsLoading || isHoldingsLoading;
   const error = logsError || holdingsError;
 
-  const sheets = [
-    {
-      name: "XIRR Analysis",
-      rows: report.holdings.map((h) => ({
-        Symbol: h.symbol,
-        "Annualized XIRR %": h.xirrPct ?? "N/A",
-        "Total Invested": h.totalInvested,
-        "Current Value": h.currentValue,
-        "Total Realized": h.totalRealized,
-        "Total Dividends": h.totalDividends,
-        "First Date": h.firstDate ?? "N/A",
-      })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader
-          title="XIRR Return Analysis"
-          description="Annualized internal rate of return across all cash flows."
-        />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>XIRR Return Analysis</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Annualized internal rate of return across all cash flows</Text>
+        </View>
 
-        {!isLoading && report.holdings.length > 0 && (
-          <ReportExportBar
-            title="XIRR Report"
-            description={`Overall Portfolio XIRR: ${report.portfolioXirrPct != null ? `${report.portfolioXirrPct.toFixed(2)}%` : "N/A"}`}
-            sheets={sheets}
-          />
-        )}
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
 
-        {/* Portfolio XIRR Hero Banner */}
-        <View className="rounded-3xl border border-primary/20 bg-primary/5 p-5">
-          <View className="flex-row items-center gap-2">
-            <View className="size-8 items-center justify-center rounded-full bg-primary/10">
-              <TrendingUp size={16} color={primary} />
+        {/* Portfolio XIRR Banner */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase" }}>
+            Overall Portfolio XIRR
+          </Text>
+          <Text style={{ fontSize: 28, fontWeight: "bold" }}>
+            {report.portfolioXirrPct !== null
+              ? `${report.portfolioXirrPct >= 0 ? "+" : ""}${report.portfolioXirrPct.toFixed(2)}% p.a.`
+              : "N/A"}
+          </Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8, borderTopWidth: 1, borderTopColor: "#f3f4f6" }}>
+            <View>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Invested</Text>
+              <Text style={{ fontSize: 16, fontWeight: "600" }}>₹{report.totalInvested.toLocaleString("en-IN")}</Text>
             </View>
-            <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Overall Portfolio XIRR
-            </AppText>
-          </View>
-          <View className="mt-2 flex-row items-baseline gap-2">
-            <AppText className="text-3xl font-extrabold text-foreground">
-              {report.portfolioXirrPct !== null
-                ? `${report.portfolioXirrPct >= 0 ? "+" : ""}${report.portfolioXirrPct.toFixed(2)}%`
-                : "N/A"}
-            </AppText>
-            <AppText className="text-xs font-medium text-muted-foreground">per annum</AppText>
-          </View>
-
-          <View className="mt-4 flex-row gap-3 border-t border-border/50 pt-3">
-            <View className="flex-1">
-              <AppText className="text-[11px] text-muted-foreground">Total Invested</AppText>
-              <AppText className="text-sm font-semibold">{formatINR(report.totalInvested)}</AppText>
-            </View>
-            <View className="flex-1">
-              <AppText className="text-[11px] text-muted-foreground">Current Value</AppText>
-              <AppText className="text-sm font-semibold">{formatINR(report.currentPortfolioValue)}</AppText>
+            <View>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>Current Value</Text>
+              <Text style={{ fontSize: 16, fontWeight: "600" }}>₹{report.currentPortfolioValue.toLocaleString("en-IN")}</Text>
             </View>
           </View>
         </View>
 
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : report.holdings.length === 0 ? (
-          <AppText className="py-8 text-center text-sm text-muted-foreground">
-            No investment cash flows recorded yet.
-          </AppText>
-        ) : (
-          <View className="gap-3">
-            <AppText className="text-xs font-semibold text-muted-foreground uppercase">
-              Returns by Holding ({report.holdings.length})
-            </AppText>
-            {report.holdings.map((h) => {
-              const hasXirr = h.xirrPct !== null;
-              const isPositive = (h.xirrPct ?? 0) >= 0;
-
-              return (
-                <View key={h.symbol} className="gap-3 rounded-2xl bg-card p-4">
-                  <View className="flex-row items-center justify-between">
-                    <View>
-                      <AppText className="font-semibold">{h.symbol}</AppText>
-                      {h.firstDate && (
-                        <AppText className="text-[11px] text-muted-foreground">Since {h.firstDate}</AppText>
-                      )}
-                    </View>
-                    {hasXirr ? (
-                      <StatusBadge tone={isPositive ? "success" : "destructive"}>
-                        {`${isPositive ? "+" : ""}${h.xirrPct!.toFixed(2)}% p.a.`}
-                      </StatusBadge>
-                    ) : (
-                      <StatusBadge tone="neutral">—</StatusBadge>
-                    )}
-                  </View>
-
-                  <View className="flex-row justify-between border-t border-border/50 pt-2.5">
-                    <View>
-                      <AppText className="text-xs text-muted-foreground">Invested</AppText>
-                      <AppText className="text-xs font-medium">{formatINR(h.totalInvested)}</AppText>
-                    </View>
-                    <View>
-                      <AppText className="text-xs text-muted-foreground">Current</AppText>
-                      <AppText className="text-xs font-medium">{formatINR(h.currentValue)}</AppText>
-                    </View>
-                    <View className="items-end">
-                      <AppText className="text-xs text-muted-foreground">Sold + Dividends</AppText>
-                      <AppText className="text-xs font-medium">{formatINR(h.totalRealized + h.totalDividends)}</AppText>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        {/* Holdings XIRR Breakdown */}
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Holdings XIRR ({report.holdings.length})</Text>
+          {report.holdings.map((h) => (
+            <View
+              key={h.symbol}
+              style={{ padding: 12, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 6, gap: 4 }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ fontWeight: "bold" }}>{h.symbol}</Text>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    color: h.xirrPct != null && h.xirrPct >= 0 ? "#16a34a" : "#dc2626",
+                  }}
+                >
+                  {h.xirrPct != null ? `${h.xirrPct.toFixed(2)}% p.a.` : "N/A"}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                Invested: ₹{h.totalInvested.toLocaleString("en-IN")} &bull; Current: ₹{h.currentValue.toLocaleString("en-IN")}
+              </Text>
+            </View>
+          ))}
+          {!isLoading && report.holdings.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No investment cash flows recorded yet.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

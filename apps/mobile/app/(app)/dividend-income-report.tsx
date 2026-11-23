@@ -1,72 +1,59 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
-import { formatINR } from "@repo/shared/utils/currency";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
-import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Dividend Income Report Container
+ */
 export default function DividendIncomeReportScreen() {
   const { data: investments, isLoading, error } = useAllInvestmentLog();
-  const primary = useThemeColor("primary");
 
-  const { byHolding, byMonth, total } = useMemo(() => {
+  const { byHolding, total } = useMemo(() => {
     const dividends = (investments ?? []).filter((i) => i.action === "DIVIDEND");
     const holdingTotals = new Map<string, number>();
-    const monthTotals = new Map<string, number>();
     for (const d of dividends) {
       holdingTotals.set(d.symbol, (holdingTotals.get(d.symbol) ?? 0) + d.price);
-      const month = d.date.slice(0, 7);
-      monthTotals.set(month, (monthTotals.get(month) ?? 0) + d.price);
     }
     const byHolding = Array.from(holdingTotals, ([symbol, amount]) => ({ symbol, amount })).sort((a, b) => b.amount - a.amount);
-    const byMonth = Array.from(monthTotals, ([month, income]) => ({
-      month,
-      label: new Date(`${month}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-      income,
-      expense: 0,
-    })).sort((a, b) => a.month.localeCompare(b.month));
-    return { byHolding, byMonth, total: dividends.reduce((sum, d) => sum + d.price, 0) };
+    return { byHolding, total: dividends.reduce((sum, d) => sum + d.price, 0) };
   }, [investments]);
 
-  const sheets = [
-    { name: "Dividend Income", rows: byHolding.map((h) => ({ Symbol: h.symbol, Total: h.amount })) },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title="Dividend Income" description={`Total dividends received: ${formatINR(total)}.`} />
-        {!isLoading && byHolding.length > 0 && (
-          <ReportExportBar title="Dividend Income" description={`Total dividends received: ${formatINR(total)}.`} sheets={sheets} />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (
-          <>
-            <View className="gap-3 rounded-2xl bg-card p-4">
-              <AppText className="text-sm font-semibold">Dividend Income Over Time</AppText>
-              {byMonth.length > 0 ? (
-                <CashFlowBars data={byMonth} />
-              ) : (
-                <AppText className="py-8 text-center text-sm text-muted-foreground">No dividends recorded yet.</AppText>
-              )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Dividend Income</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Total dividends received: ₹{total.toLocaleString("en-IN")}</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        <View style={{ gap: 8 }}>
+          {byHolding.map((h) => (
+            <View
+              key={h.symbol}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontWeight: "600" }}>{h.symbol}</Text>
+              <Text style={{ fontWeight: "bold", color: "#16a34a" }}>
+                +₹{h.amount.toLocaleString("en-IN")}
+              </Text>
             </View>
-            <View className="gap-3">
-              {byHolding.map((h) => (
-                <ReportRow key={h.symbol} title={h.symbol} values={[{ label: "Total", value: h.amount, sign: "positive" }]} />
-              ))}
-            </View>
-          </>
-        )}
+          ))}
+          {!isLoading && byHolding.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No dividends recorded yet.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

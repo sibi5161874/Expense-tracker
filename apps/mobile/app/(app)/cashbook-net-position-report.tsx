@@ -1,70 +1,59 @@
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCashbook } from "@/hooks/useCashbook";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { StatusBadge } from "@/components/common/Badge";
-import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Cashbook Net Position Report Container
+ */
 export default function CashbookNetPositionReportScreen() {
   const { summary, isLoading, error } = useCashbook();
-  const primary = useThemeColor("primary");
   const rows = summary ? Object.entries(summary) : [];
 
-  const sheets = [
-    {
-      name: "Cashbook Net Position",
-      rows: rows.map(([counterparty, item]) => ({
-        Counterparty: counterparty,
-        Given: item.totalGiven,
-        Received: item.totalReceived,
-        Net: item.netBalance,
-        Overdue: item.hasOverdue ? "Yes" : "No",
-      })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
-        <PageHeader title="Cashbook Net Position" description="Who owes you, who you owe, and what's overdue." />
-        {!isLoading && rows.length > 0 && (
-          <ReportExportBar
-            title="Cashbook Net Position"
-            description="Who owes you, who you owe, and what's overdue."
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : rows.length === 0 ? (
-          <AppText className="py-8 text-center text-sm text-muted-foreground">No cashbook entries found.</AppText>
-        ) : (
-          rows.map(([counterparty, item]) => (
-            <ReportRow
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Cashbook Net Position</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Counterparty debt balances and overdue status</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        <View style={{ gap: 8 }}>
+          {rows.map(([counterparty, item]) => (
+            <View
               key={counterparty}
-              title={counterparty}
-              badge={
-                item.hasOverdue ? (
-                  <StatusBadge tone="destructive">Overdue</StatusBadge>
-                ) : (
-                  <StatusBadge tone="success">OK</StatusBadge>
-                )
-              }
-              values={[
-                { label: "Given", value: item.totalGiven },
-                { label: "Received", value: item.totalReceived },
-                { label: "Net", value: item.netBalance },
-              ]}
-            />
-          ))
-        )}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ gap: 2 }}>
+                <Text style={{ fontWeight: "600" }}>{counterparty}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                  Given: ₹{item.totalGiven.toLocaleString("en-IN")} &bull; Received: ₹{item.totalReceived.toLocaleString("en-IN")} {item.hasOverdue ? "• (Overdue)" : ""}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  color: item.netBalance >= 0 ? "#16a34a" : "#dc2626",
+                }}
+              >
+                ₹{item.netBalance.toLocaleString("en-IN")}
+              </Text>
+            </View>
+          ))}
+          {!isLoading && rows.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No cashbook entries found.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

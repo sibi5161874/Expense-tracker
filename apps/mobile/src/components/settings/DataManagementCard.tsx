@@ -68,7 +68,7 @@ export function DataManagementCard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Delete failed");
       await signOut();
-      router.replace("/(auth)/login");
+      router.replace("/login");
     } catch (e) {
       setDeleteError(e instanceof Error ? e.message : "Delete failed");
       setIsDeleting(false);

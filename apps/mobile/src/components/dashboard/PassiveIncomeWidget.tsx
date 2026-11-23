@@ -66,7 +66,7 @@ export function PassiveIncomeWidget({ holdings }: { holdings: SymbolHolding[] })
       feature="livePriceRefresh"
       title="Passive Income Tracker"
       description="See your projected annual dividend income across all holdings."
-      onUpgradePress={() => router.push("/(app)/billing")}
+      onUpgradePress={() => router.push("/billing")}
     >
       {hasFeature("livePriceRefresh") ? <LivePassiveIncome holdings={holdings} /> : <PassiveIncomePlaceholder />}
     </ProBlurredPreview>

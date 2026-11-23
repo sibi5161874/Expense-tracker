@@ -209,7 +209,7 @@ export function MarketHeatmap() {
               key={item.symbol}
               onPress={() => {
                 router.push({
-                  pathname: '/(app)/stock-detail',
+                  pathname: '/stock-detail',
                   params: { symbol: item.symbol },
                 });
               }}

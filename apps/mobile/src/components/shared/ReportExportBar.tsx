@@ -38,7 +38,7 @@ export function ReportExportBar({ title, description, sheets }: ReportExportBarP
   function goToUpgrade() {
     Alert.alert("Pro feature", "Exporting reports is a Pro feature.", [
       { text: "Not now", style: "cancel" },
-      { text: "View plans", onPress: () => router.push("/(app)/billing") },
+      { text: "View plans", onPress: () => router.push("/billing") },
     ]);
   }
 

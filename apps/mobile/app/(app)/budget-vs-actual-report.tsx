@@ -1,23 +1,18 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { calculateBudgetStatus } from "@repo/shared/logic";
 import { formatMonth } from "@repo/shared/utils";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { StatusBadge } from "@/components/common/Badge";
-import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { budgetStatusTone } from "@/lib/badgeTones";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Budget vs Actual Report Container
+ */
 export default function BudgetVsActualReportScreen() {
   const currentMonth = formatMonth(new Date());
   const { data: budgetLimits, isLoading: budgetsLoading, error: budgetsError } = useBudgetLimits();
   const { categoryBreakdown, isLoading: overviewLoading, error: overviewError } = useMonthlyOverview(currentMonth);
-  const primary = useThemeColor("primary");
 
   const rows = useMemo(() => {
     if (!budgetLimits) return [];
@@ -35,47 +30,51 @@ export default function BudgetVsActualReportScreen() {
   const isLoading = budgetsLoading || overviewLoading;
   const error = budgetsError || overviewError;
 
-  const sheets = [
-    {
-      name: "Budget vs Actual",
-      rows: rows.map((r) => ({ Category: r.category, Budget: r.limit, Actual: r.actual, Status: r.status })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
-        <PageHeader title="Budget vs Actual" description={`Spend against your monthly limit for ${currentMonth}.`} />
-        {!isLoading && rows.length > 0 && (
-          <ReportExportBar
-            title="Budget vs Actual"
-            description={`Spend against your monthly limit for ${currentMonth}.`}
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : rows.length === 0 ? (
-          <AppText className="py-8 text-center text-sm text-muted-foreground">
-            No budget limits set yet. Add some in Config → Budgets to see this report.
-          </AppText>
-        ) : (
-          rows.map((r) => (
-            <ReportRow
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Budget vs Actual</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Spend against your monthly limit for {currentMonth}</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        <View style={{ gap: 8 }}>
+          {rows.map((r) => (
+            <View
               key={r.category}
-              title={r.category}
-              badge={<StatusBadge tone={budgetStatusTone(r.status)}>{r.status}</StatusBadge>}
-              values={[
-                { label: "Budget", value: r.limit },
-                { label: "Actual", value: r.actual, sign: r.actual > r.limit ? "negative" : "neutral" },
-              ]}
-            />
-          ))
-        )}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ gap: 2 }}>
+                <Text style={{ fontWeight: "600" }}>{r.category}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                  Budget: ₹{r.limit.toLocaleString("en-IN")} &bull; Status: {r.status}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  color: r.actual > r.limit ? "#dc2626" : "#16a34a",
+                }}
+              >
+                ₹{r.actual.toLocaleString("en-IN")}
+              </Text>
+            </View>
+          ))}
+          {!isLoading && rows.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No budget limits configured.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

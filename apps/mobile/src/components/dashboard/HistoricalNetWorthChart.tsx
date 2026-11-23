@@ -97,7 +97,7 @@ export function HistoricalNetWorthChart() {
   const { hasFeature } = useEntitlements();
 
   function goToUpgrade() {
-    router.push("/(app)/billing");
+    router.push("/billing");
   }
 
   return (

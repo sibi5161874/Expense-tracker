@@ -115,7 +115,7 @@ export function LossMakingHoldingsCard({ holdings }: { holdings: SymbolHolding[]
             </View>
 
             <Pressable
-              onPress={() => router.push("/(app)/reports")}
+              onPress={() => router.push("/reports")}
               className="pt-1 active:opacity-70"
             >
               <AppText className="text-xs font-medium text-primary">

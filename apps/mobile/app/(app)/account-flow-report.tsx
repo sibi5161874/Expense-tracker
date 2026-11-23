@@ -1,21 +1,18 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactionsInRange, monthsAgo } from "@/hooks/useReportsData";
 import { formatMonth } from "@repo/shared/utils";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { ReportRow } from "@/components/reports/ReportRow";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
 const MONTHS_BACK = 3;
 
+/**
+ * Headless Account Flow Report Container
+ */
 export default function AccountFlowReportScreen() {
   const from = monthsAgo(MONTHS_BACK - 1);
   const to = formatMonth(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)) + "-01";
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
-  const primary = useThemeColor("primary");
 
   const rows = useMemo(() => {
     const byAccount = new Map<string, { name: string; in: number; out: number }>();
@@ -38,42 +35,53 @@ export default function AccountFlowReportScreen() {
       .sort((a, b) => b.in - a.in);
   }, [transactions]);
 
-  const sheets = [
-    { name: "Account Flow", rows: rows.map((r) => ({ Account: r.name, In: r.in, Out: r.out, Net: r.net })) },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-3 p-4 pb-32">
-        <PageHeader title="Account-wise Flow" description={`Money in vs out per account over the last ${MONTHS_BACK} months.`} />
-        {!isLoading && rows.length > 0 && (
-          <ReportExportBar
-            title="Account-wise Flow"
-            description={`Money in vs out per account over the last ${MONTHS_BACK} months.`}
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : rows.length === 0 ? (
-          <AppText className="py-8 text-center text-sm text-muted-foreground">No transactions in this period.</AppText>
-        ) : (
-          rows.map((r) => (
-            <ReportRow
-              key={r.name}
-              title={r.name}
-              values={[
-                { label: "In", value: r.in, sign: "positive" },
-                { label: "Out", value: r.out, sign: "negative" },
-                { label: "Net", value: r.net },
-              ]}
-            />
-          ))
-        )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Account-wise Flow</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>
+            Money in vs out per account over the last {MONTHS_BACK} months
+          </Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        <View style={{ gap: 8 }}>
+          {rows.map((row) => (
+            <View
+              key={row.name}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ gap: 2 }}>
+                <Text style={{ fontWeight: "600" }}>{row.name}</Text>
+                <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                  In: ₹{row.in.toLocaleString("en-IN")} &bull; Out: ₹{row.out.toLocaleString("en-IN")}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  color: row.net >= 0 ? "#16a34a" : "#dc2626",
+                }}
+              >
+                {row.net >= 0 ? "+" : ""}₹{row.net.toLocaleString("en-IN")}
+              </Text>
+            </View>
+          ))}
+          {!isLoading && rows.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No transaction flow recorded in this timeframe.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

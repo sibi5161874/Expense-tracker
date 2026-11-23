@@ -1,63 +1,59 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { ChevronRight, Layers } from "lucide-react-native";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { useThemeColor } from "@/lib/colors";
-import { REPORT_SECTIONS } from "@/components/reports/reportRegistry";
 
-export default function ReportsScreen() {
-  const mutedForeground = useThemeColor("mutedForeground");
-  const accentForeground = useThemeColor("accentForeground");
-  const primaryForeground = useThemeColor("primary");
+const REPORTS = [
+  { href: "/net-worth-report", label: "Net Worth History" },
+  { href: "/capital-gains-report", label: "Capital Gains (ITR-ready)" },
+  { href: "/spending-trend-report", label: "Spending Trends" },
+  { href: "/category-breakdown-report", label: "Category Breakdown" },
+  { href: "/monthly-summary-report", label: "Monthly Summary" },
+  { href: "/budget-vs-actual-report", label: "Budget vs. Actual" },
+  { href: "/account-flow-report", label: "Account Cash Flow" },
+  { href: "/asset-allocation-report", label: "Asset Allocation" },
+  { href: "/dividend-income-report", label: "Dividend Income" },
+  { href: "/best-worst-performers-report", label: "Best & Worst Performers" },
+  { href: "/cashbook-net-position-report", label: "Cashbook Net Position" },
+  { href: "/asset-maturity-calendar-report", label: "Asset Maturity Calendar" },
+  { href: "/goal-progress-report", label: "Goal Progress Report" },
+  { href: "/xirr-report", label: "Portfolio XIRR" },
+  { href: "/year-in-review-report", label: "Year in Review" },
+  { href: "/overall-report", label: "Consolidated Financial Health" },
+];
 
+/**
+ * Headless Reports Hub Container
+ * Pure functional navigation directory for all 16 tax and analytical reports.
+ */
+export default function ReportsHubScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-32">
-        <PageHeader title="Reports" description="Read-only summaries computed from your data." />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Reports Hub</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>16 comprehensive financial and tax reports</Text>
+        </View>
 
-        <Pressable
-          onPress={() => router.push("/(app)/overall-report")}
-          className="flex-row items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 active:opacity-70"
-        >
-          <View className="size-10 items-center justify-center rounded-xl bg-primary">
-            <Layers size={18} color="white" />
-          </View>
-          <View className="flex-1">
-            <AppText className="text-sm font-semibold">Overall Report</AppText>
-            <AppText className="text-xs text-muted-foreground">
-              All 14 reports combined into a single document. PDF download only.
-            </AppText>
-          </View>
-          <ChevronRight size={18} color={primaryForeground} />
-        </Pressable>
-
-        {REPORT_SECTIONS.map((section) => (
-          <View key={section.title} className="gap-3">
-            <AppText className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {section.title}
-            </AppText>
-            <View className="gap-2">
-              {section.reports.map((report) => (
-                <Pressable
-                  key={report.href}
-                  onPress={() => router.push(report.href)}
-                  className="flex-row items-center gap-3 rounded-2xl bg-card p-4 active:opacity-70"
-                >
-                  <View className="size-9 items-center justify-center rounded-full bg-accent">
-                    <report.icon size={18} color={accentForeground} />
-                  </View>
-                  <View className="flex-1">
-                    <AppText className="text-sm font-medium">{report.title}</AppText>
-                    <AppText className="text-xs text-muted-foreground">{report.description}</AppText>
-                  </View>
-                  <ChevronRight size={18} color={mutedForeground} />
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        ))}
+        <View style={{ gap: 8, marginTop: 8 }}>
+          {REPORTS.map((r) => (
+            <Pressable
+              key={r.href}
+              onPress={() => router.push(r.href as any)}
+              style={{
+                padding: 14,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: "500" }}>{r.label}</Text>
+              <Text style={{ color: "#9ca3af" }}>&rarr;</Text>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

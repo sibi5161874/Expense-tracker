@@ -1,88 +1,79 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotPasswordSchema, type ForgotPasswordInput } from "@repo/shared/schemas";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppText } from "@/components/common/AppText";
-import { TextField } from "@/components/common/TextField";
-import { Button } from "@/components/common/Button";
 
+/**
+ * Headless Forgot Password Container
+ */
 export default function ForgotPasswordScreen() {
   const { resetPasswordForEmail } = useAuth();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const form = useForm<ForgotPasswordInput>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-  });
-
-  async function onSubmit(values: ForgotPasswordInput) {
-    setFormError(null);
-    const { error } = await resetPasswordForEmail(values.email);
-    if (error) {
-      setFormError(error.message);
+  async function handleReset() {
+    setError(null);
+    if (!email) {
+      setError("Please enter your email.");
+      return;
+    }
+    setLoading(true);
+    const { error: err } = await resetPasswordForEmail(email);
+    setLoading(false);
+    if (err) {
+      setError(err.message);
       return;
     }
     setSent(true);
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1 bg-background"
-    >
-      <View className="flex-1 justify-center gap-6 p-6">
-        <View className="gap-1.5">
-          <AppText className="text-2xl font-bold tracking-tight">Reset your password</AppText>
-          <AppText className="text-sm text-muted-foreground">
-            {sent
-              ? "Check your email for instructions to reset your password."
-              : "Enter your email address and we'll send you a password reset link."}
-          </AppText>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
+      <View style={{ gap: 16 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Reset Password</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>
+            {sent ? "Check your email for instructions to reset your password." : "Enter your email to receive a password reset link."}
+          </Text>
         </View>
 
-        {!sent ? (
-          <View className="gap-4">
-            <Controller
-              control={form.control}
-              name="email"
-              render={({ field, fieldState }) => (
-                <TextField
-                  label="Email"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholder="you@example.com"
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            {formError && <AppText className="text-sm text-destructive">{formError}</AppText>}
-
-            <Button
-              onPress={form.handleSubmit(onSubmit)}
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? "Sending..." : "Send reset link"}
-            </Button>
-          </View>
-        ) : (
-          <View className="rounded-2xl bg-card p-5 gap-3">
-            <AppText className="text-sm text-success">
-              Password reset link sent! Check your inbox.
-            </AppText>
+        {error && (
+          <View style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
+            <Text style={{ color: "#b91c1c" }}>{error}</Text>
           </View>
         )}
 
-        <Button variant="ghost" onPress={() => router.replace("/(auth)/login")}>
-          Back to login
-        </Button>
+        {!sent && (
+          <>
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>Email</Text>
+              <TextInput
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
+              />
+            </View>
+
+            <Pressable
+              disabled={loading}
+              onPress={handleReset}
+              style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center" }}
+            >
+              {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={{ color: "#ffffff", fontWeight: "600" }}>Send Reset Link</Text>}
+            </Pressable>
+          </>
+        )}
+
+        <Pressable onPress={() => router.replace("/login")} style={{ alignItems: "center", paddingTop: 8 }}>
+          <Text style={{ color: "#2563eb", fontSize: 13 }}>&larr; Back to Sign In</Text>
+        </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

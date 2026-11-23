@@ -1,17 +1,14 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { groupInvestmentsBySymbol } from "@repo/shared/logic";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { CategoryBarList } from "@/components/dashboard/CategoryBarList";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
+/**
+ * Headless Asset Allocation Report Container
+ */
 export default function AssetAllocationReportScreen() {
   const { data: investments, isLoading, error } = useAllInvestmentLog();
-  const primary = useThemeColor("primary");
 
   const holdings = useMemo(() => (investments ? groupInvestmentsBySymbol(investments) : []), [investments]);
   const byAssetType = useMemo(() => {
@@ -24,40 +21,44 @@ export default function AssetAllocationReportScreen() {
     [holdings]
   );
 
-  const sheets = [
-    { name: "By Asset Type", rows: byAssetType.map((a) => ({ "Asset Type": a.name, Value: a.value })) },
-    { name: "By Holding", rows: byHolding.map((h) => ({ Holding: h.name, Value: h.value })) },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title="Asset Allocation" description="Portfolio split by asset type and by individual holding." />
-        {!isLoading && (
-          <ReportExportBar
-            title="Asset Allocation"
-            description="Portfolio split by asset type and by individual holding."
-            sheets={sheets}
-          />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
-          </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (
-          <>
-            <View className="gap-3 rounded-2xl bg-card p-4">
-              <AppText className="text-sm font-semibold">By Asset Type</AppText>
-              <CategoryBarList data={byAssetType} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Asset Allocation</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Portfolio split by asset type and holding</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        {/* By Asset Type */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>By Asset Type</Text>
+          {byAssetType.map((item) => (
+            <View key={item.name} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
+              <Text style={{ fontSize: 14 }}>{item.name}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>₹{item.value.toLocaleString("en-IN")}</Text>
             </View>
-            <View className="gap-3 rounded-2xl bg-card p-4">
-              <AppText className="text-sm font-semibold">By Holding</AppText>
-              <CategoryBarList data={byHolding} />
+          ))}
+          {!isLoading && byAssetType.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No asset types recorded yet.</Text>
+          )}
+        </View>
+
+        {/* By Holding */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>By Holding</Text>
+          {byHolding.map((item) => (
+            <View key={item.name} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
+              <Text style={{ fontSize: 14 }}>{item.name}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>₹{item.value.toLocaleString("en-IN")}</Text>
             </View>
-          </>
-        )}
+          ))}
+          {!isLoading && byHolding.length === 0 && (
+            <Text style={{ color: "#6b7280" }}>No holdings recorded yet.</Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

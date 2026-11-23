@@ -65,7 +65,7 @@ export function TransactionsCalendarView() {
               ) : (
                 <Pressable
                   key={cell.date}
-                  onPress={() => router.push({ pathname: "/(app)/transactions-date", params: { date: cell.date } })}
+                  onPress={() => router.push({ pathname: "/transactions-date", params: { date: cell.date } })}
                   style={{ width: "14.28%" }}
                   className="aspect-square items-center justify-center gap-1 active:opacity-70"
                 >

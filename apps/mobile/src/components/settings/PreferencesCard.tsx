@@ -100,7 +100,7 @@ export function PreferencesCard() {
             <Button
               variant="outline"
               size="sm"
-              onPress={() => router.push("/(app)/billing")}
+              onPress={() => router.push("/billing")}
             >
               Upgrade
             </Button>

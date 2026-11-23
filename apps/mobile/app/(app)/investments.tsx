@@ -1,251 +1,159 @@
-import { useCallback, useEffect, useState } from "react";
-import { Alert, FlatList, View } from "react-native";
+import { useState } from "react";
+import { View, Text, FlatList, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { Plus, TrendingUp, UploadCloud, Briefcase, Lock } from "lucide-react-native";
-import { useQueryClient } from "@tanstack/react-query";
 import { useInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSupabaseClient } from "@/hooks/useSupabaseClient";
-import { useEntitlements } from "@/hooks/useEntitlements";
-import type { InvestmentLogInput } from "@repo/shared/schemas";
-import type { getInvestmentLog } from "@repo/shared/queries/investmentLog";
-import { getInvestmentLogForDedup, createInvestmentLogsBulk } from "@repo/shared/queries/investmentLog";
-import { buildNameIndex, buildInvestmentLogImportPlan, INVESTMENT_LOG_TEMPLATE_COLUMNS } from "@repo/shared";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Button } from "@/components/common/Button";
-import { EmptyState } from "@/components/common/EmptyState";
-import { AppText } from "@/components/common/AppText";
-import { InvestmentLogListItem } from "@/components/investments/InvestmentLogListItem";
-import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
-import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
-import { ImportSheet } from "@/components/shared/ImportSheet";
-import { BrokerImportSheet } from "@/components/shared/BrokerImportSheet";
-import { useThemeColor } from "@/lib/colors";
 
-type InvestmentLogEntry = NonNullable<Awaited<ReturnType<typeof getInvestmentLog>>>[number];
-
+/**
+ * Headless Investments Container
+ * Functional data container for logging and listing BUY/SELL/SIP trades.
+ */
 export default function InvestmentsScreen() {
-  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const [items, setItems] = useState<InvestmentLogEntry[]>([]);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editing, setEditing] = useState<InvestmentLogEntry | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [brokerImportOpen, setBrokerImportOpen] = useState(false);
-  const [preparingImport, setPreparingImport] = useState(false);
-  const [existingKeys, setExistingKeys] = useState<string[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [symbol, setSymbol] = useState("");
+  const [action, setAction] = useState<"BUY" | "SELL">("BUY");
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
 
-  const { user } = useAuth();
-  const supabase = useSupabaseClient();
-  const { hasFeature } = useEntitlements();
-  const foreground = useThemeColor("foreground");
   const { data: accounts } = useAccounts(true);
-  const { data, isLoading, error, createInvestmentLog, updateInvestmentLog, deleteInvestmentLog } = useInvestmentLog({
-    page,
-  });
+  const { data, isLoading, error, createInvestmentLog, deleteInvestmentLog } = useInvestmentLog({ page });
 
-  function openBrokerImport() {
-    if (!hasFeature("brokerImport")) {
-      Alert.alert("Pro feature", "Broker import is a Pro feature.", [
-        { text: "Not now", style: "cancel" },
-        { text: "View plans", onPress: () => router.push("/(app)/billing") },
-      ]);
+  async function handleCreate() {
+    if (!symbol.trim() || !quantity || !price) {
+      Alert.alert("Missing Fields", "Please provide symbol, quantity, and unit price.");
       return;
     }
-    setBrokerImportOpen(true);
+    const defaultAccount = accounts?.[0];
+    await createInvestmentLog({
+      symbol: symbol.trim().toUpperCase(),
+      action,
+      quantity: Number(quantity),
+      price: Number(price),
+      date: new Date().toISOString().split("T")[0],
+      linked_account_id: defaultAccount?.id || "",
+      exchange: "NSE",
+      asset_type: "Stock",
+      fees: 0,
+    });
+    setSymbol("");
+    setQuantity("");
+    setPrice("");
+    setShowAdd(false);
   }
 
-  async function openImport() {
-    if (!user) return;
-    setPreparingImport(true);
-    try {
-      const existing = await getInvestmentLogForDedup(supabase, user.id);
-      setExistingKeys((existing ?? []).map((i) => `${i.date}|${i.symbol}|${Number(i.quantity)}|${Number(i.price)}`));
-      setImportOpen(true);
-    } finally {
-      setPreparingImport(false);
-    }
+  function handleDelete(id: string) {
+    Alert.alert("Delete Trade", "Are you sure you want to remove this trade log?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteInvestmentLog(id) },
+    ]);
   }
 
-  useEffect(() => {
-    if (!data) return;
-    setItems((prev) => (page === 0 ? data : [...prev, ...data]));
-  }, [data, page]);
-
-  const hasMore = (data?.length ?? 0) >= 50;
-  const handleLoadMore = useCallback(() => {
-    if (hasMore && !isLoading) setPage((p) => p + 1);
-  }, [hasMore, isLoading]);
-
-  const handleDelete = useCallback(
-    (id: string) => {
-      Alert.alert("Delete investment?", "This can't be undone.", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            deleteInvestmentLog(id);
-            setItems((prev) => prev.filter((i) => i.id !== id));
-          },
-        },
-      ]);
-    },
-    [deleteInvestmentLog]
-  );
-
-  const handleEdit = useCallback(
-    (id: string) => {
-      setEditing(items.find((i) => i.id === id) ?? null);
-      setSheetOpen(true);
-    },
-    [items]
-  );
-
-  async function handleSubmit(data: InvestmentLogInput) {
-    if (editing) {
-      await updateInvestmentLog({ id: editing.id, data });
-    } else {
-      await createInvestmentLog(data);
-    }
-    setSheetOpen(false);
-    setEditing(null);
-    setPage(0);
-  }
-
-  const showEmptyState = !isLoading && page === 0 && items.length === 0;
+  const logs = data ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <View className="gap-4 p-4 pb-0">
-        <PageHeader
-          title="Investment Log"
-          description="Every buy, sell, SIP, dividend, bonus, and split event."
-          action={
-            <View className="flex-row items-center gap-2">
-              <Button variant="outline" className="size-11 px-0" onPress={openImport} disabled={preparingImport}>
-                <UploadCloud size={16} color={foreground} />
-              </Button>
-              <Button variant="outline" className="size-11 px-0" onPress={openBrokerImport}>
-                {hasFeature("brokerImport") ? <Briefcase size={16} color={foreground} /> : <Lock size={16} color={foreground} />}
-              </Button>
-              <Button
-                onPress={() => {
-                  setEditing(null);
-                  setSheetOpen(true);
-                }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb", gap: 12 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: "bold" }}>Investment Log</Text>
+            <Text style={{ fontSize: 13, color: "#6b7280" }}>{logs.length} trade records</Text>
+          </View>
+          <Pressable
+            onPress={() => setShowAdd(!showAdd)}
+            style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#2563eb", borderRadius: 6 }}
+          >
+            <Text style={{ color: "#ffffff", fontWeight: "600" }}>{showAdd ? "Cancel" : "+ Log Trade"}</Text>
+          </Pressable>
+        </View>
+
+        {showAdd && (
+          <View style={{ padding: 12, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, gap: 8 }}>
+            <Text style={{ fontWeight: "600" }}>New Trade</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={() => setAction("BUY")}
+                style={{ padding: 8, backgroundColor: action === "BUY" ? "#16a34a" : "#f3f4f6", borderRadius: 4 }}
               >
-                <Plus size={16} color="white" />
-                <AppText className="text-sm font-medium text-primary-foreground">Add</AppText>
-              </Button>
+                <Text style={{ color: action === "BUY" ? "#ffffff" : "#000000" }}>BUY</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setAction("SELL")}
+                style={{ padding: 8, backgroundColor: action === "SELL" ? "#dc2626" : "#f3f4f6", borderRadius: 4 }}
+              >
+                <Text style={{ color: action === "SELL" ? "#ffffff" : "#000000" }}>SELL</Text>
+              </Pressable>
             </View>
-          }
-        />
+            <TextInput
+              placeholder="Symbol (e.g. RELIANCE, NIFTYBEES)"
+              value={symbol}
+              onChangeText={setSymbol}
+              autoCapitalize="characters"
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                placeholder="Quantity"
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+                style={{ flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+              />
+              <TextInput
+                placeholder="Price (₹)"
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="numeric"
+                style={{ flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+              />
+            </View>
+            <Pressable
+              onPress={handleCreate}
+              style={{ padding: 10, backgroundColor: "#16a34a", borderRadius: 6, alignItems: "center" }}
+            >
+              <Text style={{ color: "#ffffff", fontWeight: "600" }}>Save Trade</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
-      {error ? (
-        <View className="p-4">
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
+      {isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
+      {error && (
+        <View style={{ margin: 16, padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
+          <Text style={{ color: "#b91c1c" }}>{error.message}</Text>
         </View>
-      ) : showEmptyState ? (
-        <View className="p-4">
-          <EmptyState
-            icon={TrendingUp}
-            title="No investments yet"
-            description="Log your first buy, SIP, or dividend to start tracking your portfolio."
-            action={
-              <Button onPress={() => setSheetOpen(true)}>
-                <Plus size={16} color="white" />
-                <AppText className="text-sm font-medium text-primary-foreground">Add Investment</AppText>
-              </Button>
-            }
-          />
-        </View>
-      ) : isLoading && items.length === 0 ? (
-        <TransactionListSkeleton />
-      ) : (
-        <FlatList
-          className="mt-2"
-          contentContainerStyle={{ paddingBottom: 128 }}
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <InvestmentLogListItem
-              investment={{
-                id: item.id,
-                date: item.date,
-                symbol: item.symbol,
-                action: item.action,
-                quantity: item.quantity,
-                price: item.price,
-                fees: item.fees,
-                accountName: item.linked_account?.name ?? null,
-              }}
-              onPress={handleEdit}
-              onDelete={handleDelete}
-            />
-          )}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={isLoading && page > 0 ? <TransactionListSkeleton /> : null}
-        />
       )}
 
-      <AddInvestmentSheet
-        visible={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false);
-          setEditing(null);
-        }}
-        onSubmit={handleSubmit}
-        accounts={accounts ?? []}
-        editing={
-          editing
-            ? {
-                date: editing.date,
-                symbol: editing.symbol,
-                exchange: editing.exchange,
-                action: editing.action,
-                quantity: editing.quantity,
-                price: editing.price,
-                fees: editing.fees,
-                bonus_split_extra_units: editing.bonus_split_extra_units ?? undefined,
-                linked_account_id: editing.linked_account_id,
-                asset_type: editing.asset_type,
-                notes: editing.notes ?? undefined,
-              }
-            : undefined
-        }
-      />
-
-      <ImportSheet
-        visible={importOpen}
-        onClose={() => setImportOpen(false)}
-        entityLabel="investment log"
-        templateColumns={INVESTMENT_LOG_TEMPLATE_COLUMNS}
-        buildPlan={(records) => buildInvestmentLogImportPlan(records, buildNameIndex(accounts ?? []), existingKeys)}
-        createBulk={(rows) => (user ? createInvestmentLogsBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
-        onImported={() => {
-          setPage(0);
-          queryClient.invalidateQueries({ queryKey: ["investmentLog"] });
-          queryClient.invalidateQueries({ queryKey: ["allInvestmentLog"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["accounts"] });
-        }}
-      />
-
-      <BrokerImportSheet
-        visible={brokerImportOpen}
-        onClose={() => setBrokerImportOpen(false)}
-        onImported={() => {
-          setPage(0);
-          queryClient.invalidateQueries({ queryKey: ["investmentLog"] });
-          queryClient.invalidateQueries({ queryKey: ["allInvestmentLog"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["accounts"] });
-        }}
+      <FlatList
+        data={logs}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              padding: 12,
+              borderWidth: 1,
+              borderColor: "#e5e7eb",
+              borderRadius: 6,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View style={{ gap: 2 }}>
+              <Text style={{ fontWeight: "bold" }}>{item.symbol}</Text>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                {item.date} &bull; {item.action} &bull; Qty: {item.quantity} @ ₹{item.price}
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end", gap: 4 }}>
+              <Text style={{ fontWeight: "600" }}>₹{(item.quantity * item.price).toLocaleString("en-IN")}</Text>
+              <Pressable onPress={() => handleDelete(item.id)}>
+                <Text style={{ fontSize: 12, color: "#ef4444" }}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       />
     </SafeAreaView>
   );

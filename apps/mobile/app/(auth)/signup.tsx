@@ -1,37 +1,23 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppText } from "@/components/common/AppText";
-import { TextField } from "@/components/common/TextField";
-import { Button } from "@/components/common/Button";
 
-/** Mirrors apps/web/src/app/signup/page.tsx — mobile now has its own sign-up rather than
- * assuming every user signed up on web, alongside anonymous sign-in as an entry point. */
+/**
+ * Headless Signup Container
+ * Functional registration container.
+ */
 export default function SignupScreen() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  async function handleGoogleSignIn() {
-    setError(null);
-    setGoogleLoading(true);
-    const { error, cancelled } = await signInWithGoogle();
-    setGoogleLoading(false);
-    if (cancelled) return;
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    router.replace("/(app)/dashboard");
-  }
-
-  async function handleSubmit() {
+  async function handleSignup() {
     setError(null);
     if (password !== confirmPassword) {
       setError("Passwords don't match.");
@@ -41,75 +27,96 @@ export default function SignupScreen() {
       setError("Password must be at least 6 characters.");
       return;
     }
-    setSubmitting(true);
-    const { user, session, error } = await signUp(email, password);
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
+    setLoading(true);
+    const { session, error: err } = await signUp(email, password);
+    setLoading(false);
+    if (err) {
+      setError(err.message);
       return;
     }
-
-    // Supabase never errors on a duplicate email at signUp (that would let an attacker probe
-    // which emails are registered) — instead it returns a user with no identities.
-    if (user && user.identities?.length === 0) {
-      setError("An account with this email already exists — try logging in instead.");
-      return;
-    }
-
     if (session) {
-      // Email confirmation isn't required on this project — the account is already active.
-      router.replace("/(app)/dashboard");
-      return;
+      router.replace("/dashboard");
+    } else {
+      setDone(true);
     }
-
-    setDone(true);
   }
 
   if (done) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-background p-8">
-        <AppText className="text-2xl font-bold tracking-tight">Check your email</AppText>
-        <AppText className="text-center text-sm text-muted-foreground">
-          Confirm the link we sent to {email} to finish creating your account.
-        </AppText>
-        <Button onPress={() => router.replace("/(auth)/login")}>Back to Login</Button>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
+        <View style={{ gap: 12, alignItems: "center" }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Check your email</Text>
+          <Text style={{ color: "#6b7280", textAlign: "center" }}>
+            A confirmation link was sent to {email}. Follow the link to finish setting up your account.
+          </Text>
+          <Pressable onPress={() => router.replace("/login")} style={{ marginTop: 12 }}>
+            <Text style={{ color: "#2563eb", fontWeight: "600" }}>Back to Sign In</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="flex-1 justify-center gap-6 p-6">
-        <View className="gap-1.5">
-          <AppText className="text-2xl font-bold tracking-tight">Create your account</AppText>
-          <AppText className="text-sm text-muted-foreground">Start tracking your finances.</AppText>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
+      <View style={{ gap: 16 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 28, fontWeight: "bold" }}>Create Account</Text>
+          <Text style={{ fontSize: 14, color: "#6b7280" }}>Start tracking your Indian wealth portfolio</Text>
         </View>
 
-        <View className="gap-4">
-          <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
-          <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
-          <TextField label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholder="••••••••" />
-          {error && <AppText className="text-sm text-destructive">{error}</AppText>}
+        {error && (
+          <View style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
+            <Text style={{ color: "#b91c1c" }}>{error}</Text>
+          </View>
+        )}
+
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>Email</Text>
+          <TextInput
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
+          />
         </View>
 
-        <Button onPress={handleSubmit} disabled={submitting || !email || !password || !confirmPassword}>
-          {submitting ? "Creating account..." : "Sign up"}
-        </Button>
-
-        <View className="flex-row items-center gap-3">
-          <View className="h-px flex-1 bg-border" />
-          <AppText className="text-xs uppercase text-muted-foreground">Or continue with</AppText>
-          <View className="h-px flex-1 bg-border" />
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>Password</Text>
+          <TextInput
+            placeholder="At least 6 characters"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
+          />
         </View>
 
-        <Button variant="outline" onPress={handleGoogleSignIn} disabled={googleLoading}>
-          {googleLoading ? "Signing in..." : "Google"}
-        </Button>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>Confirm Password</Text>
+          <TextInput
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
+          />
+        </View>
 
-        <Button variant="ghost" onPress={() => router.replace("/(auth)/login")}>
-          Already have an account? Log in
-        </Button>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <Pressable
+          disabled={loading}
+          onPress={handleSignup}
+          style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center" }}
+        >
+          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={{ color: "#ffffff", fontWeight: "600" }}>Sign Up</Text>}
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/login")} style={{ alignItems: "center", paddingTop: 8 }}>
+          <Text style={{ color: "#2563eb", fontSize: 13 }}>Already have an account? Sign In</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }

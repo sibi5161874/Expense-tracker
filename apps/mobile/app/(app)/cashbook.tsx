@@ -1,224 +1,156 @@
-import { useCallback, useEffect, useState } from "react";
-import { Alert, FlatList, View } from "react-native";
+import { useState } from "react";
+import { View, Text, FlatList, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, Users, UploadCloud } from "lucide-react-native";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCashbook } from "@/hooks/useCashbook";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSupabaseClient } from "@/hooks/useSupabaseClient";
-import type { CashbookInput } from "@repo/shared/schemas";
-import type { getCashbook } from "@repo/shared/queries/cashbook";
-import { getCashbookForDedup, createCashbookBulk } from "@repo/shared/queries/cashbook";
-import { buildNameIndex, buildCashbookImportPlan, CASHBOOK_TEMPLATE_COLUMNS } from "@repo/shared";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Button } from "@/components/common/Button";
-import { EmptyState } from "@/components/common/EmptyState";
-import { AppText } from "@/components/common/AppText";
-import { CounterpartySummaryCard } from "@/components/cashbook/CounterpartySummaryCard";
-import { CashbookListItem } from "@/components/cashbook/CashbookListItem";
-import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
-import { AddCashbookSheet } from "@/components/cashbook/AddCashbookSheet";
-import { ImportSheet } from "@/components/shared/ImportSheet";
-import { useThemeColor } from "@/lib/colors";
 
-type CashbookEntry = NonNullable<Awaited<ReturnType<typeof getCashbook>>>[number];
-
+/**
+ * Headless Cashbook Container
+ * Pure functional data container for counterparty balances and debit/credit flow.
+ */
 export default function CashbookScreen() {
-  const queryClient = useQueryClient();
-  const [page, setPage] = useState(0);
-  const [items, setItems] = useState<CashbookEntry[]>([]);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editing, setEditing] = useState<CashbookEntry | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [preparingImport, setPreparingImport] = useState(false);
-  const [existingKeys, setExistingKeys] = useState<string[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [counterparty, setCounterparty] = useState("");
+  const [amount, setAmount] = useState("");
+  const [flow, setFlow] = useState<"Gave" | "Received">("Gave");
+  const [notes, setNotes] = useState("");
 
-  const { user } = useAuth();
-  const supabase = useSupabaseClient();
-  const foreground = useThemeColor("foreground");
   const { data: accounts } = useAccounts(true);
-  const { data, summary, isLoading, error, createCashbook, updateCashbook, deleteCashbook } = useCashbook({ page });
+  const { data: entries, isLoading, error, createCashbook, deleteCashbook } = useCashbook();
 
-  async function openImport() {
-    if (!user) return;
-    setPreparingImport(true);
-    try {
-      const existing = await getCashbookForDedup(supabase, user.id);
-      setExistingKeys((existing ?? []).map((c) => `${c.date}|${c.counterparty.toLowerCase()}|${Number(c.amount)}|${c.flow}`));
-      setImportOpen(true);
-    } finally {
-      setPreparingImport(false);
+  async function handleCreate() {
+    if (!counterparty.trim() || !amount) {
+      Alert.alert("Missing Fields", "Please enter counterparty name and amount.");
+      return;
     }
+    const defaultAccount = accounts?.[0];
+    await createCashbook({
+      counterparty: counterparty.trim(),
+      amount: Number(amount),
+      flow,
+      notes: notes || undefined,
+      date: new Date().toISOString().split("T")[0],
+      account_used_id: defaultAccount?.id,
+    });
+    setCounterparty("");
+    setAmount("");
+    setNotes("");
+    setShowAdd(false);
   }
 
-  useEffect(() => {
-    if (!data) return;
-    setItems((prev) => (page === 0 ? data : [...prev, ...data]));
-  }, [data, page]);
-
-  const hasMore = (data?.length ?? 0) >= 50;
-  const handleLoadMore = useCallback(() => {
-    if (hasMore && !isLoading) setPage((p) => p + 1);
-  }, [hasMore, isLoading]);
-
-  const handleDelete = useCallback(
-    (id: string) => {
-      Alert.alert("Delete entry?", "This can't be undone.", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            deleteCashbook(id);
-            setItems((prev) => prev.filter((c) => c.id !== id));
-          },
-        },
-      ]);
-    },
-    [deleteCashbook]
-  );
-
-  const handleEdit = useCallback(
-    (id: string) => {
-      setEditing(items.find((c) => c.id === id) ?? null);
-      setSheetOpen(true);
-    },
-    [items]
-  );
-
-  async function handleSubmit(data: CashbookInput) {
-    if (editing) {
-      await updateCashbook({ id: editing.id, data });
-    } else {
-      await createCashbook(data);
-    }
-    setSheetOpen(false);
-    setEditing(null);
-    setPage(0);
+  function handleDelete(id: string) {
+    Alert.alert("Delete Entry", "Are you sure you want to delete this cashbook record?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteCashbook(id) },
+    ]);
   }
-
-  const showEmptyState = !isLoading && page === 0 && items.length === 0;
-  const summaryEntries = summary ? Object.entries(summary) : [];
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <View className="gap-4 p-4 pb-0">
-        <PageHeader
-          title="Cashbook"
-          description="Track personal lending and borrowing."
-          action={
-            <View className="flex-row items-center gap-2">
-              <Button variant="outline" className="size-11 px-0" onPress={openImport} disabled={preparingImport}>
-                <UploadCloud size={16} color={foreground} />
-              </Button>
-              <Button
-                onPress={() => {
-                  setEditing(null);
-                  setSheetOpen(true);
-                }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb", gap: 12 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: "bold" }}>Cashbook</Text>
+            <Text style={{ fontSize: 13, color: "#6b7280" }}>{entries?.length ?? 0} active entries</Text>
+          </View>
+          <Pressable
+            onPress={() => setShowAdd(!showAdd)}
+            style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#2563eb", borderRadius: 6 }}
+          >
+            <Text style={{ color: "#ffffff", fontWeight: "600" }}>{showAdd ? "Cancel" : "+ Add Entry"}</Text>
+          </Pressable>
+        </View>
+
+        {showAdd && (
+          <View style={{ padding: 12, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, gap: 8 }}>
+            <Text style={{ fontWeight: "600" }}>New Cashbook Record</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={() => setFlow("Gave")}
+                style={{ padding: 8, backgroundColor: flow === "Gave" ? "#dc2626" : "#f3f4f6", borderRadius: 4 }}
               >
-                <Plus size={16} color="white" />
-                <AppText className="text-sm font-medium text-primary-foreground">Add</AppText>
-              </Button>
+                <Text style={{ color: flow === "Gave" ? "#ffffff" : "#000000" }}>You Gave</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setFlow("Received")}
+                style={{ padding: 8, backgroundColor: flow === "Received" ? "#16a34a" : "#f3f4f6", borderRadius: 4 }}
+              >
+                <Text style={{ color: flow === "Received" ? "#ffffff" : "#000000" }}>You Got</Text>
+              </Pressable>
             </View>
-          }
-        />
+            <TextInput
+              placeholder="Counterparty Name (e.g. Ramesh)"
+              value={counterparty}
+              onChangeText={setCounterparty}
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
+            <TextInput
+              placeholder="Amount (₹)"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
+            <TextInput
+              placeholder="Notes / Purpose"
+              value={notes}
+              onChangeText={setNotes}
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
+            <Pressable
+              onPress={handleCreate}
+              style={{ padding: 10, backgroundColor: "#16a34a", borderRadius: 6, alignItems: "center" }}
+            >
+              <Text style={{ color: "#ffffff", fontWeight: "600" }}>Save Entry</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
-      {error ? (
-        <View className="p-4">
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
+      {isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
+      {error && (
+        <View style={{ margin: 16, padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
+          <Text style={{ color: "#b91c1c" }}>{error.message}</Text>
         </View>
-      ) : showEmptyState ? (
-        <View className="p-4">
-          <EmptyState
-            icon={Users}
-            title="No cashbook entries yet"
-            description="Log your first lending or borrowing entry to start tracking."
-            action={
-              <Button onPress={() => setSheetOpen(true)}>
-                <Plus size={16} color="white" />
-                <AppText className="text-sm font-medium text-primary-foreground">Add Entry</AppText>
-              </Button>
-            }
-          />
-        </View>
-      ) : isLoading && items.length === 0 ? (
-        <TransactionListSkeleton />
-      ) : (
-        <FlatList
-          className="mt-2"
-          contentContainerStyle={{ paddingBottom: 128 }}
-          data={items}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            summaryEntries.length > 0 ? (
-              <View className="gap-3 px-4 pb-4">
-                {summaryEntries.map(([counterparty, item]) => (
-                  <CounterpartySummaryCard key={counterparty} counterparty={counterparty} {...item} />
-                ))}
-              </View>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <CashbookListItem
-              entry={{
-                id: item.id,
-                date: item.date,
-                counterparty: item.counterparty,
-                flow: item.flow,
-                amount: item.amount,
-                dueDate: item.due_date,
-              }}
-              onPress={handleEdit}
-              onDelete={handleDelete}
-            />
-          )}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={isLoading && page > 0 ? <TransactionListSkeleton /> : null}
-        />
       )}
 
-      <AddCashbookSheet
-        visible={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false);
-          setEditing(null);
-        }}
-        onSubmit={handleSubmit}
-        accounts={accounts ?? []}
-        editing={
-          editing
-            ? {
-                date: editing.date,
-                counterparty: editing.counterparty,
-                flow: editing.flow,
-                amount: editing.amount,
-                due_date: editing.due_date ?? undefined,
-                account_used_id: editing.account_used_id ?? undefined,
-                loan_id: editing.loan_id ?? undefined,
-                notes: editing.notes ?? undefined,
-              }
-            : undefined
-        }
-      />
-
-      <ImportSheet
-        visible={importOpen}
-        onClose={() => setImportOpen(false)}
-        entityLabel="cashbook"
-        templateColumns={CASHBOOK_TEMPLATE_COLUMNS}
-        buildPlan={(records) => buildCashbookImportPlan(records, buildNameIndex(accounts ?? []), existingKeys)}
-        createBulk={(rows) => (user ? createCashbookBulk(supabase, user.id, rows) : Promise.reject(new Error("Not authenticated")))}
-        onImported={() => {
-          setPage(0);
-          queryClient.invalidateQueries({ queryKey: ["cashbook"] });
-          queryClient.invalidateQueries({ queryKey: ["cashbookSummary"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["accounts"] });
-        }}
+      <FlatList
+        data={entries ?? []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              padding: 12,
+              borderWidth: 1,
+              borderColor: "#e5e7eb",
+              borderRadius: 6,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View style={{ gap: 2 }}>
+              <Text style={{ fontWeight: "bold" }}>{item.counterparty}</Text>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                {item.date} &bull; {item.flow === "Received" ? "You Got" : "You Gave"} {item.notes ? `• ${item.notes}` : ""}
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end", gap: 4 }}>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  color: item.flow === "Received" ? "#16a34a" : "#dc2626",
+                }}
+              >
+                {item.flow === "Received" ? "+" : "-"}₹{Number(item.amount).toLocaleString("en-IN")}
+              </Text>
+              <Pressable onPress={() => handleDelete(item.id)}>
+                <Text style={{ fontSize: 12, color: "#ef4444" }}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       />
     </SafeAreaView>
   );

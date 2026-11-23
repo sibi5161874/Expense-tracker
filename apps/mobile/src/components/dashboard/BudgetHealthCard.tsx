@@ -51,7 +51,7 @@ export function BudgetHealthCard() {
       {rows.length === 0 ? (
         <AppText className="text-sm text-muted-foreground">
           No budget limits set yet.{" "}
-          <AppText className="text-sm text-primary" onPress={() => router.push("/(app)/config")}>
+          <AppText className="text-sm text-primary" onPress={() => router.push("/config")}>
             Add some in Config
           </AppText>{" "}
           to track spend against a monthly cap.

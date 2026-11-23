@@ -1,4 +1,4 @@
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL;
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://kashmap.in";
 
 /**
  * Calls one of apps/web's Next.js API routes with the mobile Supabase session's access
@@ -9,9 +9,6 @@ const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL;
  * benchmark history) — these need no mobile-specific backend, just this one auth bridge.
  */
 export async function fetchWebApi<T>(path: string, accessToken: string): Promise<T> {
-  if (!WEB_APP_URL) {
-    throw new Error("EXPO_PUBLIC_WEB_APP_URL is not configured.");
-  }
   const res = await fetch(`${WEB_APP_URL}${path}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -21,9 +18,6 @@ export async function fetchWebApi<T>(path: string, accessToken: string): Promise
 }
 
 export async function postWebApi<T, B = unknown>(path: string, body: B, accessToken: string): Promise<T> {
-  if (!WEB_APP_URL) {
-    throw new Error("EXPO_PUBLIC_WEB_APP_URL is not configured.");
-  }
   const res = await fetch(`${WEB_APP_URL}${path}`, {
     method: "POST",
     headers: {
@@ -36,4 +30,3 @@ export async function postWebApi<T, B = unknown>(path: string, body: B, accessTo
   if (!res.ok) throw new Error(data.error ?? "Request failed");
   return data as T;
 }
-

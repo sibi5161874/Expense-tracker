@@ -1,186 +1,133 @@
-import { useEffect, useState } from "react";
-import { ScrollView, View, ActivityIndicator, Alert } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera } from "lucide-react-native";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import { useAvatarUrl } from "@/hooks/useAvatarUrl";
-import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 import { useAuth } from "@/contexts/AuthContext";
-import { userProfileSchema, type UserProfileInput } from "@repo/shared/schemas";
-import { parseSupabaseError } from "@repo/shared/utils";
-import { PageHeader } from "@/components/common/PageHeader";
-import { TextField } from "@/components/common/TextField";
-import { Button } from "@/components/common/Button";
-import { AppText } from "@/components/common/AppText";
-import { Avatar } from "@/components/common/Avatar";
-import { AnonymousUpgradeCard } from "@/components/settings/AnonymousUpgradeCard";
-import { AppearanceCard } from "@/components/settings/AppearanceCard";
-import { PreferencesCard } from "@/components/settings/PreferencesCard";
-import { DataManagementCard } from "@/components/settings/DataManagementCard";
-import { useThemeColor } from "@/lib/colors";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useThemePreference } from "@/hooks/useThemePreference";
 
-function AvatarUploader() {
-  const { user } = useAuth();
-  const avatarUrl = useAvatarUrl();
-  const { pickAndUploadAvatar, isUploading } = useAvatarUpload();
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
-  const foreground = useThemeColor("foreground");
-
-  async function handlePick() {
-    try {
-      await pickAndUploadAvatar();
-    } catch (error) {
-      Alert.alert("Upload failed", error instanceof Error ? error.message : "Could not upload profile picture.");
-    }
-  }
-
-  return (
-    <View className="flex-row items-center gap-4 py-2">
-      <Avatar url={avatarUrl} initials={initials} size={64} />
-      <View className="flex-1 gap-1.5">
-        <Button
-          variant="outline"
-          size="sm"
-          onPress={handlePick}
-          disabled={isUploading}
-        >
-          <View className="flex-row items-center gap-2">
-            <Camera size={16} color={foreground} />
-            <AppText className="text-sm font-medium text-foreground">
-              {isUploading ? "Uploading..." : "Change photo"}
-            </AppText>
-          </View>
-        </Button>
-        <AppText className="text-xs text-muted-foreground">JPG or PNG, up to 3MB.</AppText>
-      </View>
-    </View>
-  );
-}
-
+/**
+ * Headless Settings Container
+ * Pure functional data container for user profile, theme preference, and account controls.
+ */
 export default function SettingsScreen() {
-  const { isAnonymous } = useAuth();
-  const { data: profile, isLoading, saveProfile, isSaving } = useUserProfile();
-  const [formError, setFormError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const primary = useThemeColor("primary");
+  const { user, signOut } = useAuth();
+  const { data: profile, isLoading, saveProfile } = useUserProfile();
+  const { preference, setPreference } = useThemePreference();
 
-  const form = useForm<UserProfileInput>({
-    resolver: zodResolver(userProfileSchema),
-    defaultValues: { number_of_dependents: 0, onboarding_completed: true },
-  });
+  const [income, setIncome] = useState("");
+  const [expense, setExpense] = useState("");
+  const [dependents, setDependents] = useState("0");
 
   useEffect(() => {
-    if (!profile) return;
-    form.reset({
-      date_of_birth: profile.date_of_birth ?? undefined,
-      monthly_income: profile.monthly_income ?? undefined,
-      monthly_expense: profile.monthly_expense ?? undefined,
-      number_of_dependents: profile.number_of_dependents,
-      onboarding_completed: true,
-    });
-  }, [profile, form]);
-
-  async function onSubmit(data: UserProfileInput) {
-    setFormError(null);
-    setSaved(false);
-    try {
-      await saveProfile({ ...data, onboarding_completed: true });
-      setSaved(true);
-    } catch (error) {
-      setFormError(parseSupabaseError(error as Error));
+    if (profile) {
+      setIncome(profile.monthly_income ? String(profile.monthly_income) : "");
+      setExpense(profile.monthly_expense ? String(profile.monthly_expense) : "");
+      setDependents(String(profile.number_of_dependents ?? 0));
     }
+  }, [profile]);
+
+  async function handleSaveProfile() {
+    await saveProfile({
+      monthly_income: income ? Number(income) : undefined,
+      monthly_expense: expense ? Number(expense) : undefined,
+      number_of_dependents: Number(dependents) || 0,
+    });
+    Alert.alert("Success", "Profile details saved successfully.");
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title="Settings" description="Your profile and app preferences." />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Settings & Profile</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Account information and financial preferences</Text>
+        </View>
 
-        {isAnonymous && <AnonymousUpgradeCard />}
+        {isLoading && <ActivityIndicator />}
 
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
+        {/* Account Info */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 6 }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase" }}>
+            Account Email
+          </Text>
+          <Text style={{ fontSize: 16, fontWeight: "600" }}>{user?.email || "Anonymous User"}</Text>
+          <Text style={{ fontSize: 12, color: "#6b7280" }}>User ID: {user?.id}</Text>
+        </View>
+
+        {/* Profile Details */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 10 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Financial Profile</Text>
+
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 12, color: "#6b7280" }}>Monthly Income (₹)</Text>
+            <TextInput
+              value={income}
+              onChangeText={setIncome}
+              keyboardType="numeric"
+              placeholder="e.g. 100000"
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
           </View>
-        ) : (
-          <View className="gap-4 rounded-2xl bg-card p-5">
-            <View>
-              <AppText className="text-sm font-semibold">Your Profile</AppText>
-              <AppText className="mt-1 text-sm text-muted-foreground">
-                Used to personalize the Financial Essentials Check on your Dashboard — recommended insurance cover
-                and emergency fund targets. Simplified estimates, not financial advice.
-              </AppText>
-            </View>
 
-            <AvatarUploader />
-
-            <Controller
-              control={form.control}
-              name="date_of_birth"
-              render={({ field, fieldState }) => (
-                <TextField label="Date of Birth" value={field.value ?? ""} onChangeText={field.onChange} placeholder="YYYY-MM-DD" error={fieldState.error?.message} />
-              )}
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 12, color: "#6b7280" }}>Monthly Expense (₹)</Text>
+            <TextInput
+              value={expense}
+              onChangeText={setExpense}
+              keyboardType="numeric"
+              placeholder="e.g. 50000"
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
             />
-
-            <Controller
-              control={form.control}
-              name="monthly_income"
-              render={({ field, fieldState }) => (
-                <TextField
-                  label="Monthly Income"
-                  keyboardType="decimal-pad"
-                  value={field.value != null ? String(field.value) : ""}
-                  onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
-                  placeholder="0.00"
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={form.control}
-              name="monthly_expense"
-              render={({ field, fieldState }) => (
-                <TextField
-                  label="Monthly Expense (estimate)"
-                  keyboardType="decimal-pad"
-                  value={field.value != null ? String(field.value) : ""}
-                  onChangeText={(t) => field.onChange(t ? Number(t) : undefined)}
-                  placeholder="0.00"
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={form.control}
-              name="number_of_dependents"
-              render={({ field, fieldState }) => (
-                <TextField
-                  label="Number of Dependents"
-                  keyboardType="decimal-pad"
-                  value={String(field.value ?? 0)}
-                  onChangeText={(t) => field.onChange(t ? Number(t) : 0)}
-                  placeholder="0"
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-
-            {formError && <AppText className="text-sm text-destructive">{formError}</AppText>}
-            {saved && !formError && <AppText className="text-sm text-success">Profile saved.</AppText>}
-
-            <Button onPress={form.handleSubmit(onSubmit)} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Profile"}
-            </Button>
           </View>
-        )}
 
-        <PreferencesCard />
-        <AppearanceCard />
-        <DataManagementCard />
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 12, color: "#6b7280" }}>Number of Dependents</Text>
+            <TextInput
+              value={dependents}
+              onChangeText={setDependents}
+              keyboardType="numeric"
+              placeholder="0"
+              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
+            />
+          </View>
+
+          <Pressable
+            onPress={handleSaveProfile}
+            style={{ padding: 10, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center", marginTop: 4 }}
+          >
+            <Text style={{ color: "#ffffff", fontWeight: "600" }}>Update Profile</Text>
+          </Pressable>
+        </View>
+
+        {/* Theme Setting */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Theme Preference</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["system", "light", "dark"] as const).map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => setPreference(t)}
+                style={{
+                  flex: 1,
+                  padding: 8,
+                  alignItems: "center",
+                  backgroundColor: preference === t ? "#2563eb" : "#f3f4f6",
+                  borderRadius: 6,
+                }}
+              >
+                <Text style={{ color: preference === t ? "#ffffff" : "#000000", textTransform: "capitalize" }}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Sign Out Action */}
+        <Pressable
+          onPress={signOut}
+          style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6, alignItems: "center" }}
+        >
+          <Text style={{ color: "#dc2626", fontWeight: "600" }}>Sign Out</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

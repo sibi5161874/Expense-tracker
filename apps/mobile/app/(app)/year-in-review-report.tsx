@@ -1,22 +1,17 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TrendingUp, TrendingDown, Calendar, Tag } from "lucide-react-native";
 import { useTransactionsInRange, yearRange } from "@/hooks/useReportsData";
-import { PageHeader } from "@/components/common/PageHeader";
-import { AppText } from "@/components/common/AppText";
-import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
-import { CashFlowBars } from "@/components/dashboard/CashFlowBars";
-import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useThemeColor } from "@/lib/colors";
 
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/**
+ * Headless Year in Review Report Container
+ */
 export default function YearInReviewReportScreen() {
   const year = new Date().getFullYear();
   const { from, to } = yearRange(year);
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
-  const primary = useThemeColor("primary");
 
   const { chartData, totals, biggestMonth, topCategory } = useMemo(() => {
     const monthly = MONTH_LABELS.map((label, i) => ({ label, monthIndex: i, income: 0, expense: 0 }));
@@ -50,42 +45,60 @@ export default function YearInReviewReportScreen() {
     };
   }, [transactions]);
 
-  const kpis: KpiStatItem[] = [
-    { label: "Total Income", value: totals.income, icon: TrendingUp, tone: "success" },
-    { label: "Total Expense", value: totals.expense, icon: TrendingDown, tone: "destructive" },
-    { label: "Biggest Month", value: biggestMonth && biggestMonth.expense > 0 ? biggestMonth.label : "-", icon: Calendar, tone: "info" },
-    { label: "Top Category", value: topCategory?.[0] ?? "-", icon: Tag, tone: "warning" },
-  ];
-
-  const sheets = [
-    {
-      name: "Year in Review",
-      rows: chartData.map((m) => ({ Month: m.label, Income: m.income, Expense: m.expense })),
-    },
-  ];
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-32">
-        <PageHeader title="Year in Review" description={`${year} totals, biggest month, and top category.`} />
-        {!isLoading && (
-          <ReportExportBar title="Year in Review" description={`${year} totals, biggest month, and top category.`} sheets={sheets} />
-        )}
-        {isLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={primary} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Year in Review — {year}</Text>
+          <Text style={{ fontSize: 13, color: "#6b7280" }}>Annual cash flow totals, peak expense month, and top categories</Text>
+        </View>
+
+        {isLoading && <ActivityIndicator />}
+        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+
+        {/* Summary KPIs */}
+        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 10 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Total Income:</Text>
+            <Text style={{ fontWeight: "bold", color: "#16a34a" }}>₹{totals.income.toLocaleString("en-IN")}</Text>
           </View>
-        ) : error ? (
-          <AppText className="text-sm text-destructive">{error.message}</AppText>
-        ) : (
-          <>
-            <KpiGrid items={kpis} />
-            <View className="gap-3 rounded-2xl bg-card p-4">
-              <AppText className="text-sm font-semibold">Monthly Totals — {year}</AppText>
-              <CashFlowBars data={chartData} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Total Expenses:</Text>
+            <Text style={{ fontWeight: "bold", color: "#dc2626" }}>₹{totals.expense.toLocaleString("en-IN")}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Biggest Spending Month:</Text>
+            <Text style={{ fontWeight: "600" }}>{biggestMonth && biggestMonth.expense > 0 ? `${biggestMonth.label} (₹${biggestMonth.expense.toLocaleString("en-IN")})` : "-"}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: "#6b7280" }}>Top Expense Category:</Text>
+            <Text style={{ fontWeight: "600" }}>{topCategory ? `${topCategory[0]} (₹${topCategory[1].toLocaleString("en-IN")})` : "-"}</Text>
+          </View>
+        </View>
+
+        {/* Monthly Breakdown */}
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Monthly Breakdown</Text>
+          {chartData.map((m) => (
+            <View
+              key={m.label}
+              style={{
+                padding: 10,
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 6,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontWeight: "bold" }}>{m.label}</Text>
+              <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                In: +₹{m.income.toLocaleString("en-IN")} &bull; Out: -₹{m.expense.toLocaleString("en-IN")}
+              </Text>
             </View>
-          </>
-        )}
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

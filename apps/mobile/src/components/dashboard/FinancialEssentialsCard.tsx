@@ -30,7 +30,7 @@ export function FinancialEssentialsCard() {
           {score !== null && <StatusBadge tone={scoreTone(score)}>{`${score}/10`}</StatusBadge>}
         </View>
         {!hasProfileData && (
-          <AppText className="text-xs text-primary" onPress={() => router.push("/(app)/settings")}>
+          <AppText className="text-xs text-primary" onPress={() => router.push("/settings")}>
             Add income &amp; age
           </AppText>
         )}

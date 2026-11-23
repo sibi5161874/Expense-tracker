@@ -74,7 +74,7 @@ export function TaxLossHarvestingCard({ holdings }: { holdings: SymbolHolding[] 
       feature="taxLossHarvesting"
       title="Tax-Loss Harvesting"
       description="Find unrealized losses worth harvesting before the financial year closes."
-      onUpgradePress={() => router.push("/(app)/billing")}
+      onUpgradePress={() => router.push("/billing")}
     >
       {hasFeature("taxLossHarvesting") ? <TaxLossBody holdings={holdings} /> : <TaxLossBody holdings={PLACEHOLDER_LOSERS} />}
     </ProBlurredPreview>

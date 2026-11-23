@@ -26,7 +26,7 @@ export function HoldingsList({ holdings }: { holdings: SymbolHolding[] }) {
         return (
           <Pressable
             key={`${holding.symbol}-${holding.exchange}`}
-            onPress={() => router.push({ pathname: "/(app)/stock-detail", params: { symbol: holding.symbol } })}
+            onPress={() => router.push({ pathname: "/stock-detail", params: { symbol: holding.symbol } })}
             className={`gap-2 rounded-2xl bg-card p-4 active:opacity-70 ${isLoss ? "border-l-4 border-destructive" : ""}`}
           >
             <View className="flex-row items-center justify-between">
