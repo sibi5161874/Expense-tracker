@@ -301,7 +301,6 @@ Estate, Vehicles, EPF, and Loans/Liabilities — each with its own maturity/valu
 ## Deployment
 
 ### Vercel (Recommended)
-
 1. Connect your GitHub repository to Vercel
 2. Add environment variables in Vercel dashboard
 3. Deploy automatically on push to main branch
@@ -330,3 +329,5 @@ MIT License - see LICENSE file for details
 ## Support
 
 For issues and questions, please open an issue on GitHub.
+
+change test
