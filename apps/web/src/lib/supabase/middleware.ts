@@ -24,6 +24,11 @@ const PUBLIC_PATHS = [
   "/auth/callback",
   "/privacy",
   "/terms",
+  "/refund-policy",
+  "/sitemap.xml",
+  "/robots.txt",
+  // Synthetic health check for external uptime monitors (BetterStack, UptimeRobot)
+  "/api/health",
   // Google requests this directly as a static file to verify ad-serving authorization —
   // same bug class as the webhook/cron entries below: the matcher excludes common image
   // extensions but not .txt, so without this it 307s to /login before Next.js ever serves
@@ -110,6 +115,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user && !isPublicPath) {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      response.headers.set(REQUEST_ID_HEADER, requestId);
+      return response;
+    }
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     const response = NextResponse.redirect(loginUrl);

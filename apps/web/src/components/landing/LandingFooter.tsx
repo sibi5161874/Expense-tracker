@@ -33,6 +33,7 @@ export function LandingFooter() {
               <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
                 <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
+                <li><Link href="/refund-policy" className="hover:text-foreground transition-colors">Refund &amp; Cancellation</Link></li>
               </ul>
             </div>
           </div>

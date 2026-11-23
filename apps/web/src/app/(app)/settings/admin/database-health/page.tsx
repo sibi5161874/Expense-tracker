@@ -53,14 +53,11 @@ export default function DatabaseHealthPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.trim().toLowerCase();
-  const isAuthorized = !!user?.email && !!adminEmail && user.email.toLowerCase() === adminEmail;
-
   useEffect(() => {
-    if (!authLoading && (!user || !isAuthorized)) {
+    if (!authLoading && !user) {
       router.replace('/dashboard');
     }
-  }, [user, authLoading, adminEmail, router]);
+  }, [user, authLoading, router]);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<DbStatsResponse>({
     queryKey: ['admin', 'db-stats'],
@@ -76,7 +73,7 @@ export default function DatabaseHealthPage() {
       }
       return res.json();
     },
-    enabled: isAuthorized && !authLoading,
+    enabled: !!user && !authLoading,
     staleTime: 60_000,
   });
 

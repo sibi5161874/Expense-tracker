@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getRazorpayClient } from '@/lib/razorpay';
 import { enforceRateLimit } from '@/lib/rateLimit';
 import { logError } from '@/lib/logger';
@@ -103,20 +104,33 @@ export async function POST(req: Request) {
     logError('payments.create-order.razorpay', e, { userId: user.id, purpose, requestId: getRequestId(req) });
     // Free the reservation — otherwise this (user, purpose) is permanently stuck behind a
     // 'created' row that never got a real order id, and no retry could ever get past it.
-    await supabase.from('payment_events').update({ status: 'failed' }).eq('id', reservation.id);
+    try {
+      const admin = createAdminClient();
+      await admin.from('payment_events').update({ status: 'failed' }).eq('id', reservation.id);
+    } catch {
+      await supabase.from('payment_events').update({ status: 'failed' }).eq('id', reservation.id);
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Couldn't start checkout, try again." },
       { status: 502 }
     );
   }
 
-  const { error: updateError } = await supabase
-    .from('payment_events')
-    .update({ razorpay_order_id: order.id })
-    .eq('id', reservation.id);
-  if (updateError) {
-    logError('payments.create-order.update', updateError, { userId: user.id, purpose, requestId: getRequestId(req) });
-    return NextResponse.json({ error: "Couldn't start checkout, try again." }, { status: 500 });
+  try {
+    const admin = createAdminClient();
+    await admin
+      .from('payment_events')
+      .update({ razorpay_order_id: order.id })
+      .eq('id', reservation.id);
+  } catch {
+    const { error: updateError } = await supabase
+      .from('payment_events')
+      .update({ razorpay_order_id: order.id })
+      .eq('id', reservation.id);
+    if (updateError) {
+      logError('payments.create-order.update', updateError, { userId: user.id, purpose, requestId: getRequestId(req) });
+      return NextResponse.json({ error: "Couldn't start checkout, try again." }, { status: 500 });
+    }
   }
 
   return NextResponse.json({

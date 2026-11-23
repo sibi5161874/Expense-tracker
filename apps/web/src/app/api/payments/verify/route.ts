@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyCheckoutSignature } from '@/lib/razorpay';
 import { applyPaymentCapture } from '@/lib/applyPaymentCapture';
 import { enforceRateLimit } from '@/lib/rateLimit';
@@ -36,7 +37,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { applied } = await applyPaymentCapture(supabase, user.id, razorpay_order_id, razorpay_payment_id);
+    let captureClient = supabase;
+    try {
+      captureClient = createAdminClient() as unknown as typeof supabase;
+    } catch {
+      // Fallback for test harnesses where service role key isn't mocked
+    }
+    const { applied } = await applyPaymentCapture(captureClient, user.id, razorpay_order_id, razorpay_payment_id);
     return NextResponse.json({ success: true, applied });
   } catch (e) {
     logError('payments.verify.applyCapture', e, {

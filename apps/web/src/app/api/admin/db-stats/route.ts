@@ -17,10 +17,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminEmails = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   const userEmail = (user.email ?? '').trim().toLowerCase();
 
-  if (!adminEmail || userEmail !== adminEmail) {
+  if (adminEmails.length === 0 || !adminEmails.includes(userEmail)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

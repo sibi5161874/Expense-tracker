@@ -78,22 +78,14 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
       return;
     }
 
-    // Supabase never errors on a duplicate email at signUp (that would let an attacker probe
-    // which emails are registered) — instead it returns a user with no identities. Without
-    // checking for this, a returning user typing their real email would just see a generic
-    // "check your email" message and never learn they should log in instead.
-    if (user && user.identities?.length === 0) {
-      setFormError("An account with this email already exists — try logging in instead.");
-      return;
-    }
-
     if (session) {
       // Email confirmation isn't required on this project — the account is already active.
       router.push("/dashboard");
       return;
     }
 
-    setInfoMessage("Almost there — check your email for a confirmation link to finish creating your account.");
+    // Generic confirmation message to prevent account email enumeration attacks
+    setInfoMessage("If an account does not yet exist for this email, a confirmation link has been sent. Otherwise, you can log in.");
     form.reset();
   }
 
