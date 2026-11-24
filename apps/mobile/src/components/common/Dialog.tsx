@@ -1,9 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, Modal, Pressable, View } from "react-native";
+import { Animated, Easing, Modal, Pressable, View } from "react-native";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { useTheme } from "@/theme/ThemeProvider";
-import { motion } from "@/theme/tokens";
+import { m3Motion } from "@/theme/tokens";
 
 interface DialogProps {
   visible: boolean;
@@ -17,12 +17,19 @@ interface DialogProps {
   children?: ReactNode;
 }
 
+const dialogEasing = Easing.bezier(
+  m3Motion.easing.emphasized.x1,
+  m3Motion.easing.emphasized.y1,
+  m3Motion.easing.emphasized.x2,
+  m3Motion.easing.emphasized.y2
+);
+
 /**
  * Material 3 Dialog Component.
  * - 28dp corner radius (`rounded-3xl` / extra-large radius).
  * - Surface Container High background.
  * - Headline-small title typography.
- * - Pill-shaped actions with M3 spacing.
+ * - Pill-shaped actions with M3 spacing and emphasized easing.
  */
 export function Dialog({
   visible,
@@ -40,8 +47,19 @@ export function Dialog({
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(scale, { toValue: visible ? 1 : 0.92, duration: motion.duration.base, useNativeDriver: true }).start();
-    Animated.timing(opacity, { toValue: visible ? 1 : 0, duration: motion.duration.base, useNativeDriver: true }).start();
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: visible ? 1 : 0.92,
+        duration: visible ? m3Motion.duration.medium2 : m3Motion.duration.short3,
+        easing: dialogEasing,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: visible ? 1 : 0,
+        duration: visible ? m3Motion.duration.medium1 : m3Motion.duration.short2,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [visible, scale, opacity]);
 
   return (

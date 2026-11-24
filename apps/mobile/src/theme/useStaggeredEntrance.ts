@@ -1,16 +1,19 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing } from "react-native";
-import { motion } from "@/theme/tokens";
+import { m3Motion } from "@/theme/tokens";
 import { usePrefersReducedMotion } from "@/theme/usePrefersReducedMotion";
 
-const bezier = Easing.bezier(motion.easeOut.x1, motion.easeOut.y1, motion.easeOut.x2, motion.easeOut.y2);
+const m3EntranceBezier = Easing.bezier(
+  m3Motion.easing.emphasizedDecelerate.x1,
+  m3Motion.easing.emphasizedDecelerate.y1,
+  m3Motion.easing.emphasizedDecelerate.x2,
+  m3Motion.easing.emphasizedDecelerate.y2
+);
 
 /**
- * Fade + rise entrance for one item in a freshly-rendered list, staggered by `index` per the
- * brief's list-stagger spec (30ms/item, capped at 8 — item 50 landing 1.5s after item 1 reads
- * as broken, not delightful). Runs once on mount; re-fetched/paginated data re-mounting the
- * same row (same `key`) will replay it, which is the desired effect for a freshly loaded page.
- * Skips straight to the settled state when the OS "Reduce Motion" setting is on.
+ * Material 3 Staggered Entrance Animation.
+ * Fade + rise entrance staggered by `index` using M3 Emphasized Decelerate curve.
+ * 30ms interval capped at 8 items.
  */
 export function useStaggeredEntrance(index: number) {
   const progress = useRef(new Animated.Value(0)).current;
@@ -21,12 +24,12 @@ export function useStaggeredEntrance(index: number) {
       progress.setValue(1);
       return;
     }
-    const delay = Math.min(index, motion.staggerMaxItems - 1) * motion.staggerDelayMs;
+    const delay = Math.min(index, 7) * 30;
     const animation = Animated.timing(progress, {
       toValue: 1,
-      duration: motion.duration.slow,
+      duration: m3Motion.duration.medium2,
       delay,
-      easing: bezier,
+      easing: m3EntranceBezier,
       useNativeDriver: true,
     });
     animation.start();
@@ -35,6 +38,6 @@ export function useStaggeredEntrance(index: number) {
 
   return {
     opacity: progress,
-    transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+    transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
   };
 }

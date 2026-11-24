@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { Animated, Dimensions, Easing, Modal, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
-import { motion } from "@/theme/tokens";
+import { m3Motion } from "@/theme/tokens";
 
 interface BottomSheetProps {
   visible: boolean;
@@ -12,12 +12,26 @@ interface BottomSheetProps {
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
+const entranceEasing = Easing.bezier(
+  m3Motion.easing.emphasizedDecelerate.x1,
+  m3Motion.easing.emphasizedDecelerate.y1,
+  m3Motion.easing.emphasizedDecelerate.x2,
+  m3Motion.easing.emphasizedDecelerate.y2
+);
+
+const exitEasing = Easing.bezier(
+  m3Motion.easing.emphasizedAccelerate.x1,
+  m3Motion.easing.emphasizedAccelerate.y1,
+  m3Motion.easing.emphasizedAccelerate.x2,
+  m3Motion.easing.emphasizedAccelerate.y2
+);
+
 /**
  * Material 3 Bottom Sheet Component.
  * - 28dp top corners (`rounded-t-3xl` / M3 extra-large radius).
  * - 32x4dp drag handle on top.
  * - Resting surface container elevation.
- * - Smooth entrance with cubic-bezier easeOut curve.
+ * - Material 3 Emphasized Decelerate entrance (500ms) and Emphasized Accelerate exit (200ms).
  */
 export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   const { theme } = useTheme();
@@ -29,21 +43,29 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
-          duration: motion.duration.slow,
-          easing: Easing.bezier(motion.easeOut.x1, motion.easeOut.y1, motion.easeOut.x2, motion.easeOut.y2),
+          duration: m3Motion.duration.long2,
+          easing: entranceEasing,
           useNativeDriver: true,
         }),
-        Animated.timing(backdropOpacity, { toValue: 1, duration: motion.duration.base, useNativeDriver: true }),
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: m3Motion.duration.medium2,
+          useNativeDriver: true,
+        }),
       ]).start();
     } else {
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: SCREEN_HEIGHT,
-          duration: motion.duration.base,
-          easing: Easing.bezier(motion.easeIn.x1, motion.easeIn.y1, motion.easeIn.x2, motion.easeIn.y2),
+          duration: m3Motion.duration.short4,
+          easing: exitEasing,
           useNativeDriver: true,
         }),
-        Animated.timing(backdropOpacity, { toValue: 0, duration: motion.duration.fast, useNativeDriver: true }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: m3Motion.duration.short3,
+          useNativeDriver: true,
+        }),
       ]).start();
     }
   }, [visible, translateY, backdropOpacity]);
