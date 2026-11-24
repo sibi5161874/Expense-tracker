@@ -5,6 +5,7 @@ import {
   accents,
   neutrals,
   semantic,
+  m3Surfaces,
   DEFAULT_ACCENT,
   type AccentKey,
   type ThemeMode,
@@ -34,6 +35,8 @@ export interface ResolvedTheme {
   onPrimary: string;
   primaryContainer: string;
   onPrimaryContainer: string;
+  secondaryContainer: string;
+  onSecondaryContainer: string;
   success: string;
   successForeground: string;
   successSubtle: string;
@@ -46,6 +49,16 @@ export interface ResolvedTheme {
   info: string;
   infoForeground: string;
   infoSubtle: string;
+  /* Material 3 (M3) Surface & Outline Tokens */
+  surfaceContainerLowest: string;
+  surfaceContainerLow: string;
+  surfaceContainer: string;
+  surfaceContainerHigh: string;
+  surfaceContainerHighest: string;
+  onSurface: string;
+  onSurfaceVariant: string;
+  outline: string;
+  outlineVariant: string;
 }
 
 interface ThemeContextValue {
@@ -72,6 +85,7 @@ function resolveTheme(mode: ThemeMode, amoled: boolean, accent: AccentKey, dynam
   const n = mode === "dark" && amoled ? neutrals.amoled : neutrals[mode];
   const s = semantic[mode];
   const a = accents[accent][mode];
+  const m = mode === "dark" && amoled ? m3Surfaces.amoled : m3Surfaces[mode];
   return {
     mode,
     amoled,
@@ -86,6 +100,8 @@ function resolveTheme(mode: ThemeMode, amoled: boolean, accent: AccentKey, dynam
     onPrimary: a.onPrimary,
     primaryContainer: a.container,
     onPrimaryContainer: a.onContainer,
+    secondaryContainer: a.container,
+    onSecondaryContainer: a.onContainer,
     success: s.success,
     successForeground: s.successForeground,
     successSubtle: s.successSubtle,
@@ -98,6 +114,15 @@ function resolveTheme(mode: ThemeMode, amoled: boolean, accent: AccentKey, dynam
     info: s.info,
     infoForeground: s.infoForeground,
     infoSubtle: s.infoSubtle,
+    surfaceContainerLowest: m.surfaceContainerLowest,
+    surfaceContainerLow: m.surfaceContainerLow,
+    surfaceContainer: m.surfaceContainer,
+    surfaceContainerHigh: m.surfaceContainerHigh,
+    surfaceContainerHighest: m.surfaceContainerHighest,
+    onSurface: m.onSurface,
+    onSurfaceVariant: m.onSurfaceVariant,
+    outline: m.outline,
+    outlineVariant: m.outlineVariant,
   };
 }
 
@@ -166,6 +191,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         "--foreground": hexToTriplet(theme.foreground),
         "--muted-foreground": hexToTriplet(theme.mutedForeground),
         "--border": hexToTriplet(theme.border),
+        // Material 3 (M3) Surface & Container Variables
+        "--surface-container-lowest": hexToTriplet(theme.surfaceContainerLowest),
+        "--surface-container-low": hexToTriplet(theme.surfaceContainerLow),
+        "--surface-container": hexToTriplet(theme.surfaceContainer),
+        "--surface-container-high": hexToTriplet(theme.surfaceContainerHigh),
+        "--surface-container-highest": hexToTriplet(theme.surfaceContainerHighest),
+        "--on-surface": hexToTriplet(theme.onSurface),
+        "--on-surface-variant": hexToTriplet(theme.onSurfaceVariant),
+        "--outline": hexToTriplet(theme.outline),
+        "--outline-variant": hexToTriplet(theme.outlineVariant),
+        "--primary-container": hexToTriplet(theme.primaryContainer),
+        "--on-primary-container": hexToTriplet(theme.onPrimaryContainer),
+        "--secondary-container": hexToTriplet(theme.secondaryContainer),
+        "--on-secondary-container": hexToTriplet(theme.onSecondaryContainer),
       }),
     [theme]
   );

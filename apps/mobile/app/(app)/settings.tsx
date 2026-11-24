@@ -1,22 +1,26 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { User, Mail, DollarSign, Users, LogOut, Check } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useThemePreference } from "@/hooks/useThemePreference";
+import { AppText } from "@/components/common/AppText";
+import { Card } from "@/components/common/Card";
+import { TextField } from "@/components/common/TextField";
+import { Button } from "@/components/common/Button";
+import { AppearanceCard } from "@/components/settings/AppearanceCard";
+import { DataManagementCard } from "@/components/settings/DataManagementCard";
+import { useTheme } from "@/theme/ThemeProvider";
 
-/**
- * Headless Settings Container
- * Pure functional data container for user profile, theme preference, and account controls.
- */
 export default function SettingsScreen() {
+  const { theme } = useTheme();
   const { user, signOut } = useAuth();
   const { data: profile, isLoading, saveProfile } = useUserProfile();
-  const { preference, setPreference } = useThemePreference();
 
   const [income, setIncome] = useState("");
   const [expense, setExpense] = useState("");
   const [dependents, setDependents] = useState("0");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -27,107 +31,130 @@ export default function SettingsScreen() {
   }, [profile]);
 
   async function handleSaveProfile() {
-    await saveProfile({
-      monthly_income: income ? Number(income) : undefined,
-      monthly_expense: expense ? Number(expense) : undefined,
-      number_of_dependents: Number(dependents) || 0,
-    });
-    Alert.alert("Success", "Profile details saved successfully.");
+    setSaving(true);
+    try {
+      await saveProfile({
+        monthly_income: income ? Number(income) : undefined,
+        monthly_expense: expense ? Number(expense) : undefined,
+        number_of_dependents: Number(dependents) || 0,
+      });
+      Alert.alert("Success", "Profile details saved successfully.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleSignOut() {
+    Alert.alert("Sign out?", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign out", style: "destructive", onPress: signOut },
+    ]);
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Settings & Profile</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Account information and financial preferences</Text>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 96,
+          gap: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View className="gap-1">
+          <AppText className="text-2xl font-bold tracking-tight text-foreground">
+            Settings & Profile
+          </AppText>
+          <AppText className="text-xs text-muted-foreground">
+            Manage your account, appearance, and financial preferences
+          </AppText>
         </View>
 
-        {isLoading && <ActivityIndicator />}
-
-        {/* Account Info */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 6 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase" }}>
-            Account Email
-          </Text>
-          <Text style={{ fontSize: 16, fontWeight: "600" }}>{user?.email || "Anonymous User"}</Text>
-          <Text style={{ fontSize: 12, color: "#6b7280" }}>User ID: {user?.id}</Text>
-        </View>
-
-        {/* Profile Details */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Financial Profile</Text>
-
-          <View style={{ gap: 4 }}>
-            <Text style={{ fontSize: 12, color: "#6b7280" }}>Monthly Income (₹)</Text>
-            <TextInput
-              value={income}
-              onChangeText={setIncome}
-              keyboardType="numeric"
-              placeholder="e.g. 100000"
-              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-            />
+        {isLoading && (
+          <View className="py-2 items-center">
+            <ActivityIndicator size="small" color={theme.primary} />
           </View>
+        )}
 
-          <View style={{ gap: 4 }}>
-            <Text style={{ fontSize: 12, color: "#6b7280" }}>Monthly Expense (₹)</Text>
-            <TextInput
-              value={expense}
-              onChangeText={setExpense}
-              keyboardType="numeric"
-              placeholder="e.g. 50000"
-              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-            />
+        {/* Account Info Card */}
+        <Card variant="outlined" className="gap-3">
+          <View className="flex-row items-center gap-3">
+            <View
+              className="size-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: theme.primaryContainer }}
+            >
+              <User size={22} color={theme.primary} />
+            </View>
+            <View className="flex-1">
+              <AppText className="text-base font-bold text-foreground">
+                {user?.email || "Anonymous User"}
+              </AppText>
+              <AppText className="text-xs text-muted-foreground">
+                UID: {user?.id?.slice(0, 16)}...
+              </AppText>
+            </View>
           </View>
+        </Card>
 
-          <View style={{ gap: 4 }}>
-            <Text style={{ fontSize: 12, color: "#6b7280" }}>Number of Dependents</Text>
-            <TextInput
-              value={dependents}
-              onChangeText={setDependents}
-              keyboardType="numeric"
-              placeholder="0"
-              style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-            />
-          </View>
+        {/* Appearance & PRISM Accent Picker */}
+        <AppearanceCard />
 
-          <Pressable
+        {/* Financial Profile Card */}
+        <Card variant="outlined" className="gap-4">
+          <AppText className="text-sm font-bold text-foreground">
+            Financial Profile
+          </AppText>
+          <TextField
+            label="Monthly Income (₹)"
+            placeholder="e.g. 75000"
+            value={income}
+            onChangeText={setIncome}
+            keyboardType="numeric"
+            leadingIcon={<DollarSign size={16} color={theme.mutedForeground} />}
+          />
+          <TextField
+            label="Monthly Expense (₹)"
+            placeholder="e.g. 35000"
+            value={expense}
+            onChangeText={setExpense}
+            keyboardType="numeric"
+            leadingIcon={<DollarSign size={16} color={theme.mutedForeground} />}
+          />
+          <TextField
+            label="Number of Dependents"
+            placeholder="0"
+            value={dependents}
+            onChangeText={setDependents}
+            keyboardType="numeric"
+            leadingIcon={<Users size={16} color={theme.mutedForeground} />}
+          />
+          <Button
+            variant="primary"
             onPress={handleSaveProfile}
-            style={{ padding: 10, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center", marginTop: 4 }}
+            loading={saving}
+            leadingIcon={<Check size={16} color={theme.onPrimary} />}
           >
-            <Text style={{ color: "#ffffff", fontWeight: "600" }}>Update Profile</Text>
-          </Pressable>
-        </View>
+            Save Profile
+          </Button>
+        </Card>
 
-        {/* Theme Setting */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Theme Preference</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {(["system", "light", "dark"] as const).map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setPreference(t)}
-                style={{
-                  flex: 1,
-                  padding: 8,
-                  alignItems: "center",
-                  backgroundColor: preference === t ? "#2563eb" : "#f3f4f6",
-                  borderRadius: 6,
-                }}
-              >
-                <Text style={{ color: preference === t ? "#ffffff" : "#000000", textTransform: "capitalize" }}>{t}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        {/* Data Management Card */}
+        <DataManagementCard />
 
         {/* Sign Out Action */}
-        <Pressable
-          onPress={signOut}
-          style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6, alignItems: "center" }}
+        <Button
+          variant="destructive"
+          onPress={handleSignOut}
+          leadingIcon={<LogOut size={16} color={theme.destructive} />}
         >
-          <Text style={{ color: "#dc2626", fontWeight: "600" }}>Sign Out</Text>
-        </Pressable>
+          Sign Out
+        </Button>
       </ScrollView>
     </SafeAreaView>
   );

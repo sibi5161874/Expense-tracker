@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { Mail, Lock, Sparkles, CheckCircle2, ArrowRight } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppText } from "@/components/common/AppText";
+import { TextField } from "@/components/common/TextField";
+import { Button } from "@/components/common/Button";
+import { Card } from "@/components/common/Card";
+import { useTheme } from "@/theme/ThemeProvider";
 
-/**
- * Headless Signup Container
- * Functional registration container.
- */
 export default function SignupScreen() {
+  const { theme } = useTheme();
   const { signUp } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,6 +23,10 @@ export default function SignupScreen() {
 
   async function handleSignup() {
     setError(null);
+    if (!email.trim() || !password) {
+      setError("Please fill out all fields.");
+      return;
+    }
     if (password !== confirmPassword) {
       setError("Passwords don't match.");
       return;
@@ -27,96 +35,158 @@ export default function SignupScreen() {
       setError("Password must be at least 6 characters.");
       return;
     }
+
     setLoading(true);
-    const { session, error: err } = await signUp(email, password);
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
-    if (session) {
-      router.replace("/dashboard");
-    } else {
-      setDone(true);
+    try {
+      const { session, error: err } = await signUp(email.trim(), password);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+      if (session) {
+        router.replace("/dashboard");
+      } else {
+        setDone(true);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
   if (done) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
-        <View style={{ gap: 12, alignItems: "center" }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Check your email</Text>
-          <Text style={{ color: "#6b7280", textAlign: "center" }}>
-            A confirmation link was sent to {email}. Follow the link to finish setting up your account.
-          </Text>
-          <Pressable onPress={() => router.replace("/login")} style={{ marginTop: 12 }}>
-            <Text style={{ color: "#2563eb", fontWeight: "600" }}>Back to Sign In</Text>
-          </Pressable>
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: theme.background }}
+        edges={["top", "bottom"]}
+      >
+        <View className="flex-1 items-center justify-center p-8 gap-4">
+          <View
+            className="size-16 items-center justify-center rounded-3xl"
+            style={{ backgroundColor: theme.successSubtle || "#dcfce7" }}
+          >
+            <CheckCircle2 size={36} color={theme.success} />
+          </View>
+          <AppText className="text-2xl font-bold text-foreground">
+            Check Your Email
+          </AppText>
+          <AppText className="text-sm text-center text-muted-foreground leading-5">
+            A confirmation link was sent to {email}. Follow the instructions to activate your KashMap account.
+          </AppText>
+          <Button
+            variant="primary"
+            onPress={() => router.replace("/login")}
+            className="mt-4"
+          >
+            Back to Sign In
+          </Button>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff", padding: 24, justifyContent: "center" }}>
-      <View style={{ gap: 16 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 28, fontWeight: "bold" }}>Create Account</Text>
-          <Text style={{ fontSize: 14, color: "#6b7280" }}>Start tracking your Indian wealth portfolio</Text>
-        </View>
-
-        {error && (
-          <View style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 6 }}>
-            <Text style={{ color: "#b91c1c" }}>{error}</Text>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
+      edges={["top", "bottom"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 24,
+          paddingVertical: 32,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="gap-6">
+          {/* Header */}
+          <View className="items-center gap-2">
+            <View
+              className="size-14 items-center justify-center rounded-3xl"
+              style={{ backgroundColor: theme.primaryContainer }}
+            >
+              <Sparkles size={28} color={theme.primary} />
+            </View>
+            <AppText className="text-2xl font-extrabold tracking-tight text-foreground">
+              Create KashMap Account
+            </AppText>
+            <AppText className="text-xs text-muted-foreground">
+              Track net worth, stocks, cash flow & debts
+            </AppText>
           </View>
-        )}
 
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 12, color: "#6b7280" }}>Email</Text>
-          <TextInput
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
-          />
+          {/* Form Card */}
+          <Card variant="outlined" className="gap-4 p-5">
+            {error && (
+              <View
+                className="rounded-xl border p-3"
+                style={{
+                  backgroundColor: theme.destructiveSubtle || "#fee2e2",
+                  borderColor: theme.destructive,
+                }}
+              >
+                <AppText className="text-xs font-medium text-destructive">{error}</AppText>
+              </View>
+            )}
+
+            <TextField
+              label="Email Address"
+              placeholder="you@domain.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              leadingIcon={<Mail size={16} color={theme.mutedForeground} />}
+            />
+
+            <TextField
+              label="Password (min. 6 characters)"
+              placeholder="••••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              leadingIcon={<Lock size={16} color={theme.mutedForeground} />}
+            />
+
+            <TextField
+              label="Confirm Password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              leadingIcon={<Lock size={16} color={theme.mutedForeground} />}
+            />
+
+            <Button
+              variant="primary"
+              onPress={handleSignup}
+              loading={loading}
+              className="mt-2"
+              trailingIcon={<ArrowRight size={16} color={theme.onPrimary} />}
+            >
+              Create Account
+            </Button>
+          </Card>
+
+          {/* Sign In Redirect */}
+          <View className="flex-row items-center justify-center gap-1.5">
+            <AppText className="text-xs text-muted-foreground">
+              Already have an account?
+            </AppText>
+            <Button
+              variant="text"
+              size="sm"
+              onPress={() => router.replace("/login")}
+            >
+              Sign In
+            </Button>
+          </View>
         </View>
-
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 12, color: "#6b7280" }}>Password</Text>
-          <TextInput
-            placeholder="At least 6 characters"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
-          />
-        </View>
-
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 12, color: "#6b7280" }}>Confirm Password</Text>
-          <TextInput
-            placeholder="Confirm password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 10 }}
-          />
-        </View>
-
-        <Pressable
-          disabled={loading}
-          onPress={handleSignup}
-          style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center" }}
-        >
-          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={{ color: "#ffffff", fontWeight: "600" }}>Sign Up</Text>}
-        </Pressable>
-
-        <Pressable onPress={() => router.push("/login")} style={{ alignItems: "center", paddingTop: 8 }}>
-          <Text style={{ color: "#2563eb", fontSize: 13 }}>Already have an account? Sign In</Text>
-        </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -27,3 +27,43 @@ export function StatusBadge({ tone, children, className }: { tone: BadgeTone; ch
     </View>
   );
 }
+
+/** Material 3 Notification / Count Badge (Small dot or Large number pill) */
+export function Badge({
+  count,
+  variant = "error",
+  className,
+}: {
+  count?: number;
+  variant?: "error" | "primary";
+  className?: string;
+}) {
+  const isDot = count === undefined;
+  const isError = variant === "error";
+
+  if (isDot) {
+    return (
+      <View
+        className={cn(
+          "size-2 rounded-full",
+          isError ? "bg-destructive" : "bg-primary",
+          className
+        )}
+      />
+    );
+  }
+
+  return (
+    <View
+      className={cn(
+        "min-w-[18px] h-[18px] rounded-full px-1 items-center justify-center",
+        isError ? "bg-destructive" : "bg-primary",
+        className
+      )}
+    >
+      <AppText className="text-[10px] font-bold text-white">
+        {count > 99 ? "99+" : count}
+      </AppText>
+    </View>
+  );
+}

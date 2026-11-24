@@ -9,14 +9,15 @@ import { usePrefersReducedMotion } from "@/theme/usePrefersReducedMotion";
  * (not a dependency of this project) — spring-based scale doesn't need worklets to feel
  * good, and this avoids adding a new native module this late.
  */
-export function usePressScale() {
+export function usePressScale(customScale?: number) {
   const scale = useRef(new Animated.Value(1)).current;
   const reducedMotion = usePrefersReducedMotion();
+  const targetScale = customScale ?? motion.pressScale;
 
   function onPressIn() {
     if (reducedMotion) return;
     Animated.spring(scale, {
-      toValue: motion.pressScale,
+      toValue: targetScale,
       useNativeDriver: true,
       speed: 50,
       bounciness: 0,

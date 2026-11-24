@@ -225,4 +225,106 @@ export const neutrals = {
   },
 } as const;
 
+// ---------------------------------------------------------------------------
+// Material 3 (M3) Design Tokens — extracted from Material 3 Design Kit
+// ---------------------------------------------------------------------------
+
+export const m3Radius = {
+  none: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 28,
+  full: 9999,
+} as const;
+
+export const m3Typescale = {
+  displayLarge: { size: 57, lineHeight: 64, family: fontFamily.regular, letterSpacing: -0.25 },
+  displayMedium: { size: 45, lineHeight: 52, family: fontFamily.regular, letterSpacing: 0 },
+  displaySmall: { size: 36, lineHeight: 44, family: fontFamily.regular, letterSpacing: 0 },
+  headlineLarge: { size: 32, lineHeight: 40, family: fontFamily.bold, letterSpacing: 0 },
+  headlineMedium: { size: 28, lineHeight: 36, family: fontFamily.semibold, letterSpacing: 0 },
+  headlineSmall: { size: 24, lineHeight: 32, family: fontFamily.semibold, letterSpacing: 0 },
+  titleLarge: { size: 22, lineHeight: 28, family: fontFamily.regular, letterSpacing: 0 },
+  titleMedium: { size: 16, lineHeight: 24, family: fontFamily.medium, letterSpacing: 0.15 },
+  titleSmall: { size: 14, lineHeight: 20, family: fontFamily.medium, letterSpacing: 0.1 },
+  bodyLarge: { size: 16, lineHeight: 24, family: fontFamily.regular, letterSpacing: 0.5 },
+  bodyMedium: { size: 14, lineHeight: 20, family: fontFamily.regular, letterSpacing: 0.25 },
+  bodySmall: { size: 12, lineHeight: 16, family: fontFamily.regular, letterSpacing: 0.4 },
+  labelLarge: { size: 14, lineHeight: 20, family: fontFamily.medium, letterSpacing: 0.1 },
+  labelMedium: { size: 12, lineHeight: 16, family: fontFamily.medium, letterSpacing: 0.5 },
+  labelSmall: { size: 11, lineHeight: 16, family: fontFamily.medium, letterSpacing: 0.5 },
+} as const;
+
+export const m3Surfaces = {
+  light: {
+    surface: "#FEF7FF",
+    surfaceDim: "#DED8E1",
+    surfaceBright: "#FEF7FF",
+    surfaceContainerLowest: "#FFFFFF",
+    surfaceContainerLow: "#F7F2FA",
+    surfaceContainer: "#F3EDF7",
+    surfaceContainerHigh: "#ECE6F0",
+    surfaceContainerHighest: "#E6E0E9",
+    onSurface: "#1D1B20",
+    onSurfaceVariant: "#49454F",
+    outline: "#79747E",
+    outlineVariant: "#CAC4D0",
+  },
+  dark: {
+    surface: "#141218",
+    surfaceDim: "#141218",
+    surfaceBright: "#3B383E",
+    surfaceContainerLowest: "#0F0D13",
+    surfaceContainerLow: "#1D1B20",
+    surfaceContainer: "#211F26",
+    surfaceContainerHigh: "#2B2930",
+    surfaceContainerHighest: "#36343B",
+    onSurface: "#E6E0E9",
+    onSurfaceVariant: "#CAC4D0",
+    outline: "#938F99",
+    outlineVariant: "#49454F",
+  },
+  amoled: {
+    surface: "#000000",
+    surfaceDim: "#000000",
+    surfaceBright: "#1E1E1E",
+    surfaceContainerLowest: "#000000",
+    surfaceContainerLow: "#0A0A0A",
+    surfaceContainer: "#121212",
+    surfaceContainerHigh: "#1A1A1A",
+    surfaceContainerHighest: "#242424",
+    onSurface: "#E6E0E9",
+    onSurfaceVariant: "#CAC4D0",
+    outline: "#938F99",
+    outlineVariant: "#333333",
+  },
+} as const;
+
+export const m3Motion = {
+  easing: {
+    emphasized: { x1: 0.2, y1: 0.0, x2: 0.0, y2: 1.0 },
+    emphasizedDecelerate: { x1: 0.05, y1: 0.7, x2: 0.1, y2: 1.0 },
+    emphasizedAccelerate: { x1: 0.3, y1: 0.0, x2: 0.8, y2: 0.15 },
+    standard: { x1: 0.2, y1: 0.0, x2: 0.0, y2: 1.0 },
+    standardDecelerate: { x1: 0.0, y1: 0.0, x2: 0.2, y2: 1.0 },
+    standardAccelerate: { x1: 0.3, y1: 0.0, x2: 1.0, y2: 1.0 },
+  },
+  duration: {
+    short1: 50,
+    short2: 100,
+    short3: 150,
+    short4: 200,
+    medium1: 250,
+    medium2: 300,
+    medium3: 350,
+    medium4: 400,
+    long1: 450,
+    long2: 500,
+    long3: 550,
+    long4: 600,
+  },
+} as const;
+
 export type ThemeMode = "light" | "dark";

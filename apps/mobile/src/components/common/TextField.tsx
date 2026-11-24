@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { TextInput, View, type TextInputProps } from "react-native";
 import { AppText } from "@/components/common/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -9,16 +9,25 @@ interface TextFieldProps extends TextInputProps {
   label: string;
   error?: string;
   helperText?: string;
+  leadingIcon?: ReactNode;
+  trailingIcon?: ReactNode;
+  variant?: "outlined" | "filled";
 }
 
 /**
- * Modern, clean input field with clear label hierarchy, active focus borders, and
- * zero text/placeholder collisions.
+ * Material 3 Text Field Component.
+ * - Supports Outlined (default, 16dp radius, outline-variant border) and Filled.
+ * - Leading icon & trailing icon accessory slots.
+ * - Focused 2px active primary indicator.
+ * - Accessible error and supporting text states.
  */
 export function TextField({
   label,
   error,
   helperText,
+  leadingIcon,
+  trailingIcon,
+  variant = "outlined",
   className,
   style,
   value,
@@ -40,21 +49,44 @@ export function TextField({
     onBlur?.(e);
   };
 
-  const borderColor = error ? theme.destructive : focused ? theme.primary : theme.border;
+  const borderColor = error
+    ? theme.destructive
+    : focused
+      ? theme.primary
+      : theme.outlineVariant || theme.border;
+
+  const isFilled = variant === "filled";
 
   return (
     <View className="gap-1.5">
-      <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <AppText
+        className={cn(
+          "text-xs font-semibold tracking-wider",
+          error
+            ? "text-destructive"
+            : focused
+              ? "text-primary"
+              : "text-muted-foreground"
+        )}
+      >
         {label}
       </AppText>
       <View
         className={cn(
-          "rounded-2xl border bg-card/60 px-4 transition-colors",
-          multiline ? "py-3 min-h-[96px]" : "h-12 justify-center",
+          "flex-row items-center transition-all",
+          isFilled
+            ? "rounded-t-xl bg-surface-container-highest/70 px-4 border-b-2"
+            : "rounded-xl border bg-card/60 px-4",
+          multiline ? "py-3 min-h-[96px] items-start" : "h-12",
           focused && "bg-card shadow-sm"
         )}
-        style={{ borderWidth: 1.5, borderColor }}
+        style={{
+          borderWidth: isFilled ? 0 : focused ? 2 : 1,
+          borderBottomWidth: isFilled ? (focused ? 2 : 1) : focused ? 2 : 1,
+          borderColor,
+        }}
       >
+        {leadingIcon && <View className="mr-3">{leadingIcon}</View>}
         <TextInput
           value={value}
           onFocus={handleFocus}
@@ -62,7 +94,7 @@ export function TextField({
           multiline={multiline}
           placeholderTextColor={theme.mutedForeground}
           className={cn(
-            "text-sm text-foreground",
+            "flex-1 text-sm text-foreground",
             multiline ? "text-left" : "",
             className
           )}
@@ -77,6 +109,7 @@ export function TextField({
           ]}
           {...props}
         />
+        {trailingIcon && <View className="ml-3">{trailingIcon}</View>}
       </View>
       {error ? (
         <AppText className="text-xs font-medium text-destructive">{error}</AppText>
@@ -86,4 +119,3 @@ export function TextField({
     </View>
   );
 }
-

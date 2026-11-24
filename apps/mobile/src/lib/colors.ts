@@ -29,7 +29,18 @@ export type ColorToken =
   | "chart2"
   | "chart3"
   | "chart4"
-  | "chart5";
+  | "chart5"
+  | "surfaceContainerLowest"
+  | "surfaceContainerLow"
+  | "surfaceContainer"
+  | "surfaceContainerHigh"
+  | "surfaceContainerHighest"
+  | "onSurface"
+  | "onSurfaceVariant"
+  | "outline"
+  | "outlineVariant"
+  | "primaryContainer"
+  | "onPrimaryContainer";
 
 // accent2 and the chart palette are decorative/secondary — deliberately NOT tied to the
 // user's chosen PRISM OPS accent (that accent is reserved for primary actions/selection
@@ -97,6 +108,28 @@ export function useThemeColor(token: ColorToken): string {
       return f.chart4;
     case "chart5":
       return f.chart5;
+    case "surfaceContainerLowest":
+      return theme.surfaceContainerLowest;
+    case "surfaceContainerLow":
+      return theme.surfaceContainerLow;
+    case "surfaceContainer":
+      return theme.surfaceContainer;
+    case "surfaceContainerHigh":
+      return theme.surfaceContainerHigh;
+    case "surfaceContainerHighest":
+      return theme.surfaceContainerHighest;
+    case "onSurface":
+      return theme.onSurface;
+    case "onSurfaceVariant":
+      return theme.onSurfaceVariant;
+    case "outline":
+      return theme.outline;
+    case "outlineVariant":
+      return theme.outlineVariant;
+    case "primaryContainer":
+      return theme.primaryContainer;
+    case "onPrimaryContainer":
+      return theme.onPrimaryContainer;
   }
 }
 

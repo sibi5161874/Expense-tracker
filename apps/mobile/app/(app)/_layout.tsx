@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useGenerateRecurringTransactions } from "@/hooks/useGenerateRecurringTransactions";
+import { BottomNav } from "@/components/common/BottomNav";
 
 const HIDDEN_ROUTES = [
   "investments",
@@ -55,13 +56,9 @@ export default function AppLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs
+        tabBar={(props) => <BottomNav {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarStyle: {
-            height: 56,
-            borderTopWidth: 1,
-            borderTopColor: "#e5e7eb",
-          },
         }}
       >
         <Tabs.Screen

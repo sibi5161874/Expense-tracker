@@ -41,6 +41,20 @@
   --info-foreground: 255 255 255;
   --info-subtle: 227 242 253;
   --border: 221 225 230;
+  /* Material 3 (M3) Surface Containers & Tonal Tokens */
+  --surface-container-lowest: 255 255 255;
+  --surface-container-low: 247 242 250;
+  --surface-container: 243 237 247;
+  --surface-container-high: 236 230 240;
+  --surface-container-highest: 230 224 233;
+  --on-surface: 29 27 32;
+  --on-surface-variant: 73 69 79;
+  --outline: 121 116 126;
+  --outline-variant: 202 196 208;
+  --primary-container: 211 227 253;
+  --on-primary-container: 11 61 145;
+  --secondary-container: 217 223 246;
+  --on-secondary-container: 64 70 89;
   --chart1: 25 118 210;
   --chart2: 142 36 170;
   --chart3: 167 74 140;
@@ -79,6 +93,20 @@
     --info-foreground: 255 255 255;
     --info-subtle: 13 42 68;
     --border: 46 46 46;
+    /* Material 3 (M3) Surface Containers & Tonal Tokens */
+    --surface-container-lowest: 15 13 19;
+    --surface-container-low: 29 27 32;
+    --surface-container: 33 31 38;
+    --surface-container-high: 43 41 48;
+    --surface-container-highest: 54 52 59;
+    --on-surface: 230 224 233;
+    --on-surface-variant: 202 196 208;
+    --outline: 147 143 153;
+    --outline-variant: 73 69 79;
+    --primary-container: 30 58 95;
+    --on-primary-container: 211 227 253;
+    --secondary-container: 64 70 89;
+    --on-secondary-container: 220 226 249;
     --chart1: 33 150 243;
     --chart2: 156 39 176;
     --chart3: 210 114 180;

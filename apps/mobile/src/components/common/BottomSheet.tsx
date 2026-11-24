@@ -13,12 +13,11 @@ interface BottomSheetProps {
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 /**
- * rounded-bottom-sheet (24dp, theme/tokens.ts `radius.bottomSheet`) top corners, 60% dimmed
- * backdrop, slide-up entrance on cubic-bezier(0.16, 1, 0.3, 1) — RN's <Modal
- * animationType="slide"> uses a fixed native curve with no way to substitute a custom
- * bezier, so the slide is hand-driven here via Animated + Easing.bezier instead. Exit uses
- * its own faster, more linear curve (motion.easeIn) rather than the entrance curve played
- * backwards, which reads as sluggish on the way out.
+ * Material 3 Bottom Sheet Component.
+ * - 28dp top corners (`rounded-t-3xl` / M3 extra-large radius).
+ * - 32x4dp drag handle on top.
+ * - Resting surface container elevation.
+ * - Smooth entrance with cubic-bezier easeOut curve.
  */
 export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   const { theme } = useTheme();
@@ -52,7 +51,13 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={{ flex: 1 }} onPress={onClose}>
-        <Animated.View style={{ flex: 1, backgroundColor: "#000000", opacity: backdropOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }) }} />
+        <Animated.View
+          style={{
+            flex: 1,
+            backgroundColor: "#000000",
+            opacity: backdropOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] }),
+          }}
+        />
       </Pressable>
       <Animated.View
         style={{
@@ -60,17 +65,28 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
           left: 0,
           right: 0,
           bottom: 0,
-          maxHeight: "90%",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          backgroundColor: theme.card,
+          maxHeight: "92%",
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          backgroundColor: theme.surfaceContainerLow || theme.card,
           transform: [{ translateY }],
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: theme.mode === "dark" ? 0.35 : 0.12,
+          shadowRadius: 12,
+          elevation: 16,
         }}
       >
-        {/* Grab handle — signals draggable/dismissable even though drag-to-dismiss itself
-            isn't wired up (tap-backdrop and an explicit close action both already work). */}
+        {/* M3 Drag Handle (32x4dp) */}
         <Pressable onPress={() => {}} className="items-center py-3">
-          <Animated.View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.border }} />
+          <Animated.View
+            style={{
+              width: 32,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: theme.outlineVariant || theme.border,
+            }}
+          />
         </Pressable>
         <SafeAreaView edges={["bottom"]}>{children}</SafeAreaView>
       </Animated.View>

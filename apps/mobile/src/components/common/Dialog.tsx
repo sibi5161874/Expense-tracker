@@ -18,11 +18,11 @@ interface DialogProps {
 }
 
 /**
- * Centered confirmation dialog — rounded-dialog (28dp, theme/tokens.ts `radius.dialog`,
- * deliberately larger than BottomSheet's 24dp; see that file's comment for why the two
- * differ). Meant for the app's ~26 existing native `confirm()`-equivalent call sites
- * (Alert.alert around destructive actions) to migrate onto over time — this component is
- * the replacement primitive, not yet wired into every call site itself.
+ * Material 3 Dialog Component.
+ * - 28dp corner radius (`rounded-3xl` / extra-large radius).
+ * - Surface Container High background.
+ * - Headline-small title typography.
+ * - Pill-shaped actions with M3 spacing.
  */
 export function Dialog({
   visible,
@@ -47,29 +47,43 @@ export function Dialog({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onCancel} statusBarTranslucent>
       <Pressable style={{ flex: 1 }} onPress={onCancel}>
-        <Animated.View style={{ flex: 1, backgroundColor: "#000000", opacity: opacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }) }} />
+        <Animated.View
+          style={{
+            flex: 1,
+            backgroundColor: "#000000",
+            opacity: opacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
+          }}
+        />
       </Pressable>
-      <View style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", padding: 24 }} pointerEvents="box-none">
+      <View
+        style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", padding: 24 }}
+        pointerEvents="box-none"
+      >
         <Animated.View
           style={{
             width: "100%",
-            maxWidth: 400,
+            maxWidth: 420,
             borderRadius: 28,
-            padding: 20,
+            padding: 24,
             gap: 16,
-            backgroundColor: theme.card,
+            backgroundColor: theme.surfaceContainerHigh || theme.card,
             borderWidth: 1,
-            borderColor: theme.border,
+            borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
             opacity,
             transform: [{ scale }],
+            shadowColor: "#000000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: theme.mode === "dark" ? 0.45 : 0.16,
+            shadowRadius: 16,
+            elevation: 10,
           }}
         >
-          <View style={{ gap: 6 }}>
-            <AppText style={{ fontSize: 18, fontWeight: "700" }}>{title}</AppText>
-            {description && <AppText className="text-sm text-muted-foreground">{description}</AppText>}
+          <View style={{ gap: 8 }}>
+            <AppText style={{ fontSize: 20, fontWeight: "700", letterSpacing: -0.2 }}>{title}</AppText>
+            {description && <AppText className="text-sm leading-5 text-muted-foreground">{description}</AppText>}
           </View>
           {children}
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8 }}>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
             <Button variant="text" onPress={onCancel}>
               {cancelLabel}
             </Button>

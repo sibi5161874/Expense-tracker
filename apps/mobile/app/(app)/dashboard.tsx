@@ -1,7 +1,18 @@
-import { useMemo } from "react";
-import { ScrollView, View, Text, ActivityIndicator, Pressable } from "react-native";
+import { useMemo, useState } from "react";
+import { ScrollView, View, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import {
+  TrendingUp,
+  ArrowDownRight,
+  ArrowUpRight,
+  Wallet,
+  Sparkles,
+  ArrowRight,
+  PieChart,
+  BookOpen,
+  FileText,
+} from "lucide-react-native";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { useMonthlyTrend } from "@/hooks/useMonthlyTrend";
 import { useNetWorth } from "@/hooks/useNetWorth";
@@ -9,16 +20,26 @@ import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { useGoals } from "@/hooks/useGoals";
 import { useCashbook } from "@/hooks/useCashbook";
-import { formatMonth } from "@repo/shared/utils";
+import { formatMonth, formatINR } from "@repo/shared/utils";
 import { groupInvestmentsBySymbol } from "@repo/shared/logic";
 
-/**
- * Headless Dashboard Container
- * Pure functional data container exposing Net Worth, Cash Flow KPIs, Holdings,
- * Goals, and Cashbook state without custom design themes or decorative widgets.
- */
+import { AppText } from "@/components/common/AppText";
+import { Card } from "@/components/common/Card";
+import { Button } from "@/components/common/Button";
+import { AmountText } from "@/components/common/AmountText";
+import { NetWorthHero } from "@/components/dashboard/NetWorthHero";
+import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
+import { FinancialEssentialsCard } from "@/components/dashboard/FinancialEssentialsCard";
+import { QuickAddInput } from "@/components/dashboard/QuickAddInput";
+import { AiChatSheet } from "@/components/shared/AiChatSheet";
+import { useTheme } from "@/theme/ThemeProvider";
+
 export default function DashboardScreen() {
+  const { theme } = useTheme();
   const currentMonth = formatMonth(new Date());
+
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+
   const {
     income: monthlyIncome,
     expense: monthlyExpense,
@@ -29,7 +50,7 @@ export default function DashboardScreen() {
     error: overviewError,
   } = useMonthlyOverview(currentMonth);
 
-  const { data: trend, isLoading: trendLoading } = useMonthlyTrend(6);
+  const { data: trend } = useMonthlyTrend(6);
   const { data: netWorth, isLoading: netWorthLoading, error: netWorthError } = useNetWorth();
   const { data: allInvestments } = useAllInvestmentLog();
   const { data: holdingRows } = useHoldings();
@@ -52,122 +73,204 @@ export default function DashboardScreen() {
   const totalAssets = (netWorth?.netWorth ?? 0) + (netWorth?.liabilitiesTotal ?? 0);
   const totalLiabilities = netWorth?.liabilitiesTotal ?? 0;
 
-  const isLoading = overviewLoading || trendLoading || netWorthLoading;
+  const isLoading = overviewLoading || netWorthLoading;
   const error = overviewError || netWorthError;
 
+  const kpiItems: KpiStatItem[] = [
+    {
+      label: "Income",
+      icon: ArrowUpRight,
+      tone: "success",
+      value: monthlyIncome,
+    },
+    {
+      label: "Expenses",
+      icon: ArrowDownRight,
+      tone: "destructive",
+      value: monthlyExpense,
+    },
+    {
+      label: "Net Savings",
+      icon: Wallet,
+      tone: netSavings >= 0 ? "success" : "destructive",
+      value: netSavings,
+    },
+    {
+      label: "Savings Rate",
+      icon: TrendingUp,
+      tone: savingsRate >= 20 ? "success" : savingsRate > 0 ? "warning" : "destructive",
+      value: `${savingsRate.toFixed(1)}%`,
+    },
+  ];
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        {/* Header */}
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Dashboard</Text>
-          <Text style={{ fontSize: 14, color: "#6b7280" }}>Month: {currentMonth}</Text>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 96,
+          gap: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Header with Greeting and AI Trigger */}
+        <View className="flex-row items-center justify-between">
+          <View>
+            <AppText className="text-2xl font-bold tracking-tight text-foreground">
+              Dashboard
+            </AppText>
+            <AppText className="text-xs text-muted-foreground">
+              Month: {currentMonth}
+            </AppText>
+          </View>
+
+          {/* M3 Tonal AI Assistant Button */}
+          <Pressable
+            onPress={() => setAiChatOpen(true)}
+            className="flex-row items-center gap-2 rounded-full px-3.5 py-2 shadow-sm"
+            style={{
+              backgroundColor: theme.primaryContainer || theme.secondaryContainer,
+            }}
+          >
+            <Sparkles size={16} color={theme.onPrimaryContainer || theme.primary} />
+            <AppText
+              className="text-xs font-semibold"
+              style={{ color: theme.onPrimaryContainer || theme.primary }}
+            >
+              Ask AI
+            </AppText>
+          </Pressable>
         </View>
 
-        {isLoading && <ActivityIndicator size="small" />}
+        {/* Quick Add NLP Input */}
+        <QuickAddInput />
+
+        {isLoading && (
+          <View className="py-2 items-center">
+            <ActivityIndicator size="small" color={theme.primary} />
+          </View>
+        )}
 
         {error && (
-          <View style={{ padding: 12, backgroundColor: "#fee2e2", borderRadius: 8 }}>
-            <Text style={{ color: "#b91c1c" }}>{error.message || "Failed to load dashboard data"}</Text>
+          <View
+            className="rounded-2xl border p-4"
+            style={{
+              backgroundColor: theme.destructiveSubtle || "#fee2e2",
+              borderColor: theme.destructive,
+            }}
+          >
+            <AppText className="text-xs text-destructive">
+              {error.message || "Failed to load dashboard data"}
+            </AppText>
           </View>
         )}
 
-        {/* Net Worth Headless Section */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>
-            Net Worth
-          </Text>
-          <Text style={{ fontSize: 28, fontWeight: "bold" }}>
-            ₹{(netWorth?.netWorth ?? 0).toLocaleString("en-IN")}
-          </Text>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8 }}>
-            <View>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Assets</Text>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: "#16a34a" }}>
-                ₹{totalAssets.toLocaleString("en-IN")}
-              </Text>
-            </View>
-            <View>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Liabilities</Text>
-              <Text style={{ fontSize: 16, fontWeight: "600", color: "#dc2626" }}>
-                ₹{totalLiabilities.toLocaleString("en-IN")}
-              </Text>
-            </View>
+        {/* Net Worth Hero Card */}
+        {netWorth && (
+          <Card variant="elevated" className="gap-3">
+            <NetWorthHero breakdown={netWorth} />
+          </Card>
+        )}
+
+        {/* Monthly Cash Flow KPIs */}
+        <View className="gap-2">
+          <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Cash Flow ({currentMonth})
+          </AppText>
+          <KpiGrid items={kpiItems} />
+        </View>
+
+        {/* Financial Essentials (Emergency fund, score) */}
+        <FinancialEssentialsCard />
+
+        {/* Quick Navigation Cards */}
+        <View className="gap-2">
+          <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Quick Hubs
+          </AppText>
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={() => router.push("/transactions")}
+              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
+              }}
+            >
+              <Wallet size={20} color={theme.primary} />
+              <AppText className="text-xs font-semibold text-foreground">Transactions</AppText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/portfolio")}
+              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
+              }}
+            >
+              <PieChart size={20} color={theme.primary} />
+              <AppText className="text-xs font-semibold text-foreground">Portfolio</AppText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/cashbook")}
+              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
+              }}
+            >
+              <BookOpen size={20} color={theme.primary} />
+              <AppText className="text-xs font-semibold text-foreground">Cashbook</AppText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/reports")}
+              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
+              }}
+            >
+              <FileText size={20} color={theme.primary} />
+              <AppText className="text-xs font-semibold text-foreground">Reports</AppText>
+            </Pressable>
           </View>
         </View>
 
-        {/* Monthly Cash Flow Headless Section */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>
-            Monthly Cash Flow
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-            <View style={{ minWidth: 120 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Income</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#16a34a" }}>
-                ₹{monthlyIncome.toLocaleString("en-IN")}
-              </Text>
-            </View>
-            <View style={{ minWidth: 120 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Expenses</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#dc2626" }}>
-                ₹{monthlyExpense.toLocaleString("en-IN")}
-              </Text>
-            </View>
-            <View style={{ minWidth: 120 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Net Savings</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                ₹{netSavings.toLocaleString("en-IN")}
-              </Text>
-            </View>
-            <View style={{ minWidth: 120 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Savings Rate</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold" }}>{savingsRate.toFixed(1)}%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Category Breakdown Data List */}
+        {/* Category Breakdown Card */}
         {categoryBreakdown && categoryBreakdown.length > 0 && (
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>
-              Category Breakdown
-            </Text>
-            {categoryBreakdown.map((cat, idx) => (
-              <View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
-                <Text style={{ fontSize: 14 }}>{cat.name}</Text>
-                <Text style={{ fontSize: 14, fontWeight: "600" }}>₹{cat.value.toLocaleString("en-IN")}</Text>
-              </View>
-            ))}
-          </View>
+          <Card variant="outlined" className="gap-3">
+            <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Top Expenses by Category
+            </AppText>
+            <View className="gap-2.5">
+              {categoryBreakdown.slice(0, 5).map((cat) => (
+                <View key={cat.name} className="flex-row items-center justify-between">
+                  <AppText className="text-sm font-medium text-foreground">{cat.name}</AppText>
+                  <AmountText
+                    value={cat.value}
+                    colorBySign={false}
+                    className="text-sm font-semibold"
+                  />
+                </View>
+              ))}
+            </View>
+          </Card>
         )}
-
-        {/* Summary Badges: Holdings, Goals, Cashbook */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>
-            Module Summaries
-          </Text>
-          <Text style={{ fontSize: 14 }}>Holdings tracked: {holdings.length} symbols</Text>
-          <Text style={{ fontSize: 14 }}>Goals: {achievedGoals} / {totalGoals} completed</Text>
-          <Text style={{ fontSize: 14 }}>Cashbook counterparties: {totalCounterparties}</Text>
-        </View>
-
-        {/* Quick Navigation Triggers */}
-        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-          <Pressable
-            onPress={() => router.push("/transactions")}
-            style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8 }}
-          >
-            <Text style={{ color: "#ffffff", fontWeight: "600" }}>+ Add / View Transactions</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/portfolio")}
-            style={{ padding: 12, borderWidth: 1, borderColor: "#2563eb", borderRadius: 8 }}
-          >
-            <Text style={{ color: "#2563eb", fontWeight: "600" }}>View Portfolio</Text>
-          </Pressable>
-        </View>
       </ScrollView>
+
+      {/* Floating AI Assistant Modal Sheet */}
+      <AiChatSheet
+        visible={aiChatOpen}
+        onClose={() => setAiChatOpen(false)}
+      />
     </SafeAreaView>
   );
 }

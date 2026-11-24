@@ -1,4 +1,4 @@
-import { accents, neutrals, semantic, radius, spacing } from "./tokens";
+import { accents, neutrals, semantic, radius, spacing, m3Radius, m3Surfaces, m3Typescale } from "./tokens";
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 
@@ -60,5 +60,31 @@ describe("PRISM OPS tokens", () => {
     for (let i = 1; i < values.length; i++) {
       expect(values[i]).toBeGreaterThan(values[i - 1]);
     }
+  });
+
+  describe("Material 3 (M3) tokens", () => {
+    it("maintains strictly increasing M3 shape radius scale", () => {
+      expect(m3Radius.none).toBe(0);
+      expect(m3Radius.xs).toBeLessThan(m3Radius.sm);
+      expect(m3Radius.sm).toBeLessThan(m3Radius.md);
+      expect(m3Radius.md).toBeLessThan(m3Radius.lg);
+      expect(m3Radius.lg).toBeLessThan(m3Radius.xl);
+      expect(m3Radius.xl).toBeLessThan(m3Radius.full);
+    });
+
+    it("defines valid 6-digit hexes for every M3 surface across light, dark, and amoled", () => {
+      for (const tier of Object.values(m3Surfaces)) {
+        for (const value of Object.values(tier)) {
+          expect(value).toMatch(HEX);
+        }
+      }
+    });
+
+    it("verifies M3 typescale sizes and line heights are positive with proper line-height proportional to size", () => {
+      for (const style of Object.values(m3Typescale)) {
+        expect(style.size).toBeGreaterThan(0);
+        expect(style.lineHeight).toBeGreaterThanOrEqual(style.size);
+      }
+    });
   });
 });
