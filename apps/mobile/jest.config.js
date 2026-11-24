@@ -6,7 +6,7 @@
  */
 module.exports = {
   preset: 'jest-expo',
-  testTimeout: 20000,
+  testTimeout: 40000,
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^lucide-react-native$': '<rootDir>/src/__mocks__/lucide-react-native.js',

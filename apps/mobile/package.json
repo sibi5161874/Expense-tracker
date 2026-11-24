@@ -68,7 +68,7 @@
     "ios": "expo run:ios --port 8085",
     "web": "expo start --web --port 8085",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "private": true
 }
