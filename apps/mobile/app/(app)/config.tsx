@@ -1,28 +1,36 @@
 import { useState } from "react";
-import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Plus, Landmark, Tag, PiggyBank } from "lucide-react-native";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
 
-/**
- * Headless Config Container
- * Pure functional data container for Accounts, Categories, and Budget Limits management.
- */
+import { AppText } from "@/components/common/AppText";
+import { Card } from "@/components/common/Card";
+import { TextField } from "@/components/common/TextField";
+import { Button } from "@/components/common/Button";
+import { AmountText } from "@/components/common/AmountText";
+import { useTheme } from "@/theme/ThemeProvider";
+
 export default function ConfigScreen() {
+  const { theme } = useTheme();
   const [newAccountName, setNewAccountName] = useState("");
-  const [newAccountType, setNewAccountType] = useState("Bank");
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  const { data: accounts, isLoading: accountsLoading, createAccount } = useAccounts();
-  const { data: categories, isLoading: categoriesLoading, createCategory } = useCategories();
-  const { data: budgetLimits, isLoading: budgetsLoading } = useBudgetLimits();
+  const { data: accounts, createAccount } = useAccounts();
+  const { data: categories, createCategory } = useCategories();
+  const { data: budgetLimits } = useBudgetLimits();
+
+  const accountList = accounts ?? [];
+  const categoryList = categories ?? [];
+  const budgetList = budgetLimits ?? [];
 
   async function handleAddAccount() {
     if (!newAccountName.trim()) return;
     await createAccount({
       name: newAccountName.trim(),
-      type: newAccountType,
+      type: "Bank",
       opening_balance: 0,
       currency: "INR",
       is_active: true,
@@ -40,95 +48,140 @@ export default function ConfigScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Configuration</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Manage accounts, expense categories, and monthly limits</Text>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 96,
+          gap: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View className="gap-1">
+          <AppText className="text-2xl font-bold tracking-tight text-foreground">
+            Configuration
+          </AppText>
+          <AppText className="text-xs text-muted-foreground">
+            Manage bank accounts, categories, and monthly budget caps
+          </AppText>
         </View>
 
-        {/* Accounts Config */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold" }}>Bank & Cash Accounts</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TextInput
-              placeholder="New Account Name (e.g. ICICI, Cash)"
-              value={newAccountName}
-              onChangeText={setNewAccountName}
-              style={{ flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-            />
-            <Pressable
-              onPress={handleAddAccount}
-              style={{ paddingHorizontal: 16, backgroundColor: "#2563eb", borderRadius: 6, justifyContent: "center" }}
-            >
-              <Text style={{ color: "#ffffff", fontWeight: "600" }}>+ Add</Text>
-            </Pressable>
+        {/* Section 1: Accounts */}
+        <Card variant="outlined" className="gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <Landmark size={18} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">
+              Bank & Cash Accounts
+            </AppText>
           </View>
 
-          {accountsLoading && <ActivityIndicator />}
-          <View style={{ gap: 4, marginTop: 4 }}>
-            {accounts?.map((acc) => (
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1">
+              <TextField
+                label="New Account"
+                placeholder="e.g. HDFC Salary, Cash..."
+                value={newAccountName}
+                onChangeText={setNewAccountName}
+              />
+            </View>
+            <Button variant="primary" onPress={handleAddAccount} className="mt-5">
+              Add
+            </Button>
+          </View>
+
+          <View className="gap-2 pt-1">
+            {accountList.map((a) => (
               <View
-                key={acc.id}
-                style={{ padding: 10, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}
+                key={a.id}
+                className="flex-row items-center justify-between rounded-xl px-3.5 py-2.5"
+                style={{ backgroundColor: theme.surfaceContainer || theme.card }}
               >
-                <Text style={{ fontWeight: "500" }}>{acc.name}</Text>
-                <Text style={{ color: "#6b7280" }}>{acc.type} &bull; ₹{Number(acc.opening_balance || 0).toLocaleString("en-IN")}</Text>
+                <AppText className="text-sm font-medium text-foreground">{a.name}</AppText>
+                <AppText className="text-xs text-muted-foreground">{a.type}</AppText>
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        {/* Categories Config */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold" }}>Expense & Income Categories</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TextInput
-              placeholder="New Category Name (e.g. Groceries)"
-              value={newCategoryName}
-              onChangeText={setNewCategoryName}
-              style={{ flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-            />
-            <Pressable
-              onPress={handleAddCategory}
-              style={{ paddingHorizontal: 16, backgroundColor: "#2563eb", borderRadius: 6, justifyContent: "center" }}
-            >
-              <Text style={{ color: "#ffffff", fontWeight: "600" }}>+ Add</Text>
-            </Pressable>
+        {/* Section 2: Categories */}
+        <Card variant="outlined" className="gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <Tag size={18} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">
+              Expense Categories
+            </AppText>
           </View>
 
-          {categoriesLoading && <ActivityIndicator />}
-          <View style={{ gap: 4, marginTop: 4 }}>
-            {categories?.map((cat) => (
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1">
+              <TextField
+                label="New Category"
+                placeholder="e.g. Groceries, Entertainment..."
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+              />
+            </View>
+            <Button variant="primary" onPress={handleAddCategory} className="mt-5">
+              Add
+            </Button>
+          </View>
+
+          <View className="flex-row flex-wrap gap-2 pt-1">
+            {categoryList.map((c) => (
               <View
-                key={cat.id}
-                style={{ padding: 10, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4 }}
+                key={c.id}
+                className="rounded-full px-3 py-1 border"
+                style={{
+                  borderColor: theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border,
+                  backgroundColor: theme.surfaceContainer || theme.card,
+                }}
               >
-                <Text style={{ fontWeight: "500" }}>{cat.name}</Text>
+                <AppText className="text-xs font-medium text-foreground">{c.name}</AppText>
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        {/* Budget Limits */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold" }}>Monthly Budget Limits</Text>
-          {budgetsLoading && <ActivityIndicator />}
-          <View style={{ gap: 4 }}>
-            {budgetLimits?.map((b) => (
-              <View
-                key={b.id}
-                style={{ padding: 10, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}
-              >
-                <Text style={{ fontWeight: "500" }}>Category Limit</Text>
-                <Text style={{ fontWeight: "bold" }}>₹{Number(b.monthly_limit).toLocaleString("en-IN")}</Text>
-              </View>
-            ))}
-            {budgetLimits?.length === 0 && (
-              <Text style={{ color: "#6b7280" }}>No custom budget limits set.</Text>
-            )}
+        {/* Section 3: Monthly Budgets */}
+        <Card variant="outlined" className="gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <PiggyBank size={18} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">
+              Monthly Budget Limits
+            </AppText>
           </View>
-        </View>
+
+          {budgetList.length === 0 ? (
+            <AppText className="text-xs text-muted-foreground">
+              No monthly budget caps configured yet.
+            </AppText>
+          ) : (
+            <View className="gap-2">
+              {budgetList.map((b) => (
+                <View
+                  key={b.id}
+                  className="flex-row items-center justify-between rounded-xl px-3.5 py-2.5"
+                  style={{ backgroundColor: theme.surfaceContainer || theme.card }}
+                >
+                  <AppText className="text-sm font-medium text-foreground">
+                    {b.category_id || "Category"}
+                  </AppText>
+                  <AmountText
+                    value={b.monthly_limit}
+                    colorBySign={false}
+                    className="text-sm font-bold text-foreground"
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
