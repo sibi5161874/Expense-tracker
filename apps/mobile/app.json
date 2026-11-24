@@ -40,8 +40,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e0df42e2-1061-4f86-bc8c-a606263f3fe6"
+        "projectId": "6603ceb5-d33b-4e17-a169-47d6f7f3c570"
       }
-    }
+    },
+    "owner": "sibi433"
   }
 }
