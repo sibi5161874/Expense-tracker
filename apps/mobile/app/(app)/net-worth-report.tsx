@@ -1,47 +1,94 @@
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { useMemo } from "react";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Landmark, ShieldAlert, Wallet } from "lucide-react-native";
 import { useNetWorth } from "@/hooks/useNetWorth";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Net Worth Statement Report Container
+ * Material 3 Net Worth Statement Report Screen
  */
 export default function NetWorthReportScreen() {
+  const { theme } = useTheme();
   const { data: netWorth, isLoading, error } = useNetWorth();
 
   const totalAssets = (netWorth?.netWorth ?? 0) + (netWorth?.liabilitiesTotal ?? 0);
   const totalLiabilities = netWorth?.liabilitiesTotal ?? 0;
+  const currentNetWorth = netWorth?.netWorth ?? 0;
+
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Net Worth Statement",
+        headers: ["Category", "Amount (INR)"],
+        rows: [
+          { Category: "Total Assets", "Amount (INR)": totalAssets },
+          { Category: "Total Liabilities", "Amount (INR)": totalLiabilities },
+          { Category: "Net Worth (Equity)", "Amount (INR)": currentNetWorth },
+        ],
+      },
+    ],
+    [totalAssets, totalLiabilities, currentNetWorth]
+  );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Net Worth Statement</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Assets, liabilities, and current equity</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Net Worth Statement"
+          description="Assets, liabilities, and current equity"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title="Net Worth Statement"
+          description="Comprehensive assets, liabilities, and equity summary"
+          sheets={sheets}
+        />
 
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ fontSize: 16, color: "#6b7280" }}>Total Assets</Text>
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#16a34a" }}>
-              ₹{totalAssets.toLocaleString("en-IN")}
-            </Text>
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
+
+        <Card variant="elevated" className="p-5 gap-4">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Landmark size={20} color={theme.success} />
+              <AppText className="text-sm text-muted-foreground">Total Assets</AppText>
+            </View>
+            <AmountText value={totalAssets} sign="positive" className="text-xl font-bold" />
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ fontSize: 16, color: "#6b7280" }}>Total Liabilities</Text>
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#dc2626" }}>
-              ₹{totalLiabilities.toLocaleString("en-IN")}
-            </Text>
+
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <ShieldAlert size={20} color={theme.destructive} />
+              <AppText className="text-sm text-muted-foreground">Total Liabilities</AppText>
+            </View>
+            <AmountText value={totalLiabilities} sign="negative" className="text-xl font-bold" />
           </View>
-          <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#f3f4f6", flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ fontSize: 18, fontWeight: "bold" }}>Net Worth</Text>
-            <Text style={{ fontSize: 24, fontWeight: "bold" }}>
-              ₹{(netWorth?.netWorth ?? 0).toLocaleString("en-IN")}
-            </Text>
+
+          <View className="pt-3 border-t border-border/60 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Wallet size={20} color={theme.primary} />
+              <AppText className="text-base font-bold text-foreground">Net Worth</AppText>
+            </View>
+            <AmountText value={currentNetWorth} className="text-2xl font-bold" />
           </View>
-        </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

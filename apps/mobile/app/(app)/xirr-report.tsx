@@ -1,14 +1,23 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { TrendingUp, BarChart2 } from "lucide-react-native";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { computePortfolioXirr, groupInvestmentsBySymbol } from "@repo/shared/logic";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless XIRR Return Analysis Container
+ * Material 3 XIRR Report Screen
  */
 export default function XirrReportScreen() {
+  const { theme } = useTheme();
   const { data: investments, isLoading: isLogsLoading, error: logsError } = useAllInvestmentLog();
   const { data: holdingRows, isLoading: isHoldingsLoading, error: holdingsError } = useHoldings();
 
@@ -25,68 +34,132 @@ export default function XirrReportScreen() {
     return computePortfolioXirr(investments ?? [], holdingsData);
   }, [investments, holdingRows]);
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Portfolio XIRR",
+        headers: ["Symbol", "Total Invested", "Current Value", "XIRR (%)"],
+        rows: [
+          {
+            Symbol: "Portfolio Overall",
+            "Total Invested": report.totalInvested,
+            "Current Value": report.currentPortfolioValue,
+            "XIRR (%)": report.portfolioXirrPct !== null ? `${report.portfolioXirrPct.toFixed(2)}%` : "N/A",
+          },
+          ...report.holdings.map((h) => ({
+            Symbol: h.symbol,
+            "Total Invested": h.totalInvested,
+            "Current Value": h.currentValue,
+            "XIRR (%)": h.xirrPct !== null ? `${h.xirrPct.toFixed(2)}%` : "N/A",
+          })),
+        ],
+      },
+    ],
+    [report]
+  );
+
   const isLoading = isLogsLoading || isHoldingsLoading;
   const error = logsError || holdingsError;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>XIRR Return Analysis</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Annualized internal rate of return across all cash flows</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="XIRR Return Analysis"
+          description="Annualized internal rate of return across all cash flows"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title="Portfolio XIRR Analysis"
+          description="True annualized returns calculated with exact transaction dates"
+          sheets={sheets}
+        />
+
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
 
         {/* Portfolio XIRR Banner */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase" }}>
-            Overall Portfolio XIRR
-          </Text>
-          <Text style={{ fontSize: 28, fontWeight: "bold" }}>
+        <Card variant="elevated" className="p-5 gap-3">
+          <View className="flex-row items-center gap-2">
+            <TrendingUp size={22} color={theme.primary} />
+            <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Overall Portfolio XIRR
+            </AppText>
+          </View>
+
+          <AppText
+            className={`text-3xl font-bold ${
+              report.portfolioXirrPct !== null && report.portfolioXirrPct >= 0
+                ? "text-success"
+                : "text-destructive"
+            }`}
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
             {report.portfolioXirrPct !== null
               ? `${report.portfolioXirrPct >= 0 ? "+" : ""}${report.portfolioXirrPct.toFixed(2)}% p.a.`
               : "N/A"}
-          </Text>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8, borderTopWidth: 1, borderTopColor: "#f3f4f6" }}>
+          </AppText>
+
+          <View className="pt-3 border-t border-border/60 flex-row justify-between">
             <View>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Invested</Text>
-              <Text style={{ fontSize: 16, fontWeight: "600" }}>₹{report.totalInvested.toLocaleString("en-IN")}</Text>
+              <AppText className="text-xs text-muted-foreground">Total Invested</AppText>
+              <AppText className="text-base font-semibold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                {formatINR(report.totalInvested)}
+              </AppText>
             </View>
-            <View>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Current Value</Text>
-              <Text style={{ fontSize: 16, fontWeight: "600" }}>₹{report.currentPortfolioValue.toLocaleString("en-IN")}</Text>
+            <View className="items-end">
+              <AppText className="text-xs text-muted-foreground">Current Value</AppText>
+              <AppText className="text-base font-semibold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                {formatINR(report.currentPortfolioValue)}
+              </AppText>
             </View>
           </View>
-        </View>
+        </Card>
 
         {/* Holdings XIRR Breakdown */}
-        <View style={{ gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Holdings XIRR ({report.holdings.length})</Text>
+        <View className="gap-2.5">
+          <AppText className="text-sm font-bold text-foreground">
+            Holdings XIRR ({report.holdings.length})
+          </AppText>
+
           {report.holdings.map((h) => (
-            <View
-              key={h.symbol}
-              style={{ padding: 12, borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 6, gap: 4 }}
-            >
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontWeight: "bold" }}>{h.symbol}</Text>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    color: h.xirrPct != null && h.xirrPct >= 0 ? "#16a34a" : "#dc2626",
-                  }}
+            <Card key={h.symbol} variant="outlined" className="p-4 gap-2">
+              <View className="flex-row items-center justify-between">
+                <AppText className="text-sm font-bold text-foreground">{h.symbol}</AppText>
+                <AppText
+                  className={`text-sm font-bold ${
+                    h.xirrPct != null && h.xirrPct >= 0 ? "text-success" : "text-destructive"
+                  }`}
+                  style={{ fontVariant: ["tabular-nums"] }}
                 >
-                  {h.xirrPct != null ? `${h.xirrPct.toFixed(2)}% p.a.` : "N/A"}
-                </Text>
+                  {h.xirrPct != null ? `${h.xirrPct >= 0 ? "+" : ""}${h.xirrPct.toFixed(2)}% p.a.` : "N/A"}
+                </AppText>
               </View>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>
-                Invested: ₹{h.totalInvested.toLocaleString("en-IN")} &bull; Current: ₹{h.currentValue.toLocaleString("en-IN")}
-              </Text>
-            </View>
+              <View className="flex-row justify-between text-xs">
+                <AppText className="text-xs text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  Invested: {formatINR(h.totalInvested)}
+                </AppText>
+                <AppText className="text-xs text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  Current: {formatINR(h.currentValue)}
+                </AppText>
+              </View>
+            </Card>
           ))}
+
           {!isLoading && report.holdings.length === 0 && (
-            <Text style={{ color: "#6b7280" }}>No investment cash flows recorded yet.</Text>
+            <Card variant="outlined" className="p-6 items-center justify-center">
+              <AppText className="text-sm text-muted-foreground">No active holdings to compute XIRR.</AppText>
+            </Card>
           )}
         </View>
       </ScrollView>

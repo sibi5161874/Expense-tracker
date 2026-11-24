@@ -1,14 +1,23 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Award, TrendingUp, TrendingDown, Calendar } from "lucide-react-native";
 import { useTransactionsInRange, yearRange } from "@/hooks/useReportsData";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
- * Headless Year in Review Report Container
+ * Material 3 Year in Review Report Screen
  */
 export default function YearInReviewReportScreen() {
+  const { theme } = useTheme();
   const year = new Date().getFullYear();
   const { from, to } = yearRange(year);
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
@@ -45,58 +54,101 @@ export default function YearInReviewReportScreen() {
     };
   }, [transactions]);
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: `Year in Review ${year}`,
+        headers: ["Month", "Income (INR)", "Expense (INR)", "Net Savings (INR)"],
+        rows: chartData.map((m) => ({
+          Month: m.label,
+          "Income (INR)": m.income,
+          "Expense (INR)": m.expense,
+          "Net Savings (INR)": m.income - m.expense,
+        })),
+      },
+    ],
+    [chartData, year]
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Year in Review — {year}</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Annual cash flow totals, peak expense month, and top categories</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title={`Year in Review — ${year}`}
+          description="Annual cash flow totals, peak expense month, and top categories"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title={`Year in Review ${year}`}
+          description={`Full calendar year performance and financial retrospective`}
+          sheets={sheets}
+        />
 
-        {/* Summary KPIs */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 10 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: "#6b7280" }}>Total Income:</Text>
-            <Text style={{ fontWeight: "bold", color: "#16a34a" }}>₹{totals.income.toLocaleString("en-IN")}</Text>
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
+
+        {/* Annual KPI Card */}
+        <Card variant="elevated" className="p-5 gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <Award size={22} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">Annual Highlights</AppText>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: "#6b7280" }}>Total Expenses:</Text>
-            <Text style={{ fontWeight: "bold", color: "#dc2626" }}>₹{totals.expense.toLocaleString("en-IN")}</Text>
+
+          <View className="gap-2.5">
+            <View className="flex-row justify-between items-center">
+              <AppText className="text-sm text-muted-foreground">Total Income</AppText>
+              <AmountText value={totals.income} sign="positive" className="text-base font-bold" />
+            </View>
+            <View className="flex-row justify-between items-center">
+              <AppText className="text-sm text-muted-foreground">Total Expenses</AppText>
+              <AmountText value={totals.expense} sign="negative" className="text-base font-bold" />
+            </View>
+            <View className="flex-row justify-between items-center pt-2 border-t border-border/50">
+              <AppText className="text-sm text-muted-foreground">Biggest Spending Month</AppText>
+              <AppText className="text-sm font-semibold text-foreground">
+                {biggestMonth && biggestMonth.expense > 0 ? `${biggestMonth.label} (${formatINR(biggestMonth.expense)})` : "-"}
+              </AppText>
+            </View>
+            <View className="flex-row justify-between items-center">
+              <AppText className="text-sm text-muted-foreground">Top Expense Category</AppText>
+              <AppText className="text-sm font-semibold text-foreground">
+                {topCategory ? `${topCategory[0]} (${formatINR(topCategory[1])})` : "-"}
+              </AppText>
+            </View>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: "#6b7280" }}>Biggest Spending Month:</Text>
-            <Text style={{ fontWeight: "600" }}>{biggestMonth && biggestMonth.expense > 0 ? `${biggestMonth.label} (₹${biggestMonth.expense.toLocaleString("en-IN")})` : "-"}</Text>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: "#6b7280" }}>Top Expense Category:</Text>
-            <Text style={{ fontWeight: "600" }}>{topCategory ? `${topCategory[0]} (₹${topCategory[1].toLocaleString("en-IN")})` : "-"}</Text>
-          </View>
-        </View>
+        </Card>
 
         {/* Monthly Breakdown */}
-        <View style={{ gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Monthly Breakdown</Text>
+        <View className="gap-2.5">
+          <AppText className="text-sm font-bold text-foreground">Monthly Ledger</AppText>
+
           {chartData.map((m) => (
-            <View
-              key={m.label}
-              style={{
-                padding: 10,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-                borderRadius: 6,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontWeight: "bold" }}>{m.label}</Text>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>
-                In: +₹{m.income.toLocaleString("en-IN")} &bull; Out: -₹{m.expense.toLocaleString("en-IN")}
-              </Text>
-            </View>
+            <Card key={m.label} variant="outlined" className="p-3.5 flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2.5">
+                <View className="size-8 rounded-full bg-surface-container-highest items-center justify-center">
+                  <AppText className="text-xs font-bold text-foreground">{m.label}</AppText>
+                </View>
+                <View className="gap-0.5">
+                  <AppText className="text-xs text-muted-foreground">
+                    In: +{formatINR(m.income)}
+                  </AppText>
+                  <AppText className="text-xs text-muted-foreground">
+                    Out: -{formatINR(m.expense)}
+                  </AppText>
+                </View>
+              </View>
+              <AmountText value={m.income - m.expense} className="text-sm font-bold" />
+            </Card>
           ))}
         </View>
       </ScrollView>

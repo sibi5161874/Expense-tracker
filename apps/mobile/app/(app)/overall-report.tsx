@@ -1,23 +1,29 @@
 import { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { ChevronRight, FileText, PieChart, TrendingUp } from "lucide-react-native";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
 import { useNetWorth } from "@/hooks/useNetWorth";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { useGoals } from "@/hooks/useGoals";
-import { formatMonth } from "@repo/shared/utils";
+import { formatMonth, formatINR } from "@repo/shared/utils";
 import { groupInvestmentsBySymbol, summarizeHoldings } from "@repo/shared/logic";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Overall Report Container
+ * Material 3 Overall Report Suite Hub Screen
  */
 export default function OverallReportScreen() {
+  const { theme } = useTheme();
   const currentMonth = formatMonth(new Date());
   const { data: budgetLimits, isLoading: budgetsLoading } = useBudgetLimits();
-  const { income, expense, netSavings, isLoading: overviewLoading } = useMonthlyOverview(currentMonth);
+  const { netSavings, isLoading: overviewLoading } = useMonthlyOverview(currentMonth);
   const { data: allInvestments, isLoading: investmentsLoading } = useAllInvestmentLog();
   const { data: holdingRows, isLoading: holdingsLoading } = useHoldings();
   const { data: netWorth, isLoading: netWorthLoading } = useNetWorth();
@@ -36,9 +42,9 @@ export default function OverallReportScreen() {
   const isLoading = budgetsLoading || overviewLoading || investmentsLoading || holdingsLoading || netWorthLoading || goalsLoading;
 
   const reportsList = [
-    { title: "Monthly Summary", stat: `Net: ₹${netSavings.toLocaleString("en-IN")}`, href: "/monthly-summary-report" },
-    { title: "Net Worth Statement", stat: `₹${(netWorth?.netWorth ?? 0).toLocaleString("en-IN")}`, href: "/net-worth-report" },
-    { title: "Portfolio Holdings", stat: `₹${(portfolioSummary?.currentValue ?? 0).toLocaleString("en-IN")}`, href: "/portfolio" },
+    { title: "Monthly Summary", stat: `Net: ${formatINR(netSavings)}`, href: "/monthly-summary-report" },
+    { title: "Net Worth Statement", stat: formatINR(netWorth?.netWorth ?? 0), href: "/net-worth-report" },
+    { title: "Portfolio Holdings", stat: formatINR(portfolioSummary?.currentValue ?? 0), href: "/portfolio" },
     { title: "XIRR Analysis", stat: "Annualized return", href: "/xirr-report" },
     { title: "Capital Gains (Tax)", stat: "STCG / LTCG", href: "/capital-gains-report" },
     { title: "Budget vs Actual", stat: `${budgetLimits?.length ?? 0} categories`, href: "/budget-vs-actual-report" },
@@ -53,32 +59,34 @@ export default function OverallReportScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Overall Reports Suite</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Direct access to all analytical statements and reports</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Overall Reports Suite"
+          description="Direct access to all analytical statements and reports"
+        />
 
-        {isLoading && <ActivityIndicator />}
+        {isLoading && <ActivityIndicator color={theme.primary} />}
 
-        <View style={{ gap: 8 }}>
+        <View className="gap-2.5">
           {reportsList.map((item) => (
             <Pressable
               key={item.title}
               onPress={() => router.push(item.href as any)}
-              style={{
-                padding: 14,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-                borderRadius: 8,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
             >
-              <Text style={{ fontWeight: "600" }}>{item.title}</Text>
-              <Text style={{ color: "#2563eb", fontWeight: "500" }}>{item.stat} &rarr;</Text>
+              <Card variant="outlined" className="p-4 flex-row items-center justify-between active:bg-surface-container-highest">
+                <View className="gap-0.5">
+                  <AppText className="text-sm font-semibold text-foreground">{item.title}</AppText>
+                  <AppText className="text-xs text-primary font-medium">{item.stat}</AppText>
+                </View>
+                <ChevronRight size={18} color={theme.mutedForeground} />
+              </Card>
             </Pressable>
           ))}
         </View>

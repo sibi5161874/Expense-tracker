@@ -1,15 +1,23 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { TrendingDown, Calendar } from "lucide-react-native";
 import { useTransactionsInRange, monthsAgo } from "@/hooks/useReportsData";
-import { formatMonth } from "@repo/shared/utils";
+import { formatMonth, formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 const MONTHS_BACK = 6;
 
 /**
- * Headless Spending Trend Report Container
+ * Material 3 Spending Trend Report Screen
  */
 export default function SpendingTrendReportScreen() {
+  const { theme } = useTheme();
   const from = monthsAgo(MONTHS_BACK - 1);
   const to = formatMonth(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)) + "-01";
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
@@ -32,29 +40,71 @@ export default function SpendingTrendReportScreen() {
     });
   }, [transactions]);
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Monthly Spending Trend",
+        headers: ["Month", "Category", "Amount (INR)"],
+        rows: monthlyBreakdowns.flatMap(({ month, data }) =>
+          data.map((cat) => ({
+            Month: month,
+            Category: cat.name,
+            "Amount (INR)": cat.value,
+          }))
+        ),
+      },
+    ],
+    [monthlyBreakdowns]
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Spending Trend</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Top expense categories over the last {MONTHS_BACK} months</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Spending Trend"
+          description={`Top expense categories over the last ${MONTHS_BACK} months`}
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title="Spending Trend Analysis"
+          description={`Historical category spending trend across ${MONTHS_BACK} months`}
+          sheets={sheets}
+        />
 
-        <View style={{ gap: 12 }}>
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
+
+        <View className="gap-3">
           {monthlyBreakdowns.map(({ month, data }) => (
-            <View key={month} style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 14, gap: 6 }}>
-              <Text style={{ fontSize: 14, fontWeight: "bold" }}>{month}</Text>
-              {data.map((cat) => (
-                <View key={cat.name} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: "#4b5563" }}>{cat.name}</Text>
-                  <Text style={{ fontWeight: "600" }}>₹{cat.value.toLocaleString("en-IN")}</Text>
-                </View>
-              ))}
-              {data.length === 0 && <Text style={{ color: "#9ca3af", fontSize: 12 }}>No expenses recorded.</Text>}
-            </View>
+            <Card key={month} variant="outlined" className="p-4 gap-3">
+              <View className="flex-row items-center gap-2">
+                <Calendar size={18} color={theme.primary} />
+                <AppText className="text-sm font-bold text-foreground">{month}</AppText>
+              </View>
+
+              <View className="gap-2">
+                {data.map((cat) => (
+                  <View key={cat.name} className="flex-row justify-between items-center py-0.5">
+                    <AppText className="text-sm text-muted-foreground">{cat.name}</AppText>
+                    <AmountText value={cat.value} sign="negative" className="text-sm font-semibold" />
+                  </View>
+                ))}
+
+                {data.length === 0 && (
+                  <AppText className="text-xs text-muted-foreground italic">No expenses recorded.</AppText>
+                )}
+              </View>
+            </Card>
           ))}
         </View>
       </ScrollView>

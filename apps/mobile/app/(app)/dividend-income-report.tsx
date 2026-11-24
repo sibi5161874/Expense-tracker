@@ -1,12 +1,21 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Coins } from "lucide-react-native";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Dividend Income Report Container
+ * Material 3 Dividend Income Report Screen
  */
 export default function DividendIncomeReportScreen() {
+  const { theme } = useTheme();
   const { data: investments, isLoading, error } = useAllInvestmentLog();
 
   const { byHolding, total } = useMemo(() => {
@@ -19,39 +28,75 @@ export default function DividendIncomeReportScreen() {
     return { byHolding, total: dividends.reduce((sum, d) => sum + d.price, 0) };
   }, [investments]);
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Dividend Income",
+        headers: ["Symbol", "Total Dividends (INR)"],
+        rows: [
+          { Symbol: "Total Received", "Total Dividends (INR)": total },
+          ...byHolding.map((h) => ({ Symbol: h.symbol, "Total Dividends (INR)": h.amount })),
+        ],
+      },
+    ],
+    [byHolding, total]
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Dividend Income</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Total dividends received: ₹{total.toLocaleString("en-IN")}</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Dividend Income"
+          description="Passive income from equity and mutual fund payouts"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title="Dividend Income Statement"
+          description="Record of all dividend cash flows received"
+          sheets={sheets}
+        />
 
-        <View style={{ gap: 8 }}>
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
+
+        {/* Hero Total Card */}
+        <Card variant="elevated" className="p-5 gap-2">
+          <View className="flex-row items-center gap-2">
+            <Coins size={22} color={theme.success} />
+            <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Dividends Received
+            </AppText>
+          </View>
+          <AmountText value={total} sign="positive" className="text-3xl font-bold" />
+        </Card>
+
+        {/* Breakdown by Holding */}
+        <View className="gap-2.5">
+          <AppText className="text-sm font-bold text-foreground">
+            Dividends by Symbol ({byHolding.length})
+          </AppText>
+
           {byHolding.map((h) => (
-            <View
-              key={h.symbol}
-              style={{
-                padding: 12,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-                borderRadius: 6,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontWeight: "600" }}>{h.symbol}</Text>
-              <Text style={{ fontWeight: "bold", color: "#16a34a" }}>
-                +₹{h.amount.toLocaleString("en-IN")}
-              </Text>
-            </View>
+            <Card key={h.symbol} variant="outlined" className="p-4 flex-row items-center justify-between">
+              <AppText className="text-sm font-semibold text-foreground">{h.symbol}</AppText>
+              <AmountText value={h.amount} sign="positive" className="text-base font-bold" />
+            </Card>
           ))}
+
           {!isLoading && byHolding.length === 0 && (
-            <Text style={{ color: "#6b7280" }}>No dividends recorded yet.</Text>
+            <Card variant="outlined" className="p-6 items-center justify-center">
+              <AppText className="text-sm text-muted-foreground">No dividend transactions recorded yet.</AppText>
+            </Card>
           )}
         </View>
       </ScrollView>

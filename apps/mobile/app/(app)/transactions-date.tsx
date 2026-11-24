@@ -1,13 +1,21 @@
 import { useMemo } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, FlatList, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
+import { Calendar, ArrowDownRight, ArrowUpRight } from "lucide-react-native";
 import { useTransactionsForDate } from "@/hooks/useTransactions";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Transactions By Date Container
+ * Material 3 Transactions By Date Screen
  */
 export default function TransactionsByDateScreen() {
+  const { theme } = useTheme();
   const { date: dateParam } = useLocalSearchParams<{ date: string }>();
   const date = dateParam ?? "";
   const { data: transactions, isLoading, error } = useTransactionsForDate(date);
@@ -19,50 +27,76 @@ export default function TransactionsByDateScreen() {
   }, [transactions]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb", gap: 8 }}>
-        <Text style={{ fontSize: 24, fontWeight: "bold" }}>{date || "Transactions on Date"}</Text>
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <Text style={{ color: "#16a34a", fontWeight: "600" }}>+₹{summary.totalIn.toLocaleString("en-IN")}</Text>
-          <Text style={{ color: "#dc2626", fontWeight: "600" }}>-₹{summary.totalOut.toLocaleString("en-IN")}</Text>
-          <Text style={{ fontWeight: "bold" }}>Net: ₹{summary.net.toLocaleString("en-IN")}</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <View className="px-4 pt-4 pb-2 gap-3">
+        <PageHeader
+          title={date || "Transactions on Date"}
+          description="Day-level financial log and cash flow"
+        />
+
+        {/* Day Summary KPI Pill */}
+        <Card variant="outlined" className="p-4 flex-row items-center justify-between">
+          <View className="flex-row items-center gap-1.5">
+            <ArrowUpRight size={16} color={theme.success} />
+            <AppText className="text-xs text-muted-foreground">In:</AppText>
+            <AppText className="text-xs font-semibold text-success" style={{ fontVariant: ["tabular-nums"] }}>
+              {formatINR(summary.totalIn)}
+            </AppText>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <ArrowDownRight size={16} color={theme.destructive} />
+            <AppText className="text-xs text-muted-foreground">Out:</AppText>
+            <AppText className="text-xs font-semibold text-destructive" style={{ fontVariant: ["tabular-nums"] }}>
+              {formatINR(summary.totalOut)}
+            </AppText>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <AppText className="text-xs font-medium text-foreground">Net:</AppText>
+            <AmountText value={summary.net} className="text-xs font-bold" />
+          </View>
+        </Card>
       </View>
 
-      {isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
-      {error && <Text style={{ color: "#b91c1c", margin: 16 }}>{error.message}</Text>}
+      {isLoading && <ActivityIndicator color={theme.primary} style={{ marginTop: 24 }} />}
+      {error && (
+        <Card variant="outlined" className="mx-4 my-2 p-3 border-destructive/40 bg-destructive/10">
+          <AppText className="text-sm text-destructive">{error.message}</AppText>
+        </Card>
+      )}
 
       <FlatList
         data={transactions ?? []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          !isLoading ? <Text style={{ color: "#6b7280" }}>No transactions on this date.</Text> : null
+          !isLoading ? (
+            <Card variant="outlined" className="p-6 items-center justify-center">
+              <AppText className="text-sm text-muted-foreground">
+                No transactions recorded on this date.
+              </AppText>
+            </Card>
+          ) : null
         }
         renderItem={({ item }) => (
-          <View
-            style={{
-              padding: 12,
-              borderWidth: 1,
-              borderColor: "#e5e7eb",
-              borderRadius: 6,
-              flexDirection: "row",
-              justifyContent: "space-between",
-            }}
-          >
-            <View>
-              <Text style={{ fontWeight: "600" }}>{item.notes || "Uncategorized"}</Text>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>{item.type}</Text>
+          <Card variant="outlined" className="p-3.5 flex-row items-center justify-between">
+            <View className="gap-0.5 flex-1 pr-3">
+              <AppText className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                {item.notes || "Uncategorized"}
+              </AppText>
+              <AppText className="text-xs text-muted-foreground">
+                {item.type}
+              </AppText>
             </View>
-            <Text
-              style={{
-                fontWeight: "bold",
-                color: item.type === "Income" ? "#16a34a" : "#dc2626",
-              }}
-            >
-              {item.type === "Income" ? "+" : "-"}₹{Number(item.amount).toLocaleString("en-IN")}
-            </Text>
-          </View>
+            <AmountText
+              value={item.amount}
+              sign={item.type === "Income" ? "positive" : "negative"}
+              className="text-base font-bold"
+            />
+          </Card>
         )}
       />
     </SafeAreaView>

@@ -1,15 +1,24 @@
 import { useMemo } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
+import { TrendingUp, BarChart2, Layers } from "lucide-react-native";
 import { useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { groupInvestmentsBySymbol } from "@repo/shared/logic";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Stock Detail Container
+ * Material 3 Stock Detail Screen
+ * Live quote & individual position analysis.
  */
 export default function StockDetailScreen() {
+  const { theme } = useTheme();
   const { symbol: symbolParam } = useLocalSearchParams<{ symbol: string }>();
   const symbol = (symbolParam ?? "").toUpperCase();
 
@@ -28,55 +37,101 @@ export default function StockDetailScreen() {
   }, [allInvestments, livePriceOverrides, symbol]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>{symbol || "Stock Detail"}</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Live quote & individual position analysis</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title={symbol || "Stock Detail"}
+          description="Live position metrics and P&L breakdown"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
 
         {holding ? (
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>Units Held</Text>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>{holding.unitsHeld}</Text>
+          <View className="gap-4">
+            {/* Position Summary Card */}
+            <Card variant="elevated" className="p-5 gap-4">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
+                  <BarChart2 size={20} color={theme.primary} />
+                  <AppText className="text-base font-semibold text-foreground">
+                    Holding Metrics
+                  </AppText>
+                </View>
+                <AppText className="text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container">
+                  {holding.assetType}
+                </AppText>
               </View>
-              <View>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>Avg Buy Price</Text>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>₹{holding.avgBuyPrice.toFixed(2)}</Text>
-              </View>
-            </View>
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>Live Market Price</Text>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>₹{holding.currentPrice.toFixed(2)}</Text>
-              </View>
-              <View>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Current Value</Text>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>₹{holding.currentValue.toLocaleString("en-IN")}</Text>
-              </View>
-            </View>
+              <View className="grid grid-cols-2 gap-4">
+                <View className="flex-row justify-between">
+                  <View>
+                    <AppText className="text-xs text-muted-foreground">Units Held</AppText>
+                    <AppText className="text-xl font-bold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                      {holding.unitsHeld}
+                    </AppText>
+                  </View>
+                  <View className="items-end">
+                    <AppText className="text-xs text-muted-foreground">Avg Buy Price</AppText>
+                    <AppText className="text-xl font-bold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatINR(holding.avgBuyPrice)}
+                    </AppText>
+                  </View>
+                </View>
 
-            <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#f3f4f6" }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Unrealized P&L</Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "bold",
-                  color: holding.unrealisedPnl >= 0 ? "#16a34a" : "#dc2626",
-                }}
-              >
-                {holding.unrealisedPnl >= 0 ? "+" : ""}₹{holding.unrealisedPnl.toLocaleString("en-IN")} ({(holding.returnPct * 100).toFixed(2)}%)
-              </Text>
-            </View>
+                <View className="flex-row justify-between pt-2 border-t border-border/50">
+                  <View>
+                    <AppText className="text-xs text-muted-foreground">Current Live Price</AppText>
+                    <AppText className="text-xl font-bold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatINR(holding.currentPrice)}
+                    </AppText>
+                  </View>
+                  <View className="items-end">
+                    <AppText className="text-xs text-muted-foreground">Total Valuation</AppText>
+                    <AppText className="text-xl font-bold text-foreground mt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatINR(holding.currentValue)}
+                    </AppText>
+                  </View>
+                </View>
+              </View>
+
+              {/* Unrealized P&L Banner */}
+              <View className="pt-3 border-t border-border/60 flex-row items-center justify-between">
+                <AppText className="text-sm font-medium text-muted-foreground">Unrealized P&L</AppText>
+                <View className="flex-row items-center gap-2">
+                  <AmountText
+                    value={holding.unrealisedPnl}
+                    sign={holding.unrealisedPnl >= 0 ? "positive" : "negative"}
+                    className="text-lg font-bold"
+                  />
+                  <AppText
+                    className={holding.unrealisedPnl >= 0 ? "text-sm text-success font-semibold" : "text-sm text-destructive font-semibold"}
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    ({holding.returnPct >= 0 ? "+" : ""}{(holding.returnPct * 100).toFixed(2)}%)
+                  </AppText>
+                </View>
+              </View>
+            </Card>
           </View>
         ) : (
-          !isLoading && <Text style={{ color: "#6b7280" }}>No position found for {symbol}.</Text>
+          !isLoading && (
+            <Card variant="outlined" className="p-6 items-center justify-center">
+              <AppText className="text-sm text-muted-foreground">
+                No active holdings found for {symbol}.
+              </AppText>
+            </Card>
+          )
         )}
       </ScrollView>
     </SafeAreaView>

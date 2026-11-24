@@ -1,15 +1,31 @@
 import { useMemo, useState } from "react";
-import { ScrollView, View, Text, TextInput, Pressable } from "react-native";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Calculator, TrendingUp, PiggyBank, ArrowDownUp } from "lucide-react-native";
 import { calculateSipFutureValue, calculateLumpsumFutureValue, calculatePnL } from "@repo/shared/logic";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
+import { TextField } from "@/components/common/TextField";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { useTheme } from "@/theme/ThemeProvider";
 
 type CalcType = "sip" | "lumpsum" | "pnl";
 
+const CALC_OPTIONS = [
+  { value: "sip", label: "SIP" },
+  { value: "lumpsum", label: "Lumpsum" },
+  { value: "pnl", label: "P&L" },
+];
+
 /**
- * Headless Calculators Container
+ * Material 3 Calculators Screen
  * Pure functional data container for SIP, Lumpsum, and PnL calculations.
  */
 export default function CalculatorsScreen() {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<CalcType>("sip");
 
   // SIP inputs
@@ -52,164 +68,195 @@ export default function CalculatorsScreen() {
   }, [buyVal, qtyVal, sellVal]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Calculators</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Financial planning mathematical models</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Calculators"
+          description="Financial planning mathematical models"
+        />
 
         {/* Tab Selector */}
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {(["sip", "lumpsum", "pnl"] as CalcType[]).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                alignItems: "center",
-                backgroundColor: activeTab === tab ? "#2563eb" : "#f3f4f6",
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: activeTab === tab ? "#ffffff" : "#000000", fontWeight: "600", textTransform: "uppercase" }}>
-                {tab}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <SegmentedControl
+          options={CALC_OPTIONS}
+          value={activeTab}
+          onChange={(val) => setActiveTab(val as CalcType)}
+        />
 
         {/* SIP Calculator */}
         {activeTab === "sip" && (
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-            <Text style={{ fontWeight: "bold" }}>Systematic Investment Plan (SIP)</Text>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Monthly Investment (₹)</Text>
-              <TextInput
-                value={sipMonthly}
-                onChangeText={setSipMonthly}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Expected Annual Return (%)</Text>
-              <TextInput
-                value={sipReturnRate}
-                onChangeText={setSipReturnRate}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Time Period (Years)</Text>
-              <TextInput
-                value={sipYears}
-                onChangeText={setSipYears}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
+          <Card variant="outlined" className="gap-4 p-5">
+            <View className="flex-row items-center gap-2">
+              <PiggyBank size={20} color={theme.primary} />
+              <AppText className="text-base font-semibold text-foreground">
+                Systematic Investment Plan (SIP)
+              </AppText>
             </View>
 
-            <View style={{ padding: 12, backgroundColor: "#f9fafb", borderRadius: 6, gap: 4, marginTop: 8 }}>
-              <Text style={{ fontSize: 14 }}>Invested: ₹{Math.round(sipInvested).toLocaleString("en-IN")}</Text>
-              <Text style={{ fontSize: 14 }}>Est. Returns: ₹{Math.round(sipReturns).toLocaleString("en-IN")}</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#16a34a" }}>
-                Total Value: ₹{Math.round(sipFV).toLocaleString("en-IN")}
-              </Text>
+            <TextField
+              label="Monthly Investment (₹)"
+              value={sipMonthly}
+              onChangeText={setSipMonthly}
+              keyboardType="numeric"
+              placeholder="10000"
+            />
+            <TextField
+              label="Expected Annual Return (%)"
+              value={sipReturnRate}
+              onChangeText={setSipReturnRate}
+              keyboardType="numeric"
+              placeholder="12"
+            />
+            <TextField
+              label="Time Period (Years)"
+              value={sipYears}
+              onChangeText={setSipYears}
+              keyboardType="numeric"
+              placeholder="10"
+            />
+
+            <View className="rounded-2xl border border-outline-variant/40 bg-surface-container-highest/60 p-4 gap-2.5 mt-1">
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Invested Amount</AppText>
+                <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(Math.round(sipInvested))}
+                </AppText>
+              </View>
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Est. Wealth Gain</AppText>
+                <AmountText value={Math.round(sipReturns)} sign="positive" className="text-sm font-semibold" />
+              </View>
+              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
+                <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
+                <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(Math.round(sipFV))}
+                </AppText>
+              </View>
             </View>
-          </View>
+          </Card>
         )}
 
         {/* Lumpsum Calculator */}
         {activeTab === "lumpsum" && (
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-            <Text style={{ fontWeight: "bold" }}>Lumpsum Investment Calculator</Text>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Total Investment (₹)</Text>
-              <TextInput
-                value={lumpPrincipal}
-                onChangeText={setLumpPrincipal}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Expected Annual Return (%)</Text>
-              <TextInput
-                value={lumpReturnRate}
-                onChangeText={setLumpReturnRate}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Time Period (Years)</Text>
-              <TextInput
-                value={lumpYears}
-                onChangeText={setLumpYears}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
+          <Card variant="outlined" className="gap-4 p-5">
+            <View className="flex-row items-center gap-2">
+              <TrendingUp size={20} color={theme.primary} />
+              <AppText className="text-base font-semibold text-foreground">
+                Lumpsum Investment Calculator
+              </AppText>
             </View>
 
-            <View style={{ padding: 12, backgroundColor: "#f9fafb", borderRadius: 6, gap: 4, marginTop: 8 }}>
-              <Text style={{ fontSize: 14 }}>Invested: ₹{Math.round(lumpPrincipalVal).toLocaleString("en-IN")}</Text>
-              <Text style={{ fontSize: 14 }}>Est. Returns: ₹{Math.round(lumpReturns).toLocaleString("en-IN")}</Text>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#16a34a" }}>
-                Total Value: ₹{Math.round(lumpFV).toLocaleString("en-IN")}
-              </Text>
+            <TextField
+              label="Total Investment (₹)"
+              value={lumpPrincipal}
+              onChangeText={setLumpPrincipal}
+              keyboardType="numeric"
+              placeholder="100000"
+            />
+            <TextField
+              label="Expected Annual Return (%)"
+              value={lumpReturnRate}
+              onChangeText={setLumpReturnRate}
+              keyboardType="numeric"
+              placeholder="12"
+            />
+            <TextField
+              label="Time Period (Years)"
+              value={lumpYears}
+              onChangeText={setLumpYears}
+              keyboardType="numeric"
+              placeholder="10"
+            />
+
+            <View className="rounded-2xl border border-outline-variant/40 bg-surface-container-highest/60 p-4 gap-2.5 mt-1">
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Invested Amount</AppText>
+                <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(Math.round(lumpPrincipalVal))}
+                </AppText>
+              </View>
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Est. Wealth Gain</AppText>
+                <AmountText value={Math.round(lumpReturns)} sign="positive" className="text-sm font-semibold" />
+              </View>
+              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
+                <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
+                <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(Math.round(lumpFV))}
+                </AppText>
+              </View>
             </View>
-          </View>
+          </Card>
         )}
 
         {/* P&L Calculator */}
         {activeTab === "pnl" && (
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 12 }}>
-            <Text style={{ fontWeight: "bold" }}>Profit & Loss (P&L) Calculator</Text>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Buy Price (₹)</Text>
-              <TextInput
-                value={buyPrice}
-                onChangeText={setBuyPrice}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Sell Price (₹)</Text>
-              <TextInput
-                value={sellPrice}
-                onChangeText={setSellPrice}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Quantity</Text>
-              <TextInput
-                value={qty}
-                onChangeText={setQty}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
+          <Card variant="outlined" className="gap-4 p-5">
+            <View className="flex-row items-center gap-2">
+              <ArrowDownUp size={20} color={theme.primary} />
+              <AppText className="text-base font-semibold text-foreground">
+                Profit & Loss (P&L) Calculator
+              </AppText>
             </View>
 
-            <View style={{ padding: 12, backgroundColor: "#f9fafb", borderRadius: 6, gap: 4, marginTop: 8 }}>
-              <Text style={{ fontSize: 14 }}>Total Buy: ₹{totalBuy.toLocaleString("en-IN")}</Text>
-              <Text style={{ fontSize: 14 }}>Total Sell: ₹{totalSell.toLocaleString("en-IN")}</Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "bold",
-                  color: pnlResult.totalPnl >= 0 ? "#16a34a" : "#dc2626",
-                }}
-              >
-                Net P&L: ₹{pnlResult.totalPnl.toLocaleString("en-IN")} ({pnlResult.pctReturn.toFixed(2)}%)
-              </Text>
+            <TextField
+              label="Buy Price (₹)"
+              value={buyPrice}
+              onChangeText={setBuyPrice}
+              keyboardType="numeric"
+              placeholder="100"
+            />
+            <TextField
+              label="Sell Price (₹)"
+              value={sellPrice}
+              onChangeText={setSellPrice}
+              keyboardType="numeric"
+              placeholder="150"
+            />
+            <TextField
+              label="Quantity"
+              value={qty}
+              onChangeText={setQty}
+              keyboardType="numeric"
+              placeholder="50"
+            />
+
+            <View className="rounded-2xl border border-outline-variant/40 bg-surface-container-highest/60 p-4 gap-2.5 mt-1">
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Total Buy Value</AppText>
+                <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(totalBuy)}
+                </AppText>
+              </View>
+              <View className="flex-row justify-between items-center">
+                <AppText className="text-sm text-muted-foreground">Total Sell Value</AppText>
+                <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(totalSell)}
+                </AppText>
+              </View>
+              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
+                <AppText className="text-base font-bold text-foreground">Net P&L</AppText>
+                <View className="flex-row items-center gap-1.5">
+                  <AmountText
+                    value={pnlResult.totalPnl}
+                    sign={pnlResult.totalPnl >= 0 ? "positive" : "negative"}
+                    className="text-lg font-bold"
+                  />
+                  <AppText
+                    className={pnlResult.totalPnl >= 0 ? "text-sm text-success font-semibold" : "text-sm text-destructive font-semibold"}
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    ({pnlResult.pctReturn >= 0 ? "+" : ""}{pnlResult.pctReturn.toFixed(2)}%)
+                  </AppText>
+                </View>
+              </View>
             </View>
-          </View>
+          </Card>
         )}
       </ScrollView>
     </SafeAreaView>

@@ -1,14 +1,28 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Calendar, ShieldCheck, AlertCircle } from "lucide-react-native";
 import { useFixedDeposits, useLoanLiabilities } from "@/hooks/useAssets";
 import { useInsurancePolicies } from "@/hooks/useInsurancePolicies";
-import { calculateDaysLeft, calculateDaysUntilDue, calculateFixedDepositStatus, calculatePremiumStatus } from "@repo/shared/logic";
+import {
+  calculateDaysLeft,
+  calculateDaysUntilDue,
+  calculateFixedDepositStatus,
+  calculatePremiumStatus,
+} from "@repo/shared/logic";
+import { formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { StatusBadge } from "@/components/common/Badge";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Asset Maturity Calendar Container
+ * Material 3 Asset Maturity Calendar Report Screen
  */
 export default function AssetMaturityCalendarReportScreen() {
+  const { theme } = useTheme();
   const { data: fds, isLoading: fdsLoading, error: fdsError } = useFixedDeposits();
   const { data: liabilities, isLoading: liabilitiesLoading, error: liabilitiesError } = useLoanLiabilities();
   const { data: policies, isLoading: policiesLoading, error: policiesError } = useInsurancePolicies();
@@ -22,68 +36,161 @@ export default function AssetMaturityCalendarReportScreen() {
     [policies]
   );
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Fixed Deposit Maturities",
+        headers: ["Bank", "Maturity Date", "Maturity Value (INR)", "Status"],
+        rows: sortedFds.map((fd) => ({
+          Bank: fd.bank,
+          "Maturity Date": fd.maturity_date,
+          "Maturity Value (INR)": fd.maturity_value,
+          Status: calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn),
+        })),
+      },
+      {
+        name: "Insurance Premiums",
+        headers: ["Insurer", "Due Date", "Premium Amount (INR)", "Status"],
+        rows: sortedPolicies.map((p) => ({
+          Insurer: p.insurer,
+          "Due Date": p.premium_due_date,
+          "Premium Amount (INR)": p.premium_amount,
+          Status: calculatePremiumStatus(p.premium_due_date),
+        })),
+      },
+    ],
+    [sortedFds, sortedPolicies]
+  );
+
   const isLoading = fdsLoading || liabilitiesLoading || policiesLoading;
   const error = fdsError || liabilitiesError || policiesError;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Asset Maturity Calendar</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Fixed deposit maturities and insurance premium due dates</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Maturity Calendar"
+          description="Fixed deposit maturities and insurance premium due dates"
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title="Asset Maturity Calendar"
+          description="Timeline of upcoming liquidity events and policy premiums"
+          sheets={sheets}
+        />
+
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
 
         {/* FDs */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Fixed Deposit Maturities</Text>
-          {sortedFds.map((fd) => (
-            <View key={fd.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontWeight: "600" }}>{fd.bank}</Text>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>
-                  Matures {fd.maturity_date} &bull; {calculateDaysLeft(fd.maturity_date)}d left ({calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn)})
-                </Text>
-              </View>
-              <Text style={{ fontWeight: "bold" }}>₹{Number(fd.maturity_value).toLocaleString("en-IN")}</Text>
-            </View>
-          ))}
-          {!isLoading && sortedFds.length === 0 && <Text style={{ color: "#6b7280" }}>No active FDs.</Text>}
-        </View>
+        <Card variant="elevated" className="p-5 gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <Calendar size={20} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">Fixed Deposit Maturities</AppText>
+          </View>
 
-        {/* Insurance */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Insurance Premiums Due</Text>
-          {sortedPolicies.map((p) => (
-            <View key={p.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontWeight: "600" }}>{p.insurer}</Text>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>
-                  Due {p.premium_due_date} &bull; {calculateDaysUntilDue(p.premium_due_date)}d ({calculatePremiumStatus(p.premium_due_date)})
-                </Text>
-              </View>
-              <Text style={{ fontWeight: "bold" }}>₹{Number(p.premium_amount).toLocaleString("en-IN")}</Text>
-            </View>
-          ))}
-          {!isLoading && sortedPolicies.length === 0 && <Text style={{ color: "#6b7280" }}>No policies found.</Text>}
-        </View>
+          <View className="gap-2.5">
+            {sortedFds.map((fd) => {
+              const status = calculateFixedDepositStatus(fd.maturity_date, fd.withdrawn);
+              return (
+                <View key={fd.id} className="p-3.5 rounded-xl border border-border/60 bg-surface-container-highest/40 gap-1.5">
+                  <View className="flex-row items-center justify-between">
+                    <AppText className="text-sm font-semibold text-foreground">{fd.bank}</AppText>
+                    <StatusBadge tone={status === "Matured" ? "warning" : "info"}>
+                      {status.toUpperCase()}
+                    </StatusBadge>
+                  </View>
+                  <View className="flex-row items-center justify-between">
+                    <AppText className="text-xs text-muted-foreground">
+                      Matures {fd.maturity_date} • {calculateDaysLeft(fd.maturity_date)}d left
+                    </AppText>
+                    <AppText className="text-sm font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatINR(Number(fd.maturity_value))}
+                    </AppText>
+                  </View>
+                </View>
+              );
+            })}
+
+            {!isLoading && sortedFds.length === 0 && (
+              <AppText className="text-sm text-muted-foreground">No active fixed deposits found.</AppText>
+            )}
+          </View>
+        </Card>
+
+        {/* Insurance Premiums */}
+        <Card variant="outlined" className="p-5 gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <ShieldCheck size={20} color={theme.primary} />
+            <AppText className="text-base font-bold text-foreground">Insurance Premiums Due</AppText>
+          </View>
+
+          <View className="gap-2.5">
+            {sortedPolicies.map((p) => {
+              const status = calculatePremiumStatus(p.premium_due_date);
+              return (
+                <View key={p.id} className="p-3.5 rounded-xl border border-border/60 bg-surface-container-highest/40 gap-1.5">
+                  <View className="flex-row items-center justify-between">
+                    <AppText className="text-sm font-semibold text-foreground">{p.insurer}</AppText>
+                    <StatusBadge tone={status === "Overdue" ? "destructive" : "info"}>
+                      {status.toUpperCase()}
+                    </StatusBadge>
+                  </View>
+                  <View className="flex-row items-center justify-between">
+                    <AppText className="text-xs text-muted-foreground">
+                      Due {p.premium_due_date} • {calculateDaysUntilDue(p.premium_due_date)}d
+                    </AppText>
+                    <AppText className="text-sm font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatINR(Number(p.premium_amount))}
+                    </AppText>
+                  </View>
+                </View>
+              );
+            })}
+
+            {!isLoading && sortedPolicies.length === 0 && (
+              <AppText className="text-sm text-muted-foreground">No insurance policies found.</AppText>
+            )}
+          </View>
+        </Card>
 
         {/* Liabilities */}
-        <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 16, gap: 8 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Open Liabilities</Text>
-          {(liabilities ?? []).map((l) => (
-            <View key={l.id} style={{ padding: 8, borderWidth: 1, borderColor: "#f3f4f6", borderRadius: 4, flexDirection: "row", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontWeight: "600" }}>{l.lender}</Text>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>{l.months_left != null ? `${l.months_left} months left` : "-"}</Text>
+        <Card variant="outlined" className="p-5 gap-3.5">
+          <View className="flex-row items-center gap-2">
+            <AlertCircle size={20} color={theme.destructive} />
+            <AppText className="text-base font-bold text-foreground">Open Loan Liabilities</AppText>
+          </View>
+
+          <View className="gap-2.5">
+            {(liabilities ?? []).map((l) => (
+              <View key={l.id} className="p-3.5 rounded-xl border border-border/60 bg-surface-container-highest/40 flex-row items-center justify-between">
+                <View>
+                  <AppText className="text-sm font-semibold text-foreground">{l.lender}</AppText>
+                  <AppText className="text-xs text-muted-foreground">
+                    {l.months_left != null ? `${l.months_left} months remaining` : "Active Loan"}
+                  </AppText>
+                </View>
+                <AppText className="text-sm font-bold text-destructive" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatINR(Number(l.outstanding))}
+                </AppText>
               </View>
-              <Text style={{ fontWeight: "bold", color: "#dc2626" }}>-₹{Number(l.outstanding).toLocaleString("en-IN")}</Text>
-            </View>
-          ))}
-          {!isLoading && (liabilities ?? []).length === 0 && <Text style={{ color: "#6b7280" }}>No open liabilities.</Text>}
-        </View>
+            ))}
+
+            {!isLoading && (!liabilities || liabilities.length === 0) && (
+              <AppText className="text-sm text-muted-foreground">No active loan liabilities.</AppText>
+            )}
+          </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

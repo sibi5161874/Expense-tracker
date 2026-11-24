@@ -1,15 +1,24 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, View, Text } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Target, AlertTriangle, CheckCircle2 } from "lucide-react-native";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { calculateBudgetStatus } from "@repo/shared/logic";
-import { formatMonth } from "@repo/shared/utils";
+import { formatMonth, formatINR } from "@repo/shared/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { AppText } from "@/components/common/AppText";
+import { AmountText } from "@/components/common/AmountText";
+import { StatusBadge } from "@/components/common/Badge";
+import { ReportExportBar } from "@/components/shared/ReportExportBar";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Budget vs Actual Report Container
+ * Material 3 Budget vs Actual Report Screen
  */
 export default function BudgetVsActualReportScreen() {
+  const { theme } = useTheme();
   const currentMonth = formatMonth(new Date());
   const { data: budgetLimits, isLoading: budgetsLoading, error: budgetsError } = useBudgetLimits();
   const { categoryBreakdown, isLoading: overviewLoading, error: overviewError } = useMonthlyOverview(currentMonth);
@@ -27,52 +36,100 @@ export default function BudgetVsActualReportScreen() {
     });
   }, [budgetLimits, categoryBreakdown]);
 
+  const sheets = useMemo(
+    () => [
+      {
+        name: "Budget vs Actual",
+        headers: ["Category", "Monthly Limit", "Actual Spend", "Status"],
+        rows: rows.map((r) => ({
+          Category: r.category,
+          "Monthly Limit": r.limit,
+          "Actual Spend": r.actual,
+          Status: r.status,
+        })),
+      },
+    ],
+    [rows]
+  );
+
   const isLoading = budgetsLoading || overviewLoading;
   const error = budgetsError || overviewError;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Budget vs Actual</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Spend against your monthly limit for {currentMonth}</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Budget vs Actual"
+          description={`Spend against your monthly limits for ${currentMonth}`}
+        />
 
-        {isLoading && <ActivityIndicator />}
-        {error && <Text style={{ color: "#b91c1c" }}>{error.message}</Text>}
+        <ReportExportBar
+          title={`Budget vs Actual - ${currentMonth}`}
+          description={`Tracking category budgets against actual spend in ${currentMonth}`}
+          sheets={sheets}
+        />
 
-        <View style={{ gap: 8 }}>
-          {rows.map((r) => (
-            <View
-              key={r.category}
-              style={{
-                padding: 12,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-                borderRadius: 6,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <View style={{ gap: 2 }}>
-                <Text style={{ fontWeight: "600" }}>{r.category}</Text>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>
-                  Budget: ₹{r.limit.toLocaleString("en-IN")} &bull; Status: {r.status}
-                </Text>
-              </View>
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  color: r.actual > r.limit ? "#dc2626" : "#16a34a",
-                }}
-              >
-                ₹{r.actual.toLocaleString("en-IN")}
-              </Text>
-            </View>
-          ))}
+        {isLoading && <ActivityIndicator color={theme.primary} />}
+        {error && (
+          <Card variant="outlined" className="p-4 border-destructive/40 bg-destructive/10">
+            <AppText className="text-sm text-destructive">{error.message}</AppText>
+          </Card>
+        )}
+
+        <View className="gap-3">
+          {rows.map((r) => {
+            const isOver = r.actual > r.limit;
+            const pct = r.limit > 0 ? (r.actual / r.limit) * 100 : 0;
+            return (
+              <Card key={r.category} variant="outlined" className="p-4 gap-2.5">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <Target size={18} color={isOver ? theme.destructive : theme.primary} />
+                    <AppText className="text-sm font-semibold text-foreground">{r.category}</AppText>
+                  </View>
+                  <StatusBadge tone={isOver ? "destructive" : pct > 80 ? "warning" : "success"}>
+                    {r.status.toUpperCase()}
+                  </StatusBadge>
+                </View>
+
+                <View className="flex-row items-center justify-between text-xs">
+                  <AppText className="text-xs text-muted-foreground">
+                    Budget: {formatINR(r.limit)}
+                  </AppText>
+                  <View className="flex-row items-center gap-1">
+                    <AppText className="text-xs text-muted-foreground">Spent:</AppText>
+                    <AmountText
+                      value={r.actual}
+                      sign={isOver ? "negative" : "neutral"}
+                      className="text-xs font-semibold"
+                    />
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View className="h-2 rounded-full bg-surface-container-highest overflow-hidden">
+                  <View
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, Math.max(3, pct))}%`,
+                      backgroundColor: isOver ? theme.destructive : pct > 80 ? theme.warning : theme.success,
+                    }}
+                  />
+                </View>
+              </Card>
+            );
+          })}
+
           {!isLoading && rows.length === 0 && (
-            <Text style={{ color: "#6b7280" }}>No budget limits configured.</Text>
+            <Card variant="outlined" className="p-6 items-center justify-center">
+              <AppText className="text-sm text-muted-foreground">No monthly budget limits configured.</AppText>
+            </Card>
           )}
         </View>
       </ScrollView>

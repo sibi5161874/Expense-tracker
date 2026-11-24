@@ -1,13 +1,21 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { View, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Send, CheckCircle2, MessageSquare } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { postWebApi } from "@/lib/webApi";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card } from "@/components/common/Card";
+import { TextField } from "@/components/common/TextField";
+import { Button } from "@/components/common/Button";
+import { AppText } from "@/components/common/AppText";
+import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Headless Feedback Container
+ * Material 3 Feedback Screen
  */
 export default function FeedbackScreen() {
+  const { theme } = useTheme();
   const { user, session } = useAuth();
   const [name, setName] = useState(user?.email?.split("@")[0] || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -32,63 +40,83 @@ export default function FeedbackScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Submit Feedback</Text>
-          <Text style={{ fontSize: 13, color: "#6b7280" }}>Report an issue, request a feature, or share your thoughts</Text>
-        </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["top"]}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <PageHeader
+          title="Submit Feedback"
+          description="Report an issue, request a feature, or share your thoughts"
+        />
 
         {sent ? (
-          <View style={{ padding: 16, backgroundColor: "#f0fdf4", borderRadius: 8, gap: 8 }}>
-            <Text style={{ fontSize: 18, fontWeight: "bold", color: "#16a34a" }}>Thank you!</Text>
-            <Text style={{ color: "#4b5563" }}>Your feedback has been submitted to the engineering team.</Text>
-            <Pressable onPress={() => { setSent(false); setMessage(""); }} style={{ marginTop: 8 }}>
-              <Text style={{ color: "#2563eb", fontWeight: "600" }}>Submit another response</Text>
-            </Pressable>
-          </View>
+          <Card variant="outlined" className="p-6 gap-3 border-success/40 bg-success/10">
+            <View className="flex-row items-center gap-2">
+              <CheckCircle2 size={22} color={theme.success} />
+              <AppText className="text-lg font-bold text-success">Thank you!</AppText>
+            </View>
+            <AppText className="text-sm text-foreground">
+              Your feedback has been received and routed directly to the engineering team.
+            </AppText>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 self-start"
+              onPress={() => {
+                setSent(false);
+                setMessage("");
+              }}
+            >
+              <AppText className="text-sm font-medium text-foreground">Submit another response</AppText>
+            </Button>
+          </Card>
         ) : (
-          <View style={{ gap: 12 }}>
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Your Name</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
+          <Card variant="outlined" className="p-5 gap-4">
+            <TextField
+              label="Your Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. Rahul Sharma"
+            />
 
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Email</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8 }}
-              />
-            </View>
+            <TextField
+              label="Email Address"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="rahul@example.com"
+            />
 
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontSize: 12, color: "#6b7280" }}>Message</Text>
-              <TextInput
-                value={message}
-                onChangeText={setMessage}
-                multiline
-                numberOfLines={4}
-                placeholder="What can we improve?"
-                style={{ borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 8, height: 100, textAlignVertical: "top" }}
-              />
-            </View>
+            <TextField
+              label="Feedback Message"
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              placeholder="What can we improve? Feature requests, bugs, ideas..."
+            />
 
-            <Pressable
+            <Button
+              variant="primary"
+              size="lg"
               disabled={submitting}
               onPress={handleSubmit}
-              style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 6, alignItems: "center" }}
+              className="mt-2 flex-row items-center justify-center gap-2"
             >
-              {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={{ color: "#ffffff", fontWeight: "600" }}>Send Feedback</Text>}
-            </Pressable>
-          </View>
+              {submitting ? (
+                <ActivityIndicator color={theme.onPrimary} />
+              ) : (
+                <>
+                  <Send size={18} color={theme.onPrimary} />
+                  <AppText className="font-semibold text-primary-foreground">Send Feedback</AppText>
+                </>
+              )}
+            </Button>
+          </Card>
         )}
       </ScrollView>
     </SafeAreaView>
