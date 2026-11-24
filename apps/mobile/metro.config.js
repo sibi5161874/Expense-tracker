@@ -16,6 +16,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
+// 3. Configure Metro bundler port to 8085
+config.server = {
+  ...config.server,
+  port: 8085,
+};
+
 // forceWriteFileSystem skips nativewind's virtual-module fast-refresh-CSS path, which reads
 // Metro's private dependency-graph internal (graph._fileSystem) to patch it — that internal's
 // shape changed in the Metro version Expo SDK 57 ships, so it comes back undefined and crashes
