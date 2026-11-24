@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { View, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Mail, Lock, Sparkles, UserCheck, ArrowRight } from "lucide-react-native";
+import { Mail, Lock, Sparkles, UserCheck, ArrowRight, WifiOff } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
@@ -12,6 +13,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 export default function LoginScreen() {
   const { theme } = useTheme();
+  const isOnline = useNetworkStatus();
   const { user, loading: authLoading, signIn, signInWithGoogle, signInAnonymously } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -26,6 +28,10 @@ export default function LoginScreen() {
   }, [user, authLoading]);
 
   async function handleLogin() {
+    if (!isOnline) {
+      setError("You are currently offline. An active internet connection is required to sign in.");
+      return;
+    }
     if (!email.trim() || !password) {
       setError("Please enter both email and password.");
       return;
@@ -48,6 +54,10 @@ export default function LoginScreen() {
   }
 
   async function handleGoogle() {
+    if (!isOnline) {
+      setError("You are currently offline. An active internet connection is required to sign in.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -70,6 +80,10 @@ export default function LoginScreen() {
   }
 
   async function handleGuest() {
+    if (!isOnline) {
+      setError("You are currently offline. An active internet connection is required to sign in.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -126,6 +140,21 @@ export default function LoginScreen() {
             <AppText className="text-lg font-bold text-foreground">
               Sign In to Your Account
             </AppText>
+
+            {!isOnline && (
+              <View
+                className="flex-row items-center gap-2 rounded-xl border p-3"
+                style={{
+                  backgroundColor: theme.surfaceContainerHigh || theme.card,
+                  borderColor: theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border,
+                }}
+              >
+                <WifiOff size={16} color={theme.warning || "#f59e0b"} />
+                <AppText className="flex-1 text-xs text-muted-foreground">
+                  You are offline. Connect to the internet to sign in.
+                </AppText>
+              </View>
+            )}
 
             {error && (
               <View

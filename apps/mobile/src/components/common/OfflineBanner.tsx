@@ -1,24 +1,69 @@
+import { useEffect, useState, useRef } from "react";
 import { View } from "react-native";
-import { WifiOff } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WifiOff, CheckCircle2 } from "lucide-react-native";
 import { AppText } from "@/components/common/AppText";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
-/** Persistent, app-wide signal that we're offline — not an error, just a status. Data
- * already loaded still works (queries read from the persisted cache); this just sets
- * expectations before the user hits a network-only action like live price refresh. */
 export function OfflineBanner() {
   const isOnline = useNetworkStatus();
-  const warningForeground = useThemeColor("warningForeground");
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
-  if (isOnline) return null;
+  const [showReconnected, setShowReconnected] = useState(false);
+  const wasOfflineRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOnline) {
+      wasOfflineRef.current = true;
+      setShowReconnected(false);
+    } else if (wasOfflineRef.current) {
+      wasOfflineRef.current = false;
+      setShowReconnected(true);
+      const timer = setTimeout(() => {
+        setShowReconnected(false);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline]);
+
+  const isVisible = !isOnline || showReconnected;
+  if (!isVisible) return null;
+
+  const isOfflineState = !isOnline;
 
   return (
-    <View className="flex-row items-center justify-center gap-2 bg-warning px-4 py-2">
-      <WifiOff size={13} color={warningForeground} />
-      <AppText className="text-xs font-medium" style={{ color: warningForeground }}>
-        You're offline — showing your last synced data
-      </AppText>
+    <View
+      accessibilityRole="alert"
+      accessibilityLabel={isOfflineState ? "Offline notice" : "Online notice"}
+      style={{
+        paddingTop: Math.max(insets.top, 8),
+        backgroundColor: theme.surfaceContainerHigh || theme.card,
+        borderBottomWidth: 1,
+        borderBottomColor: isOfflineState
+          ? theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border
+          : theme.success ? `${theme.success}55` : theme.border,
+      }}
+      className="z-50 w-full px-4 pb-2 pt-1 shadow-xs"
+    >
+      <View className="flex-row items-center justify-center gap-2">
+        {isOfflineState ? (
+          <>
+            <WifiOff size={14} color={theme.warning || "#f59e0b"} />
+            <AppText className="text-xs font-medium text-foreground">
+              Offline • Changes will sync automatically
+            </AppText>
+          </>
+        ) : (
+          <>
+            <CheckCircle2 size={14} color={theme.success || "#22c55e"} />
+            <AppText className="text-xs font-medium text-foreground">
+              Connected • Synced
+            </AppText>
+          </>
+        )}
+      </View>
     </View>
   );
 }

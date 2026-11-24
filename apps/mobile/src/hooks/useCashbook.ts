@@ -44,7 +44,34 @@ export function useCashbook(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return createCashbook(supabase, userId, data);
     },
-    onSuccess: invalidate,
+    onMutate: async (newEntry: CashbookInput) => {
+      await queryClient.cancelQueries({ queryKey: ['cashbook', userId] });
+      const previousData = queryClient.getQueriesData({ queryKey: ['cashbook', userId] });
+
+      const optimisticItem = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: 'open',
+        ...newEntry,
+      };
+
+      queryClient.setQueriesData({ queryKey: ['cashbook', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return [optimisticItem, ...old];
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: invalidate,
   });
 
   const updateMutation = useMutation({
@@ -53,7 +80,25 @@ export function useCashbook(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return updateCashbook(supabase, userId, id, data);
     },
-    onSuccess: invalidate,
+    onMutate: async ({ id, data }: { id: string; data: Partial<CashbookInput> }) => {
+      await queryClient.cancelQueries({ queryKey: ['cashbook', userId] });
+      const previousData = queryClient.getQueriesData({ queryKey: ['cashbook', userId] });
+
+      queryClient.setQueriesData({ queryKey: ['cashbook', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((item: any) => (item?.id === id ? { ...item, ...data } : item));
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: invalidate,
   });
 
   const deleteMutation = useMutation({
@@ -62,7 +107,25 @@ export function useCashbook(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return deleteCashbook(supabase, userId, id);
     },
-    onSuccess: invalidate,
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['cashbook', userId] });
+      const previousData = queryClient.getQueriesData({ queryKey: ['cashbook', userId] });
+
+      queryClient.setQueriesData({ queryKey: ['cashbook', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((item: any) => item?.id !== id);
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: invalidate,
   });
 
   return {

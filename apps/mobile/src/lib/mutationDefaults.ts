@@ -4,7 +4,17 @@ import { createTransaction, updateTransaction, deleteTransaction } from "@repo/s
 import { createInvestmentLog, updateInvestmentLog, deleteInvestmentLog } from "@repo/shared/queries/investmentLog";
 import { createGoal, updateGoal, deleteGoal } from "@repo/shared/queries/goals";
 import { createCashbook, updateCashbook, deleteCashbook } from "@repo/shared/queries/cashbook";
-import type { TransactionInput, InvestmentLogInput, GoalInput, CashbookInput } from "@repo/shared/schemas";
+import { createAccount, updateAccount, deleteAccount, createCategory, updateCategory, deleteCategory } from "@repo/shared/queries/config";
+import { createInsurancePolicy, updateInsurancePolicy, deleteInsurancePolicy } from "@repo/shared/queries/insurance";
+import type {
+  TransactionInput,
+  InvestmentLogInput,
+  GoalInput,
+  CashbookInput,
+  AccountInput,
+  CategoryInput,
+  InsurancePolicyInput,
+} from "@repo/shared/schemas";
 
 /**
  * A mutation paused while offline (see QueryProvider's `networkMode: "offlineFirst"`) gets
@@ -18,11 +28,6 @@ import type { TransactionInput, InvestmentLogInput, GoalInput, CashbookInput } f
  * exact same call the live hook would have made — hence reading the current user fresh via
  * `supabase.auth.getUser()` rather than closing over a userId (there's no React tree here
  * to read one from, and the session may have changed since the write was queued).
- *
- * Covers the four highest-frequency offline write paths (Transactions, Investment Log,
- * Goals, Cashbook). Config/Assets/Insurance edits made offline still queue and resume
- * within the same app session (in-memory pause/resume, via the hooks' own mutationFn) —
- * they just won't survive a force-quit until they're added here too, same pattern.
  */
 export function registerOfflineMutationDefaults(queryClient: QueryClient) {
   async function currentUserId(): Promise<string> {
@@ -33,6 +38,7 @@ export function registerOfflineMutationDefaults(queryClient: QueryClient) {
     return user.id;
   }
 
+  // Transactions
   queryClient.setMutationDefaults(["createTransaction"], {
     mutationFn: async (data: TransactionInput) => createTransaction(supabase, await currentUserId(), data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
@@ -47,6 +53,7 @@ export function registerOfflineMutationDefaults(queryClient: QueryClient) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
   });
 
+  // Investment Log
   queryClient.setMutationDefaults(["createInvestmentLog"], {
     mutationFn: async (data: InvestmentLogInput) => createInvestmentLog(supabase, await currentUserId(), data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["investmentLog"] }),
@@ -61,6 +68,7 @@ export function registerOfflineMutationDefaults(queryClient: QueryClient) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["investmentLog"] }),
   });
 
+  // Goals
   queryClient.setMutationDefaults(["createGoal"], {
     mutationFn: async (data: GoalInput) => createGoal(supabase, await currentUserId(), data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["goals"] }),
@@ -75,6 +83,7 @@ export function registerOfflineMutationDefaults(queryClient: QueryClient) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["goals"] }),
   });
 
+  // Cashbook
   queryClient.setMutationDefaults(["createCashbook"], {
     mutationFn: async (data: CashbookInput) => createCashbook(supabase, await currentUserId(), data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cashbook"] }),
@@ -87,5 +96,50 @@ export function registerOfflineMutationDefaults(queryClient: QueryClient) {
   queryClient.setMutationDefaults(["deleteCashbook"], {
     mutationFn: async (id: string) => deleteCashbook(supabase, await currentUserId(), id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cashbook"] }),
+  });
+
+  // Accounts
+  queryClient.setMutationDefaults(["createAccount"], {
+    mutationFn: async (data: AccountInput) => createAccount(supabase, await currentUserId(), data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+  queryClient.setMutationDefaults(["updateAccount"], {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<AccountInput> }) =>
+      updateAccount(supabase, await currentUserId(), id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+  queryClient.setMutationDefaults(["deleteAccount"], {
+    mutationFn: async (id: string) => deleteAccount(supabase, await currentUserId(), id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+
+  // Categories
+  queryClient.setMutationDefaults(["createCategory"], {
+    mutationFn: async (data: CategoryInput) => createCategory(supabase, await currentUserId(), data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+  queryClient.setMutationDefaults(["updateCategory"], {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryInput> }) =>
+      updateCategory(supabase, await currentUserId(), id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+  queryClient.setMutationDefaults(["deleteCategory"], {
+    mutationFn: async (id: string) => deleteCategory(supabase, await currentUserId(), id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+
+  // Insurance Policies
+  queryClient.setMutationDefaults(["createInsurancePolicy"], {
+    mutationFn: async (data: InsurancePolicyInput) => createInsurancePolicy(supabase, await currentUserId(), data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["insurancePolicies"] }),
+  });
+  queryClient.setMutationDefaults(["updateInsurancePolicy"], {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsurancePolicyInput> }) =>
+      updateInsurancePolicy(supabase, await currentUserId(), id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["insurancePolicies"] }),
+  });
+  queryClient.setMutationDefaults(["deleteInsurancePolicy"], {
+    mutationFn: async (id: string) => deleteInsurancePolicy(supabase, await currentUserId(), id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["insurancePolicies"] }),
   });
 }

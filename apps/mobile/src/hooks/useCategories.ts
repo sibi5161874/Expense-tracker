@@ -22,6 +22,7 @@ export function useCategories(type?: 'Income' | 'Expense' | 'Transfer') {
   });
 
   const createMutation = useMutation({
+    mutationKey: ['createCategory'],
     mutationFn: (data: CategoryInput) => {
       if (!userId) throw new Error('User not authenticated');
       return createCategory(supabase, userId, data);
@@ -30,6 +31,7 @@ export function useCategories(type?: 'Income' | 'Expense' | 'Transfer') {
   });
 
   const updateMutation = useMutation({
+    mutationKey: ['updateCategory'],
     mutationFn: ({ id, data }: { id: string; data: Partial<CategoryInput> }) => {
       if (!userId) throw new Error('User not authenticated');
       return updateCategory(supabase, userId, id, data);
@@ -38,6 +40,7 @@ export function useCategories(type?: 'Income' | 'Expense' | 'Transfer') {
   });
 
   const deleteMutation = useMutation({
+    mutationKey: ['deleteCategory'],
     mutationFn: (id: string) => {
       if (!userId) throw new Error('User not authenticated');
       return deleteCategory(supabase, userId, id);

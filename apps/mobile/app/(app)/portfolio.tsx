@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RefreshCw, Plus, TrendingUp, TrendingDown } from "lucide-react-native";
 import { useAllInvestmentLog, useInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useHoldings } from "@/hooks/useHoldings";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useRefreshPrices } from "@/hooks/useRefreshPrices";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { groupInvestmentsBySymbol, summarizeHoldings } from "@repo/shared/logic";
 import { formatINR } from "@repo/shared/utils";
 
@@ -21,6 +22,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 export default function PortfolioScreen() {
   const { theme } = useTheme();
+  const isOnline = useNetworkStatus();
   const [activeTab, setActiveTab] = useState<"holdings" | "heatmap" | "tax">("holdings");
   const [showAddSheet, setShowAddSheet] = useState(false);
 
@@ -72,11 +74,22 @@ export default function PortfolioScreen() {
           {/* Refresh Action */}
           <Pressable
             disabled={isRefreshing}
-            onPress={() => refresh()}
+            onPress={() => {
+              if (!isOnline) {
+                Alert.alert(
+                  "Offline Mode",
+                  "Live prices cannot be refreshed without an active internet connection. Showing your cached portfolio values.",
+                  [{ text: "OK" }]
+                );
+                return;
+              }
+              refresh();
+            }}
             className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5"
             style={{
               borderColor: theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border,
               backgroundColor: theme.surfaceContainerLow || theme.card,
+              opacity: isOnline ? 1 : 0.7,
             }}
           >
             <RefreshCw
@@ -85,7 +98,7 @@ export default function PortfolioScreen() {
               className={isRefreshing ? "animate-spin" : ""}
             />
             <AppText className="text-xs font-semibold text-primary">
-              {isRefreshing ? "Updating..." : "Refresh"}
+              {isRefreshing ? "Updating..." : isOnline ? "Refresh" : "Offline"}
             </AppText>
           </Pressable>
         </View>

@@ -31,6 +31,7 @@ export function useInsurancePolicies() {
   }
 
   const createMutation = useMutation({
+    mutationKey: ['createInsurancePolicy'],
     mutationFn: (data: InsurancePolicyInput) => {
       if (!userId) throw new Error('User not authenticated');
       return createInsurancePolicy(supabase, userId, data);
@@ -39,6 +40,7 @@ export function useInsurancePolicies() {
   });
 
   const updateMutation = useMutation({
+    mutationKey: ['updateInsurancePolicy'],
     mutationFn: ({ id, data }: { id: string; data: Partial<InsurancePolicyInput> }) => {
       if (!userId) throw new Error('User not authenticated');
       return updateInsurancePolicy(supabase, userId, id, data);
@@ -47,6 +49,7 @@ export function useInsurancePolicies() {
   });
 
   const deleteMutation = useMutation({
+    mutationKey: ['deleteInsurancePolicy'],
     mutationFn: (id: string) => {
       if (!userId) throw new Error('User not authenticated');
       return deleteInsurancePolicy(supabase, userId, id);

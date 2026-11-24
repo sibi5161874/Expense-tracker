@@ -22,6 +22,7 @@ export function useAccounts(activeOnly = false) {
   });
 
   const createMutation = useMutation({
+    mutationKey: ['createAccount'],
     mutationFn: (data: AccountInput) => {
       if (!userId) throw new Error('User not authenticated');
       return createAccount(supabase, userId, data);
@@ -30,6 +31,7 @@ export function useAccounts(activeOnly = false) {
   });
 
   const updateMutation = useMutation({
+    mutationKey: ['updateAccount'],
     mutationFn: ({ id, data }: { id: string; data: Partial<AccountInput> }) => {
       if (!userId) throw new Error('User not authenticated');
       return updateAccount(supabase, userId, id, data);
@@ -38,6 +40,7 @@ export function useAccounts(activeOnly = false) {
   });
 
   const deleteMutation = useMutation({
+    mutationKey: ['deleteAccount'],
     mutationFn: (id: string) => {
       if (!userId) throw new Error('User not authenticated');
       return deleteAccount(supabase, userId, id);

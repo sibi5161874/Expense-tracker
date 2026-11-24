@@ -15,6 +15,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/lib/QueryProvider";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { loadThemePreference } from "@/lib/themePreference";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 
@@ -56,6 +57,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <QueryProvider>
           <AuthProvider>
+            <OfflineBanner />
             <Stack screenOptions={{ headerShown: false }} />
             <StatusBar style="auto" />
           </AuthProvider>

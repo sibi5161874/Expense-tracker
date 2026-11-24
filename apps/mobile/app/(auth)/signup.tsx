@@ -2,8 +2,9 @@ import { useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Mail, Lock, Sparkles, CheckCircle2, ArrowRight } from "lucide-react-native";
+import { Mail, Lock, Sparkles, CheckCircle2, ArrowRight, WifiOff } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
@@ -12,6 +13,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 export default function SignupScreen() {
   const { theme } = useTheme();
+  const isOnline = useNetworkStatus();
   const { signUp } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -23,6 +25,10 @@ export default function SignupScreen() {
 
   async function handleSignup() {
     setError(null);
+    if (!isOnline) {
+      setError("You are currently offline. An active internet connection is required to create an account.");
+      return;
+    }
     if (!email.trim() || !password) {
       setError("Please fill out all fields.");
       return;
@@ -121,6 +127,21 @@ export default function SignupScreen() {
 
           {/* Form Card */}
           <Card variant="outlined" className="gap-4 p-5">
+            {!isOnline && (
+              <View
+                className="flex-row items-center gap-2 rounded-xl border p-3"
+                style={{
+                  backgroundColor: theme.surfaceContainerHigh || theme.card,
+                  borderColor: theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border,
+                }}
+              >
+                <WifiOff size={16} color={theme.warning || "#f59e0b"} />
+                <AppText className="flex-1 text-xs text-muted-foreground">
+                  You are offline. Connect to the internet to create an account.
+                </AppText>
+              </View>
+            )}
+
             {error && (
               <View
                 className="rounded-xl border p-3"

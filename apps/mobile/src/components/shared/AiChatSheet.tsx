@@ -8,12 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Sparkles, Send, X, Bot, CheckCircle2 } from "lucide-react-native";
+import { Sparkles, Send, X, Bot, CheckCircle2, WifiOff } from "lucide-react-native";
 import { AppText } from "@/components/common/AppText";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/theme/ThemeProvider";
 import { usePressScale } from "@/theme/usePressScale";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 interface Message {
   id: string;
@@ -41,6 +42,7 @@ export function AiChatSheet({
 }) {
   const { session } = useAuth();
   const { theme } = useTheme();
+  const isOnline = useNetworkStatus();
   const { onPressIn, onPressOut } = usePressScale(0.95);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -68,6 +70,17 @@ export function AiChatSheet({
   const handleSend = async (customPrompt?: string) => {
     const textToSend = (customPrompt ?? input).trim();
     if (!textToSend || loading) return;
+
+    if (!isOnline) {
+      const offlineMsg: Message = {
+        id: `offline-${Date.now()}`,
+        role: "assistant",
+        content: "KashMap AI requires an active internet connection to communicate with the model. Please connect to Wi-Fi or mobile data to chat.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, offlineMsg]);
+      return;
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -272,7 +285,7 @@ export function AiChatSheet({
         </ScrollView>
 
         {/* Starter Prompt Chips */}
-        {messages.length <= 2 && (
+        {isOnline && messages.length <= 2 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="max-h-9 px-4 mb-2">
             <View className="flex-row gap-2">
               {STARTER_PROMPTS.map((prompt) => (
@@ -290,6 +303,22 @@ export function AiChatSheet({
               ))}
             </View>
           </ScrollView>
+        )}
+
+        {/* Offline Notice */}
+        {!isOnline && (
+          <View
+            className="flex-row items-center gap-2 border-t px-4 py-2"
+            style={{
+              backgroundColor: theme.surfaceContainerHigh || theme.card,
+              borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            }}
+          >
+            <WifiOff size={14} color={theme.warning || "#f59e0b"} />
+            <AppText className="flex-1 text-xs text-muted-foreground">
+              Offline • Connect to internet to ask questions
+            </AppText>
+          </View>
         )}
 
         {/* Input Bar */}
@@ -310,25 +339,26 @@ export function AiChatSheet({
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Ask KashMap AI anything..."
+              placeholder={isOnline ? "Ask KashMap AI anything..." : "Internet connection required..."}
               placeholderTextColor={theme.mutedForeground}
               onSubmitEditing={() => handleSend()}
               returnKeyType="send"
+              editable={isOnline}
               className="flex-1 py-2 text-sm text-foreground"
             />
             <Pressable
               onPress={() => handleSend()}
               onPressIn={onPressIn}
               onPressOut={onPressOut}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || !isOnline}
               className="size-8 items-center justify-center rounded-full"
               style={{
-                backgroundColor: input.trim() && !loading ? theme.primary : "transparent",
+                backgroundColor: input.trim() && !loading && isOnline ? theme.primary : "transparent",
               }}
             >
               <Send
                 size={16}
-                color={input.trim() && !loading ? theme.onPrimary : theme.mutedForeground}
+                color={input.trim() && !loading && isOnline ? theme.onPrimary : theme.mutedForeground}
               />
             </Pressable>
           </View>

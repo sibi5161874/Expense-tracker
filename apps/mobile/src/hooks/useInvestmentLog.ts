@@ -40,7 +40,40 @@ export function useInvestmentLog(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return createInvestmentLog(supabase, userId, data);
     },
-    onSuccess: invalidate,
+    onMutate: async (newEntry: InvestmentLogInput) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentLog', userId] });
+      await queryClient.cancelQueries({ queryKey: ['allInvestmentLog', userId] });
+      const prevLog = queryClient.getQueriesData({ queryKey: ['investmentLog', userId] });
+      const prevAll = queryClient.getQueriesData({ queryKey: ['allInvestmentLog', userId] });
+
+      const optimisticItem = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...newEntry,
+      };
+
+      queryClient.setQueriesData({ queryKey: ['investmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return [optimisticItem, ...old];
+      });
+      queryClient.setQueriesData({ queryKey: ['allInvestmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return [optimisticItem, ...old];
+      });
+
+      return { prevLog, prevAll };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevLog) {
+        context.prevLog.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+      if (context?.prevAll) {
+        context.prevAll.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+    },
+    onSettled: invalidate,
   });
 
   const updateMutation = useMutation({
@@ -49,7 +82,32 @@ export function useInvestmentLog(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return updateInvestmentLog(supabase, userId, id, data);
     },
-    onSuccess: invalidate,
+    onMutate: async ({ id, data }: { id: string; data: Partial<InvestmentLogInput> }) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentLog', userId] });
+      await queryClient.cancelQueries({ queryKey: ['allInvestmentLog', userId] });
+      const prevLog = queryClient.getQueriesData({ queryKey: ['investmentLog', userId] });
+      const prevAll = queryClient.getQueriesData({ queryKey: ['allInvestmentLog', userId] });
+
+      queryClient.setQueriesData({ queryKey: ['investmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((item: any) => (item?.id === id ? { ...item, ...data } : item));
+      });
+      queryClient.setQueriesData({ queryKey: ['allInvestmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((item: any) => (item?.id === id ? { ...item, ...data } : item));
+      });
+
+      return { prevLog, prevAll };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevLog) {
+        context.prevLog.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+      if (context?.prevAll) {
+        context.prevAll.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+    },
+    onSettled: invalidate,
   });
 
   const deleteMutation = useMutation({
@@ -58,7 +116,32 @@ export function useInvestmentLog(opts: { page?: number } = {}) {
       if (!userId) throw new Error('User not authenticated');
       return deleteInvestmentLog(supabase, userId, id);
     },
-    onSuccess: invalidate,
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentLog', userId] });
+      await queryClient.cancelQueries({ queryKey: ['allInvestmentLog', userId] });
+      const prevLog = queryClient.getQueriesData({ queryKey: ['investmentLog', userId] });
+      const prevAll = queryClient.getQueriesData({ queryKey: ['allInvestmentLog', userId] });
+
+      queryClient.setQueriesData({ queryKey: ['investmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((item: any) => item?.id !== id);
+      });
+      queryClient.setQueriesData({ queryKey: ['allInvestmentLog', userId] }, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((item: any) => item?.id !== id);
+      });
+
+      return { prevLog, prevAll };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevLog) {
+        context.prevLog.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+      if (context?.prevAll) {
+        context.prevAll.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+    },
+    onSettled: invalidate,
   });
 
   return {

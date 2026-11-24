@@ -8,6 +8,9 @@ module.exports = {
   preset: 'jest-expo',
   testTimeout: 20000,
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleNameMapper: {
+    '^lucide-react-native$': '<rootDir>/src/__mocks__/lucide-react-native.js',
+  },
   // The default preset ignores everything in node_modules, but RN/Expo packages ship
   // untranspiled ESM that has to go through Babel to be requireable from a test.
   transformIgnorePatterns: [

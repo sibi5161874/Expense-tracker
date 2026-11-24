@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { RefreshCw, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react-native';
+import { RefreshCw, TrendingUp, TrendingDown, AlertCircle, WifiOff } from 'lucide-react-native';
 import { AppText } from '@/components/common/AppText';
 import { useMarketHeatmap, type MarketHeatmapItem } from '@/hooks/useMarketHeatmap';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useThemeColor } from '@/lib/colors';
 import { cn } from '@/lib/cn';
 
@@ -84,6 +85,7 @@ const SECTOR_DISPLAY_MAP: Record<string, string> = {
 };
 
 export function MarketHeatmap() {
+  const isOnline = useNetworkStatus();
   const { data, isLoading, error, refetch, isRefetching } = useMarketHeatmap();
   const [selectedSector, setSelectedSector] = useState<string>('All');
 
@@ -119,6 +121,20 @@ export function MarketHeatmap() {
     );
   }
 
+  if (!isOnline && items.length === 0) {
+    return (
+      <View className="items-center justify-center rounded-2xl border border-border bg-card p-6 text-center">
+        <WifiOff size={28} color={mutedForeground} />
+        <AppText className="mt-2 text-center text-sm font-medium text-foreground">
+          Market Heatmap is offline
+        </AppText>
+        <AppText className="mt-1 text-center text-xs text-muted-foreground">
+          Connect to the internet to load real-time Nifty 50 heatmap data.
+        </AppText>
+      </View>
+    );
+  }
+
   if (error) {
     return (
       <View className="items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 p-6 text-center">
@@ -145,12 +161,17 @@ export function MarketHeatmap() {
             <View className="flex-row items-center gap-1.5">
               <AppText className="text-sm font-bold">Stock Heatmap</AppText>
               <AppText className="text-xs text-muted-foreground font-medium">🇮🇳 Nifty 50</AppText>
+              {!isOnline && (
+                <View className="rounded-full bg-muted px-2 py-0.5">
+                  <AppText className="text-[10px] text-muted-foreground font-medium">Cached</AppText>
+                </View>
+              )}
             </View>
             <AppText className="text-xs text-muted-foreground mt-0.5">{items.length} stocks</AppText>
           </View>
           <Pressable
             onPress={() => refetch()}
-            disabled={isRefetching}
+            disabled={isRefetching || !isOnline}
             className="size-8 items-center justify-center rounded-full bg-muted"
           >
             <RefreshCw size={14} color={mutedForeground} />
