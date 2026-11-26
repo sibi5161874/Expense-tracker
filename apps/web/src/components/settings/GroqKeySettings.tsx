@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Bot, CheckCircle2, ExternalLink, Eye, EyeOff, KeyRound, Loader2, Trash2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,16 @@ import { useUserGroqKey } from '@/hooks/useUserGroqKey';
 
 export function GroqKeySettings() {
   const { groqKey, hasKey, isLoaded, setKey, removeKey } = useUserGroqKey();
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(groqKey || '');
+  const [prevGroqKey, setPrevGroqKey] = useState(groqKey);
   const [showKey, setShowKey] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  useEffect(() => {
-    if (groqKey) {
-      setInputValue(groqKey);
-    }
-  }, [groqKey]);
+  // Sync inputValue when groqKey loads or changes from storage without effect setState
+  if (groqKey !== prevGroqKey) {
+    setPrevGroqKey(groqKey);
+    setInputValue(groqKey || '');
+  }
 
   async function handleSave() {
     const trimmed = inputValue.trim();
@@ -195,7 +196,7 @@ export function GroqKeySettings() {
           <li>Copy the key (starts with <code className="text-foreground font-mono bg-muted px-1 py-0.5 rounded">gsk_</code>) and paste it above.</li>
         </ol>
         <p className="pt-1 text-[11px] text-muted-foreground/80">
-          🔒 <strong>Privacy First:</strong> Your key is stored securely in your browser's local storage. It is never stored in any database or shared with third parties.
+          🔒 <strong>Privacy First:</strong> Your key is stored securely in your browser&apos;s local storage. It is never stored in any database or shared with third parties.
         </p>
       </div>
     </div>

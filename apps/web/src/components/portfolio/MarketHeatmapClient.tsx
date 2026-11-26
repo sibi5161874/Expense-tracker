@@ -76,13 +76,38 @@ export function MarketHeatmapClient() {
   );
 
   useEffect(() => {
-    fetchIndexData('nifty50');
+    let ignore = false;
+
+    async function loadInitial() {
+      try {
+        const res = await fetch('/api/market/heatmap?index=nifty50');
+        if (!res.ok) throw new Error('Failed to load market data');
+        const json = await res.json();
+        if (!ignore && json.data?.length) {
+          setData(json.data);
+          setCurrencySymbol(json.currencySymbol || '₹');
+          setCache((prev) => ({
+            ...prev,
+            nifty50: { data: json.data, currencySymbol: json.currencySymbol || '₹' },
+          }));
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch market data');
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadInitial();
+
     // Pre-fetch S&P 500 in background after 2 seconds for instantaneous tab switches
     const timer = setTimeout(() => {
       fetch('/api/market/heatmap?index=sp500')
         .then((res) => res.json())
         .then((json) => {
-          if (json.data?.length) {
+          if (!ignore && json.data?.length) {
             setCache((prev) => ({
               ...prev,
               sp500: {
@@ -95,8 +120,11 @@ export function MarketHeatmapClient() {
         .catch(() => {});
     }, 2000);
 
-    return () => clearTimeout(timer);
-  }, [fetchIndexData]);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   const handleIndexChange = (newIndex: HeatmapIndex) => {
     if (newIndex === currentIndex) return;

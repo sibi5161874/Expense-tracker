@@ -1,39 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { getStoredGroqKey, setStoredGroqKey, removeStoredGroqKey } from '@/lib/groqStorage';
 
+function subscribe(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('kashmap:groq-key-changed', callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    window.removeEventListener('kashmap:groq-key-changed', callback);
+    window.removeEventListener('storage', callback);
+  };
+}
+
 export function useUserGroqKey() {
-  const [groqKey, setGroqKeyState] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const groqKey = useSyncExternalStore(
+    subscribe,
+    getStoredGroqKey,
+    () => null
+  );
 
-  useEffect(() => {
-    setGroqKeyState(getStoredGroqKey());
-    setIsLoaded(true);
-
-    const handleKeyChange = () => {
-      setGroqKeyState(getStoredGroqKey());
-    };
-
-    window.addEventListener('kashmap:groq-key-changed', handleKeyChange);
-    window.addEventListener('storage', handleKeyChange);
-
-    return () => {
-      window.removeEventListener('kashmap:groq-key-changed', handleKeyChange);
-      window.removeEventListener('storage', handleKeyChange);
-    };
-  }, []);
-
+  const isLoaded = true;
   const hasKey = Boolean(groqKey && (groqKey.startsWith('gsk_') || groqKey.length >= 20));
 
   function setKey(key: string) {
     setStoredGroqKey(key);
-    setGroqKeyState(key.trim() || null);
   }
 
   function removeKey() {
     removeStoredGroqKey();
-    setGroqKeyState(null);
   }
 
   return {
