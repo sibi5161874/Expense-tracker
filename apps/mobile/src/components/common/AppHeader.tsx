@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   View,
+  Image,
   Pressable,
   Modal,
   ScrollView,
@@ -87,24 +88,16 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
             onPress={() => router.push("/dashboard")}
             style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
           >
-            {/* Jewel Logo Container */}
-            <View
+            {/* Real Web App Logo */}
+            <Image
+              source={require("../../../assets/icon.png")}
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                backgroundColor: theme.primary,
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: theme.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 6,
-                elevation: 4,
+                width: 30,
+                height: 30,
+                borderRadius: 8,
               }}
-            >
-              <Sparkles size={18} color={theme.onPrimary ?? "#ffffff"} />
-            </View>
+              resizeMode="cover"
+            />
 
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <AppText style={{ fontSize: 20, fontWeight: "800", letterSpacing: -0.5, color: theme.foreground }}>

@@ -8,21 +8,8 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function RootIndex() {
   const { user, loading: authLoading } = useAuth();
   const { theme } = useTheme();
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    async function checkOnboarding() {
-      try {
-        const val = await AsyncStorage.getItem("@kashmap/has-seen-onboarding");
-        setHasSeenOnboarding(val === "true");
-      } catch {
-        setHasSeenOnboarding(false);
-      }
-    }
-    checkOnboarding();
-  }, []);
-
-  if (authLoading || hasSeenOnboarding === null) {
+  if (authLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.background }}>
         <ActivityIndicator size="large" color={theme.primary} />
@@ -34,9 +21,5 @@ export default function RootIndex() {
     return <Redirect href="/dashboard" />;
   }
 
-  if (!hasSeenOnboarding) {
-    return <Redirect href="/onboarding" />;
-  }
-
-  return <Redirect href="/login" />;
+  return <Redirect href="/onboarding" />;
 }

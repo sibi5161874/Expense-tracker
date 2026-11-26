@@ -1,7 +1,7 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, Pressable } from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, View } from "react-native";
+import { AppText } from "@/components/common/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
-import { fontFamily, motion } from "@/theme/tokens";
 
 interface ChipProps {
   label: string;
@@ -13,12 +13,10 @@ interface ChipProps {
 }
 
 /**
- * Material 3 Chip Component.
- * - Height: 32dp (compact & accessible).
- * - Radius: 8dp (`rounded-lg`).
- * - Unselected: 1px outline-variant border with transparent fill.
- * - Selected: Vibrant solid active color fill with white onPrimary text.
- * - Smooth 200ms container crossfade.
+ * Material 3 Filter Chip Component.
+ * - Solid high-contrast active styling with unmistakable vibrant background.
+ * - Inactive state with crisp border and high-contrast foreground text.
+ * - Guaranteed cross-platform text visibility on both mobile devices and React Native Web.
  */
 export function Chip({
   label,
@@ -29,62 +27,41 @@ export function Chip({
   activeTextColor,
 }: ChipProps) {
   const { theme } = useTheme();
-  const anim = useRef(new Animated.Value(selected ? 1 : 0)).current;
 
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: selected ? 1 : 0,
-      duration: motion.duration.base,
-      useNativeDriver: false,
-    }).start();
-  }, [selected, anim]);
+  const activeBg = activeColor || theme.primary;
+  const activeBorder = activeColor || theme.primary;
+  const activeText = activeTextColor || theme.onPrimary || "#ffffff";
 
-  const targetBg = activeColor || theme.primary;
-  const targetBorder = activeColor || theme.primary;
-  const targetText = activeTextColor || theme.onPrimary || "#ffffff";
-
-  const backgroundColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["transparent", targetBg],
-  });
-
-  const borderColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [
-      theme.outlineVariant || theme.border,
-      targetBorder,
-    ],
-  });
-
-  const textColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [theme.foreground, targetText],
-  });
+  const inactiveBg = theme.surfaceContainerLow || theme.card;
+  const inactiveBorder = theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border;
+  const inactiveText = theme.foreground;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className="h-8 min-h-[32px] flex-row items-center gap-1.5 rounded-lg px-3"
-      style={{ borderWidth: 1, borderColor: "transparent" }}
+      className="h-9 min-h-[36px] flex-row items-center gap-1.5 rounded-full px-4 border"
+      style={{
+        backgroundColor: selected ? activeBg : inactiveBg,
+        borderColor: selected ? activeBorder : inactiveBorder,
+        shadowColor: selected ? activeBg : "transparent",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: selected ? 0.25 : 0,
+        shadowRadius: 3,
+        elevation: selected ? 2 : 0,
+      }}
     >
-      <Animated.View
-        pointerEvents="none"
-        className="absolute inset-0 rounded-lg"
-        style={{ backgroundColor, borderWidth: 1, borderColor }}
-      />
       {icon}
-      <Animated.Text
+      <AppText
+        className="text-xs tracking-wide"
         style={{
-          color: textColor,
-          fontFamily: fontFamily.medium,
-          fontSize: 13,
-          letterSpacing: 0.1,
+          color: selected ? activeText : inactiveText,
+          fontWeight: selected ? "700" : "600",
         }}
       >
         {label}
-      </Animated.Text>
+      </AppText>
     </Pressable>
   );
 }

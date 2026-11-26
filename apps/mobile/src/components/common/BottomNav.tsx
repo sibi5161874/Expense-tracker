@@ -98,6 +98,9 @@ function NavTabItem({
           "mt-1 text-center text-[12px] tracking-wide",
           isFocused ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
         )}
+        style={{
+          color: isFocused ? theme.foreground : theme.mutedForeground,
+        }}
       >
         {config.label}
       </AppText>

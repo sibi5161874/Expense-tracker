@@ -102,10 +102,10 @@ export function Dialog({
           </View>
           {children}
           <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-            <Button variant="outline" className="flex-1" onPress={onCancel}>
+            <Button variant="outline" size="default" className="flex-1" onPress={onCancel}>
               {cancelLabel}
             </Button>
-            <Button variant={destructive ? "destructive" : "primary"} className="flex-1" onPress={onConfirm}>
+            <Button variant={destructive ? "destructive" : "primary"} size="default" className="flex-1" onPress={onConfirm}>
               {confirmLabel}
             </Button>
           </View>

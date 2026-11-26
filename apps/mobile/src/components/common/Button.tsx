@@ -20,35 +20,35 @@ type Variant =
 type Size = "sm" | "default" | "lg" | "icon";
 
 const CONTAINER: Record<Variant, string> = {
-  default: "bg-primary active:bg-primary/90",
-  primary: "bg-primary active:bg-primary/90",
+  default: "bg-primary active:opacity-90 shadow-sm",
+  primary: "bg-primary active:opacity-90 shadow-sm",
   tonal: "bg-primary-container active:bg-primary-container/80",
-  elevated: "bg-surface-container-low active:bg-surface-container-high shadow-sm",
-  outline: "border border-outline-variant bg-transparent active:bg-surface-container-highest",
-  secondary: "border border-primary bg-transparent active:bg-primary/10",
-  text: "bg-transparent active:bg-surface-container-highest",
-  ghost: "active:bg-muted",
-  destructive: "bg-destructive/15 active:bg-destructive/25",
+  elevated: "bg-surface-container-low active:bg-surface-container-high shadow-md",
+  outline: "border border-border/80 bg-surface active:bg-muted/50",
+  secondary: "border-2 border-primary bg-transparent active:bg-primary/10",
+  text: "bg-transparent active:bg-muted/40",
+  ghost: "active:bg-muted/50",
+  destructive: "bg-destructive active:opacity-90 shadow-sm",
 };
 
 const TEXT: Record<Variant, string> = {
-  default: "text-primary-foreground",
-  primary: "text-primary-foreground",
-  tonal: "text-on-primary-container",
-  elevated: "text-primary",
-  outline: "text-foreground",
-  secondary: "text-primary",
-  text: "text-primary",
-  ghost: "text-foreground",
-  destructive: "text-destructive",
+  default: "text-primary-foreground font-semibold",
+  primary: "text-primary-foreground font-semibold",
+  tonal: "text-on-primary-container font-semibold",
+  elevated: "text-primary font-semibold",
+  outline: "text-foreground font-semibold",
+  secondary: "text-primary font-semibold",
+  text: "text-primary font-semibold",
+  ghost: "text-foreground font-medium",
+  destructive: "text-destructive-foreground font-bold",
 };
 
-// Material 3 shape: canonical rounded-full (pill) for buttons, 40dp default height
+// Material 3 / iOS standard touch targets (48dp standard)
 const SIZE: Record<Size, string> = {
-  sm: "h-9 rounded-full px-4",
-  default: "h-10 rounded-full px-5",
-  lg: "h-12 rounded-full px-6",
-  icon: "size-10 rounded-full",
+  sm: "h-10 min-h-[40px] rounded-xl px-4",
+  default: "h-12 min-h-[48px] rounded-xl px-5",
+  lg: "h-13 min-h-[52px] rounded-2xl px-6",
+  icon: "size-12 min-h-[48px] min-w-[48px] rounded-xl",
 };
 
 interface ButtonProps extends Omit<PressableProps, "style"> {
@@ -128,9 +128,8 @@ export function Button({
             {leadingIcon}
             {typeof children === "string" ? (
               <AppText
-                className={cn("text-sm", TEXT[variant])}
+                className={cn(size === "lg" ? "text-base font-bold" : "text-sm font-semibold", TEXT[variant])}
                 style={{
-                  fontFamily: fontFamily.semibold,
                   letterSpacing: 0.1,
                 }}
               >
