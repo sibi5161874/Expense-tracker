@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   View,
   Image,
   Pressable,
@@ -26,7 +27,6 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/theme/ThemeProvider";
 import { AppText } from "@/components/common/AppText";
-import { Dialog } from "@/components/common/Dialog";
 import { IS_PROD_DB, SUPABASE_PROJECT_REF } from "@/lib/supabase";
 
 interface AppHeaderProps {
@@ -39,7 +39,6 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
   const { theme } = useTheme();
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const email = user?.email ?? "User";
   const initials = email.slice(0, 2).toUpperCase();
@@ -51,11 +50,23 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
     }, 150);
   }
 
-  async function handleSignOut() {
-    setConfirmSignOut(false);
+  function handleSignOutPrompt() {
     setMenuOpen(false);
-    await signOut();
-    router.replace("/login");
+    Alert.alert(
+      "Sign Out of KashMap?",
+      "Are you sure you want to end your active session on this device?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            await signOut();
+            router.replace("/login");
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -302,7 +313,7 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
               {/* Sign Out Button */}
               <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}20` : "#88888820" }}>
                 <Pressable
-                  onPress={() => setConfirmSignOut(true)}
+                  onPress={handleSignOutPrompt}
                   style={({ pressed }) => [
                     {
                       flexDirection: "row",
@@ -341,18 +352,6 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
           </SafeAreaView>
         </View>
       </Modal>
-
-      {/* Sign Out Confirmation Dialog */}
-      <Dialog
-        visible={confirmSignOut}
-        title="Sign Out of KashMap?"
-        description="Are you sure you want to end your active session on this device?"
-        confirmLabel="Sign Out"
-        cancelLabel="Cancel"
-        destructive
-        onConfirm={handleSignOut}
-        onCancel={() => setConfirmSignOut(false)}
-      />
     </>
   );
 }
