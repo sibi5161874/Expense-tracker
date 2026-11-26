@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { User, Mail, DollarSign, Users, LogOut, Check, Zap, Bell } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -9,6 +10,7 @@ import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
+import { Dialog } from "@/components/common/Dialog";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { DataManagementCard } from "@/components/settings/DataManagementCard";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -23,6 +25,7 @@ export default function SettingsScreen() {
   const [expense, setExpense] = useState("");
   const [dependents, setDependents] = useState("0");
   const [saving, setSaving] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -47,10 +50,7 @@ export default function SettingsScreen() {
   }
 
   function handleSignOut() {
-    Alert.alert("Sign out?", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: signOut },
-    ]);
+    setConfirmSignOut(true);
   }
 
   return (
@@ -187,6 +187,22 @@ export default function SettingsScreen() {
           Sign Out
         </Button>
       </ScrollView>
+
+      {/* React Native Sign Out Confirmation Dialog */}
+      <Dialog
+        visible={confirmSignOut}
+        title="Sign Out of KashMap?"
+        description="Are you sure you want to end your active session on this device?"
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={async () => {
+          setConfirmSignOut(false);
+          await signOut();
+          router.replace("/login");
+        }}
+        onCancel={() => setConfirmSignOut(false)}
+      />
     </SafeAreaView>
   );
 }

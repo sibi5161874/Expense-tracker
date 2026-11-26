@@ -1,27 +1,12 @@
-import { View } from "react-native";
-
-interface EmptyTableRowsProps {
-  currentCount: number;
-  pageSize: number;
-  rowHeight?: number;
-}
-
 /**
- * Web-parity data table spacer for mobile feeds.
- * Maintains fixed table height equal to `pageSize * rowHeight` when fewer records exist,
- * preventing layout shift and keeping pagination controls stably positioned at the bottom,
- * without rendering distracting placeholder artifacts.
+ * Deprecated / No-op in mobile feeds.
+ * Returning null ensures no phantom ghost rows or artificial vertical voids are injected,
+ * maintaining clean mobile-native list flow.
  */
-export function EmptyTableRows({
-  currentCount,
-  pageSize,
-  rowHeight = 64,
-}: EmptyTableRowsProps) {
-  if (currentCount >= pageSize || currentCount === 0) return null;
-
-  const needed = pageSize - currentCount;
-
-  return (
-    <View style={{ height: needed * rowHeight }} aria-hidden={true} />
-  );
+export function EmptyTableRows(_props?: {
+  currentCount?: number;
+  pageSize?: number;
+  rowHeight?: number;
+}) {
+  return null;
 }

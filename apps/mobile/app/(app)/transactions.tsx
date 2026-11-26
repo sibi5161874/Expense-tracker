@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { View, FlatList, Pressable, TextInput, Alert } from "react-native";
+import { View, FlatList, Pressable, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, Search, ArrowLeftRight } from "lucide-react-native";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -8,12 +8,12 @@ import { useCategories } from "@/hooks/useCategories";
 import { AppText } from "@/components/common/AppText";
 import { Chip } from "@/components/common/Chip";
 import { PaginationControl } from "@/components/common/PaginationControl";
-import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { TransactionListItem, type TransactionListItemData } from "@/components/transactions/TransactionListItem";
 import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
 import { AddTransactionSheet } from "@/components/transactions/AddTransactionSheet";
 import { AppHeader } from "@/components/common/AppHeader";
+import { Dialog } from "@/components/common/Dialog";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type FilterType = "All" | "Expense" | "Income" | "Transfer";
@@ -25,6 +25,7 @@ export default function TransactionsScreen() {
   const [filterType, setFilterType] = useState<FilterType>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: accounts } = useAccounts(true);
   const { data: categories } = useCategories();
@@ -68,14 +69,7 @@ export default function TransactionsScreen() {
   }, [filteredTransactions, page, pageSize]);
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Transaction", "Are you sure you want to delete this transaction?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteTransaction(id),
-      },
-    ]);
+    setDeleteTargetId(id);
   };
 
   return (
@@ -208,7 +202,6 @@ export default function TransactionsScreen() {
           ListFooterComponent={
             totalCount > 0 ? (
               <View className="px-4 pb-20">
-                <EmptyTableRows currentCount={paginatedTransactions.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
                   pageSize={pageSize}
@@ -238,6 +231,23 @@ export default function TransactionsScreen() {
         accounts={accounts ?? []}
         categories={categories ?? []}
         onSubmit={(data) => createTransaction(data)}
+      />
+
+      {/* React Native Delete Transaction Confirmation Dialog */}
+      <Dialog
+        visible={!!deleteTargetId}
+        title="Delete Transaction"
+        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => {
+          if (deleteTargetId) {
+            deleteTransaction(deleteTargetId);
+            setDeleteTargetId(null);
+          }
+        }}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </SafeAreaView>
   );

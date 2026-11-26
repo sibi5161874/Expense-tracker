@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme, type ResolvedTheme } from "@/theme/ThemeProvider";
 import { AppText } from "@/components/common/AppText";
+import { Dialog } from "@/components/common/Dialog";
 
 interface AppHeaderProps {
   title?: string;
@@ -38,6 +39,7 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
   const { theme } = useTheme();
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const email = user?.email ?? "User";
   const initials = email.slice(0, 2).toUpperCase();
@@ -63,21 +65,7 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
 
   function handleSignOutPrompt() {
     setMenuOpen(false);
-    Alert.alert(
-      "Sign Out of KashMap?",
-      "Are you sure you want to end your active session on this device?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            await signOut();
-            router.replace("/login");
-          },
-        },
-      ]
-    );
+    setConfirmSignOut(true);
   }
 
   return (
@@ -344,6 +332,22 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
           </SafeAreaView>
         </View>
       </Modal>
+
+      {/* React Native Sign Out Confirmation Dialog */}
+      <Dialog
+        visible={confirmSignOut}
+        title="Sign Out of KashMap?"
+        description="Are you sure you want to end your active session on this device?"
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={async () => {
+          setConfirmSignOut(false);
+          await signOut();
+          router.replace("/login");
+        }}
+        onCancel={() => setConfirmSignOut(false)}
+      />
     </>
   );
 }

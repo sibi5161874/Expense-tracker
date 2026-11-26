@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, FlatList, Alert } from "react-native";
+import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, TrendingUp } from "lucide-react-native";
 import { useInvestmentLog, useAllInvestmentLog } from "@/hooks/useInvestmentLog";
@@ -7,10 +7,10 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { AppText } from "@/components/common/AppText";
 import { AppHeader } from "@/components/common/AppHeader";
 import { PaginationControl } from "@/components/common/PaginationControl";
-import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { InvestmentLogListItem, type InvestmentLogListItemData } from "@/components/investments/InvestmentLogListItem";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
+import { Dialog } from "@/components/common/Dialog";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function InvestmentsScreen() {
@@ -18,6 +18,7 @@ export default function InvestmentsScreen() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: accounts } = useAccounts(true);
   const { data: allLogs } = useAllInvestmentLog();
@@ -34,10 +35,7 @@ export default function InvestmentsScreen() {
   const totalCount = allLogs ? allLogs.length : logs.length;
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Trade", "Are you sure you want to remove this trade log?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteInvestmentLog(id) },
-    ]);
+    setDeleteTargetId(id);
   };
 
   return (
@@ -100,7 +98,6 @@ export default function InvestmentsScreen() {
           ListFooterComponent={
             totalCount > 0 ? (
               <View className="px-4 pb-20">
-                <EmptyTableRows currentCount={logs.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
                   pageSize={pageSize}
@@ -132,6 +129,23 @@ export default function InvestmentsScreen() {
           await createInvestmentLog(itemData);
           setShowAdd(false);
         }}
+      />
+
+      {/* React Native Delete Trade Confirmation Dialog */}
+      <Dialog
+        visible={!!deleteTargetId}
+        title="Delete Trade"
+        description="Are you sure you want to remove this trade log? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => {
+          if (deleteTargetId) {
+            deleteInvestmentLog(deleteTargetId);
+            setDeleteTargetId(null);
+          }
+        }}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </SafeAreaView>
   );

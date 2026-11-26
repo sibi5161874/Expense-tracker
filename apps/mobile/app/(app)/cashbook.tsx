@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, Users, ArrowUpRight, ArrowDownRight, BookOpen } from "lucide-react-native";
 import { useCashbook } from "@/hooks/useCashbook";
@@ -11,11 +11,11 @@ import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { AppHeader } from "@/components/common/AppHeader";
 import { PaginationControl } from "@/components/common/PaginationControl";
-import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { CounterpartySummaryCard } from "@/components/cashbook/CounterpartySummaryCard";
 import { CashbookListItem, type CashbookListItemData } from "@/components/cashbook/CashbookListItem";
 import { AddCashbookSheet } from "@/components/cashbook/AddCashbookSheet";
+import { Dialog } from "@/components/common/Dialog";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function CashbookScreen() {
@@ -24,6 +24,7 @@ export default function CashbookScreen() {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: accounts } = useAccounts(true);
   const {
@@ -51,14 +52,7 @@ export default function CashbookScreen() {
   const isNetPositive = netPosition >= 0;
 
   const handleDelete = (id: string) => {
-    Alert.alert("Delete Entry", "Are you sure you want to delete this cashbook record?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteCashbook(id),
-      },
-    ]);
+    setDeleteTargetId(id);
   };
 
   return (
@@ -244,7 +238,6 @@ export default function CashbookScreen() {
                     />
                   );
                 })}
-                <EmptyTableRows currentCount={paginatedEntries.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
                   pageSize={pageSize}
@@ -273,6 +266,23 @@ export default function CashbookScreen() {
         onClose={() => setShowAddSheet(false)}
         accounts={accounts ?? []}
         onSubmit={(data) => createCashbook(data)}
+      />
+
+      {/* React Native Delete Cashbook Confirmation Dialog */}
+      <Dialog
+        visible={!!deleteTargetId}
+        title="Delete Cashbook Entry"
+        description="Are you sure you want to delete this cashbook record? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => {
+          if (deleteTargetId) {
+            deleteCashbook(deleteTargetId);
+            setDeleteTargetId(null);
+          }
+        }}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </SafeAreaView>
   );
