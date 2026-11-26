@@ -49,6 +49,18 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
     }, 150);
   }
 
+  function handleBack() {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/more");
+    }
+  }
+
   function handleSignOutPrompt() {
     setMenuOpen(false);
     Alert.alert(
@@ -86,11 +98,25 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {showBack && (
             <Pressable
-              onPress={onBack || (() => router.back())}
+              onPress={handleBack}
               hitSlop={12}
-              style={{ padding: 4, marginRight: 2 }}
+              style={({ pressed }) => ({
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: pressed
+                  ? (theme.surfaceContainerHigh || "#88888825")
+                  : (theme.surfaceContainer || "#88888815"),
+                borderWidth: 1,
+                borderColor: theme.border,
+                marginRight: 4,
+              })}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
             >
-              <ChevronLeft size={22} color={theme.foreground} />
+              <ChevronLeft size={20} color={theme.foreground} />
             </Pressable>
           )}
 

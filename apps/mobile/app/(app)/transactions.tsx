@@ -99,8 +99,8 @@ export default function TransactionsScreen() {
         <View
           className="h-11 flex-row items-center rounded-full border px-4"
           style={{
-            backgroundColor: theme.surfaceContainerLow || theme.card,
-            borderColor: theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border,
+            backgroundColor: theme.card,
+            borderColor: theme.border,
           }}
         >
           <Search size={16} color={theme.mutedForeground} />

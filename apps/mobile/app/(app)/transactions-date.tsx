@@ -6,6 +6,7 @@ import { Calendar, ArrowDownRight, ArrowUpRight } from "lucide-react-native";
 import { useTransactionsForDate } from "@/hooks/useTransactions";
 import { formatINR } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { AppText } from "@/components/common/AppText";
 import { AmountText } from "@/components/common/AmountText";
@@ -31,6 +32,7 @@ export default function TransactionsByDateScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <View className="px-4 pt-4 pb-2 gap-3">
         <PageHeader
           title={date || "Transactions on Date"}

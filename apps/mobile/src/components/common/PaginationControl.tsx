@@ -38,10 +38,10 @@ export function PaginationControl({
 
   return (
     <View
-      className="rounded-2xl border p-3.5 gap-3 my-2 shadow-xs"
+      className="rounded-2xl border p-3.5 gap-3 my-2 shadow-sm"
       style={{
-        backgroundColor: theme.surfaceContainerLow || theme.card,
-        borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+        backgroundColor: theme.card,
+        borderColor: theme.border,
       }}
     >
       {/* Top row: Summary & Page Size selector */}
@@ -60,7 +60,7 @@ export function PaginationControl({
 
         {onPageSizeChange && (
           <View className="flex-row items-center gap-1.5">
-            <AppText className="text-[11px] text-muted-foreground">Rows:</AppText>
+            <AppText className="text-[11px] text-muted-foreground font-medium">Rows:</AppText>
             {pageSizeOptions.map((size) => {
               const active = size === pageSize;
               return (
@@ -70,14 +70,10 @@ export function PaginationControl({
                     onPageSizeChange(size);
                     onPageChange(0);
                   }}
-                  className="rounded-lg px-2 py-0.5 border"
+                  className="rounded-lg px-2.5 py-1 border"
                   style={{
-                    backgroundColor: active ? theme.primary : "transparent",
-                    borderColor: active
-                      ? theme.primary
-                      : theme.outlineVariant
-                      ? `${theme.outlineVariant}33`
-                      : theme.border,
+                    backgroundColor: active ? theme.primary : (theme.surfaceContainerHigh || "transparent"),
+                    borderColor: active ? theme.primary : theme.border,
                   }}
                 >
                   <AppText
@@ -103,8 +99,8 @@ export function PaginationControl({
           className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border py-2.5 px-3 min-h-[44px]"
           style={{
             backgroundColor:
-              page === 0 ? "transparent" : theme.surfaceContainer || theme.card,
-            borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+              page === 0 ? "transparent" : (theme.surfaceContainerHigh || theme.card),
+            borderColor: theme.border,
             opacity: page === 0 ? 0.35 : 1,
           }}
         >
@@ -115,8 +111,8 @@ export function PaginationControl({
         <View
           className="px-3 py-2 rounded-xl border items-center justify-center min-w-[90px]"
           style={{
-            backgroundColor: theme.surfaceContainer || theme.card,
-            borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            backgroundColor: theme.surfaceContainerHigh || theme.card,
+            borderColor: theme.border,
           }}
         >
           <AppText className="text-xs font-bold text-foreground">
@@ -132,8 +128,8 @@ export function PaginationControl({
             backgroundColor:
               page + 1 >= totalPages
                 ? "transparent"
-                : theme.surfaceContainer || theme.card,
-            borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+                : (theme.surfaceContainerHigh || theme.card),
+            borderColor: theme.border,
             opacity: page + 1 >= totalPages ? 0.35 : 1,
           }}
         >

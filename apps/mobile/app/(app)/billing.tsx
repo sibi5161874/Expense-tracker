@@ -5,6 +5,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { PRICING } from "@repo/shared/config";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
 import { AppText } from "@/components/common/AppText";
@@ -40,6 +41,7 @@ export default function BillingScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}

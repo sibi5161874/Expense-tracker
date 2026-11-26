@@ -67,7 +67,7 @@ export default function CashbookScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
-      <AppHeader />
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,

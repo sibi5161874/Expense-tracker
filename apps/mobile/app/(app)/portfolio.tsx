@@ -92,8 +92,8 @@ export default function PortfolioScreen() {
             }}
             className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5"
             style={{
-              borderColor: theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border,
-              backgroundColor: theme.surfaceContainerLow || theme.card,
+              borderColor: theme.border,
+              backgroundColor: theme.card,
               opacity: isOnline ? 1 : 0.7,
             }}
           >

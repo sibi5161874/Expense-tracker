@@ -6,6 +6,7 @@ import { useTransactionsInRange, monthsAgo } from "@/hooks/useReportsData";
 import { formatMonth, formatINR } from "@repo/shared/utils";
 import { isOperationalTransaction } from "@repo/shared/logic";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { AppText } from "@/components/common/AppText";
 import { AmountText } from "@/components/common/AmountText";
@@ -63,6 +64,7 @@ export default function SpendingTrendReportScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}

@@ -6,6 +6,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { calculateProgressPct, calculateGoalStatus } from "@repo/shared/logic";
 import { formatINR } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { AppText } from "@/components/common/AppText";
 import { StatusBadge } from "@/components/common/Badge";
@@ -46,6 +47,7 @@ export default function GoalProgressReportScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}

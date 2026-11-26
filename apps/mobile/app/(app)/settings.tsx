@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { User, Mail, DollarSign, Users, LogOut, Check, Zap, Bell } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { AppHeader } from "@/components/common/AppHeader";
 import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
 import { TextField } from "@/components/common/TextField";
@@ -58,6 +59,7 @@ export default function SettingsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,

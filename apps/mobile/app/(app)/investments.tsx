@@ -46,7 +46,7 @@ export default function InvestmentsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
-      <AppHeader />
+      <AppHeader showBack={true} />
       <View className="px-4 pt-2 pb-3 gap-1 border-b border-outline-variant/20">
         <AppText className="text-2xl font-bold tracking-tight text-foreground">
           Investment Log

@@ -5,6 +5,7 @@ import { Send, CheckCircle2, MessageSquare } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { postWebApi } from "@/lib/webApi";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
@@ -44,6 +45,7 @@ export default function FeedbackScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16 }}
         showsVerticalScrollIndicator={false}

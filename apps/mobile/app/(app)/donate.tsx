@@ -2,6 +2,7 @@ import { View, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Coffee, Heart } from "lucide-react-native";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
 import { AppText } from "@/components/common/AppText";
@@ -22,6 +23,7 @@ export default function DonateScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <View className="p-4 gap-4">
         <PageHeader
           title="Support KashMap"

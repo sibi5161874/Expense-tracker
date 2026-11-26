@@ -7,6 +7,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useBudgetLimits } from "@/hooks/useBudgetLimits";
 
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
@@ -53,6 +54,7 @@ export default function ConfigScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
