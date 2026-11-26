@@ -17,6 +17,10 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
     if (!exchangeError) {
+      if (next.startsWith("moneymanager://")) {
+        return NextResponse.redirect(next);
+      }
+
       // Validate next parameter to prevent open redirect vulnerabilities
       const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 

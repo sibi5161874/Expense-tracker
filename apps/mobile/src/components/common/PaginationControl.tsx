@@ -24,7 +24,7 @@ export function PaginationControl({
   totalCount,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [5, 10, 25, 50, 100],
 }: PaginationControlProps) {
   const { theme } = useTheme();
 

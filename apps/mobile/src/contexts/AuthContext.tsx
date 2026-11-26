@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Platform, Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import type { AuthError, Session, User } from "@supabase/supabase-js";
@@ -44,7 +45,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      try {
+        if (!url || !url.includes("auth/callback")) return;
+        const parsed = new URL(url);
+        const params = new URLSearchParams(parsed.hash ? parsed.hash.slice(1) : parsed.search);
+        const code = params.get("code");
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+
+        if (code) {
+          const { data } = await supabase.auth.exchangeCodeForSession(code);
+          if (data?.session) {
+            setSession(data.session);
+            setUser(data.user);
+          }
+        } else if (accessToken && refreshToken) {
+          const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (data?.session) {
+            setSession(data.session);
+            setUser(data.user);
+          }
+        }
+      } catch {
+        // Ignore deep link parse errors
+      }
+    };
+
+    const linkSub = Linking.addEventListener("url", handleDeepLink);
+
+    return () => {
+      subscription.unsubscribe();
+      linkSub.remove();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
@@ -68,6 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async (): Promise<{ error: Error | null; cancelled?: boolean }> => {
     const redirectUri = AuthSession.makeRedirectUri({ scheme: "moneymanager", path: "auth/callback" });
 
+    if (Platform.OS === "web") {
+      const webRedirect = typeof window !== "undefined" ? `${window.location.origin}/dashboard` : redirectUri;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: webRedirect },
+      });
+      return { error };
+    }
+
     const { data, error: urlError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: redirectUri, skipBrowserRedirect: true },
@@ -81,20 +123,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : { error: new Error("Google sign-in failed.") };
     }
 
-    const url = new URL(result.url);
-    const params = new URLSearchParams(url.hash ? url.hash.slice(1) : url.search);
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-    if (!accessToken || !refreshToken) {
-      return { error: new Error("Google sign-in didn't return a session.") };
+    try {
+      const url = new URL(result.url);
+      const params = new URLSearchParams(url.hash ? url.hash.slice(1) : url.search);
+      const code = params.get("code");
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+
+      if (code) {
+        const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!exchangeError && exchangeData?.session) {
+          setSession(exchangeData.session);
+          setUser(exchangeData.user);
+          return { error: null };
+        }
+        if (exchangeError) return { error: exchangeError };
+      }
+
+      if (accessToken && refreshToken) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!sessionError && sessionData?.session) {
+          setSession(sessionData.session);
+          setUser(sessionData.user);
+          return { error: null };
+        }
+        if (sessionError) return { error: sessionError };
+      }
+    } catch (parseErr) {
+      return { error: parseErr instanceof Error ? parseErr : new Error("Failed to parse Google sign-in response.") };
     }
 
-    const { data: sessionData, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-    if (!error && sessionData?.session) {
-      setSession(sessionData.session);
-      setUser(sessionData.user);
-    }
-    return { error };
+    return { error: new Error("Google sign-in didn't return a session.") };
   };
 
   const signInAnonymously = async () => {
