@@ -12,6 +12,9 @@ importers:
 
   .:
     devDependencies:
+      '@juzy/de-slop':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
@@ -1734,6 +1737,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@juzy/de-slop@1.0.0':
+    resolution: {integrity: sha512-WihVCSFqfR/Q7ueWLO8hxn2aLlEqYJasYaWT2pWR/B6mTCOfYOW6FIku0EWCZQhlE0LKKNfsA4Do9j6QPS4QZA==, tarball: https://registry.npmjs.org/@juzy/de-slop/-/de-slop-1.0.0.tgz}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
@@ -3885,6 +3893,10 @@ packages:
 
   commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
+
+  commander@13.1.0:
+    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
     engines: {node: '>=18'}
 
   commander@14.0.3:
@@ -10207,6 +10219,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  '@juzy/de-slop@1.0.0':
+    dependencies:
+      commander: 13.1.0
+      picocolors: 1.1.1
+
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.28)
@@ -12517,6 +12534,8 @@ snapshots:
   commander@11.1.0: {}
 
   commander@12.1.0: {}
+
+  commander@13.1.0: {}
 
   commander@14.0.3: {}
 
