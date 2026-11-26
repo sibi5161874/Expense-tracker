@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "test:e2e": "playwright test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "eas-build-pre-install": "corepack enable"
   },
   "devDependencies": {
     "@juzy/de-slop": "^1.0.0",

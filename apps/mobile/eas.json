@@ -1,12 +1,18 @@
 {
   "cli": {
-    "version": ">= 22.2.0",
+    "version": ">= 12.0.0",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "node": "22.14.0",
+      "corepack": true,
+      "pnpm": "11.11.0",
+      "android": {
+        "image": "latest"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://yikuhckrwhhjkqdalqxf.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa3VoY2tyd2hoamtxZGFscXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MTkxODUsImV4cCI6MjEwODk5NTE4NX0.pKLXIEzkn1VrIHIktI_P329Ck0DOVZsZlVMicV2VnDA",
@@ -15,7 +21,11 @@
     },
     "preview-dev": {
       "distribution": "internal",
+      "node": "22.14.0",
+      "corepack": true,
+      "pnpm": "11.11.0",
       "android": {
+        "image": "latest",
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
       },
@@ -28,7 +38,11 @@
     },
     "preview": {
       "distribution": "internal",
+      "node": "22.14.0",
+      "corepack": true,
+      "pnpm": "11.11.0",
       "android": {
+        "image": "latest",
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
       },
@@ -41,6 +55,12 @@
     },
     "production": {
       "autoIncrement": true,
+      "node": "22.14.0",
+      "corepack": true,
+      "pnpm": "11.11.0",
+      "android": {
+        "image": "latest"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wkfyfslgfpcybyajjndl.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZnlmc2xnZnBjeWJ5YWpqbmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTQ1NzEsImV4cCI6MjA5OTI3MDU3MX0.grButg-0T-WfoPVwYDqxzaGejz_pmb2nzDk6fdj6Q4s",
