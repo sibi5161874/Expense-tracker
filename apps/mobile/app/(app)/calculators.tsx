@@ -5,6 +5,7 @@ import { Calculator, TrendingUp, PiggyBank, ArrowDownUp } from "lucide-react-nat
 import { calculateSipFutureValue, calculateLumpsumFutureValue, calculatePnL } from "@repo/shared/logic";
 import { formatINR } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { TextField } from "@/components/common/TextField";
@@ -72,6 +73,7 @@ export default function CalculatorsScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}

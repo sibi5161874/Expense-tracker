@@ -7,6 +7,7 @@ import type { Goal } from "@repo/shared/types";
 import type { GoalInput } from "@repo/shared/schemas";
 
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Fab } from "@/components/common/Fab";
 import { GoalCard } from "@/components/goals/GoalCard";
 import { AddGoalSheet } from "@/components/goals/AddGoalSheet";
@@ -50,6 +51,7 @@ export default function GoalsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,

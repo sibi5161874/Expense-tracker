@@ -25,7 +25,7 @@ import { Button } from "@/components/common/Button";
 import { PickerField } from "@/components/common/PickerField";
 import { ColumnMapper, BANK_MAPPABLE_FIELDS } from "@/components/shared/ColumnMapper";
 import { ImportResultSummary, type ImportResult } from "@/components/shared/ImportResultSummary";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 interface BankStatementImportSheetProps {
   visible: boolean;
@@ -59,12 +59,11 @@ function validateManualMapping(mapping: Record<string, string> | undefined, head
  * Next.js server here to call.
  */
 export function BankStatementImportSheet({ visible, onClose, onImported }: BankStatementImportSheetProps) {
+  const { theme } = useTheme();
   const { user } = useAuth();
   const supabase = useSupabaseClient();
   const { data: accounts } = useAccounts(true);
   const { data: categories } = useCategories();
-  const mutedForeground = useThemeColor("mutedForeground");
-  const accentForeground = useThemeColor("accentForeground");
 
   const [step, setStep] = useState<Step>("options");
   const [bank, setBank] = useState("HDFC");
@@ -204,17 +203,27 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
         onClose();
       }}
     >
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between bg-card px-4 py-3">
-          <AppText className="text-base font-semibold">Import Bank Statement</AppText>
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: theme.background }}
+      >
+        <View
+          className="flex-row items-center justify-between border-b px-4 py-3.5"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <AppText className="text-base font-semibold text-foreground">Import Bank Statement</AppText>
           <Pressable
             onPress={() => {
               reset();
               onClose();
             }}
             hitSlop={14}
+            className="rounded-full bg-muted/60 p-1.5 active:bg-muted"
           >
-            <X size={20} color={mutedForeground} />
+            <X size={18} color={theme.foreground} />
           </Pressable>
         </View>
 
@@ -251,7 +260,7 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
                 className="flex-row items-center justify-center gap-2 rounded-2xl border border-border py-4"
                 style={{ opacity: accountId ? 1 : 0.5 }}
               >
-                <Upload size={16} color={accentForeground} />
+                <Upload size={16} color={theme.primary} />
                 <AppText className="text-sm font-medium">
                   {accountId ? "Choose statement file" : "Select an account first"}
                 </AppText>
@@ -268,11 +277,18 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
           )}
         </ScrollView>
 
-        <View className="flex-row gap-3 bg-card p-4">
+        <View
+          className="flex-row items-center gap-3 border-t p-4"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
           {(step === "options" || step === "mapping" || step === "preview") && (
             <Button
               variant="outline"
-              className="flex-1"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
               onPress={() => {
                 reset();
                 onClose();
@@ -282,23 +298,37 @@ export function BankStatementImportSheet({ visible, onClose, onImported }: BankS
             </Button>
           )}
           {step === "mapping" && (
-            <Button className="flex-1" onPress={handleApplyMapping} disabled={!mappingComplete}>
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
+              onPress={handleApplyMapping}
+              disabled={!mappingComplete}
+            >
               Preview with these columns
             </Button>
           )}
           {step === "preview" && (
-            <Button className="flex-1" onPress={handleConfirm} disabled={!canConfirm}>
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
+              onPress={handleConfirm}
+              disabled={!canConfirm}
+            >
               Confirm Import ({result?.validCount ?? 0})
             </Button>
           )}
           {step === "committing" && (
-            <Button className="flex-1" disabled>
+            <Button size="lg" className="flex-1 h-12 rounded-2xl" disabled>
               Importing…
             </Button>
           )}
           {step === "done" && (
             <Button
-              className="flex-1"
+              variant="default"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
               onPress={() => {
                 reset();
                 onClose();

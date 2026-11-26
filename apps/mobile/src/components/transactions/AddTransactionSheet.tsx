@@ -9,7 +9,7 @@ import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { PickerField } from "@/components/common/PickerField";
 import { Button } from "@/components/common/Button";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 import { cn } from "@/lib/cn";
 
 interface AddTransactionSheetProps {
@@ -53,6 +53,7 @@ export function AddTransactionSheet({
   categories,
   editing,
 }: AddTransactionSheetProps) {
+  const { theme } = useTheme();
   const form = useForm<TransactionInput>({
     resolver: zodResolver(transactionSchema),
     defaultValues: editing ?? { type: "Expense", date: new Date().toISOString().split("T")[0] },
@@ -61,8 +62,6 @@ export function AddTransactionSheet({
   const type = form.watch("type");
   const accountOptions = accounts.map((a) => ({ label: a.name, value: a.id }));
   const categoryOptions = categories.filter((c) => c.type === type).map((c) => ({ label: c.name, value: c.id }));
-  const mutedForeground = useThemeColor("mutedForeground");
-  const foreground = useThemeColor("foreground");
 
   function handleSubmit(data: TransactionInput) {
     onSubmit(data);
@@ -71,13 +70,23 @@ export function AddTransactionSheet({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+      <SafeAreaView
+        className="flex-1"
+        edges={["top", "bottom"]}
+        style={{ backgroundColor: theme.background }}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           className="flex-1"
         >
           {/* Header */}
-          <View className="flex-row items-center justify-between border-b border-border/60 bg-card px-5 py-4">
+          <View
+            className="flex-row items-center justify-between border-b px-5 py-4"
+            style={{
+              backgroundColor: theme.surfaceContainer || theme.card,
+              borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            }}
+          >
             <AppText className="text-lg font-semibold text-foreground">
               {editing ? "Edit Transaction" : "New Transaction"}
             </AppText>
@@ -86,7 +95,7 @@ export function AddTransactionSheet({
               hitSlop={14}
               className="rounded-full bg-muted/60 p-1.5 active:bg-muted"
             >
-              <X size={18} color={foreground} />
+              <X size={18} color={theme.foreground} />
             </Pressable>
           </View>
 
@@ -103,20 +112,28 @@ export function AddTransactionSheet({
                   <Pressable
                     key={cfg.type}
                     onPress={() => form.setValue("type", cfg.type)}
-                    className={cn(
-                      "flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl border py-3 transition-colors",
-                      isSelected
-                        ? cfg.activeBg
-                        : "border-border bg-card/60 active:bg-muted/50"
-                    )}
-                    style={{ borderWidth: isSelected ? 1.5 : 1 }}
+                    className="flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl border py-3 transition-colors"
+                    style={{
+                      borderWidth: 1.5,
+                      backgroundColor: isSelected
+                        ? cfg.activeColor
+                        : (theme.surfaceContainerLow || theme.card),
+                      borderColor: isSelected
+                        ? cfg.activeColor
+                        : theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+                      shadowColor: isSelected ? cfg.activeColor : "transparent",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: isSelected ? 0.25 : 0,
+                      shadowRadius: 4,
+                      elevation: isSelected ? 3 : 0,
+                    }}
                   >
-                    <Icon size={16} color={isSelected ? cfg.activeColor : mutedForeground} />
+                    <Icon size={16} color={isSelected ? "#FFFFFF" : theme.mutedForeground} strokeWidth={isSelected ? 2.5 : 2} />
                     <AppText
-                      className={cn(
-                        "text-xs font-semibold",
-                        isSelected ? "text-foreground" : "text-muted-foreground"
-                      )}
+                      className="text-xs font-bold"
+                      style={{
+                        color: isSelected ? "#FFFFFF" : theme.mutedForeground,
+                      }}
                     >
                       {cfg.label}
                     </AppText>
@@ -126,7 +143,13 @@ export function AddTransactionSheet({
             </View>
 
             {/* Form Fields Card */}
-            <View className="gap-4 rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
+            <View
+              className="gap-4 rounded-3xl border p-5 shadow-sm"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+              }}
+            >
               <Controller
                 control={form.control}
                 name="amount"
@@ -219,12 +242,25 @@ export function AddTransactionSheet({
           </ScrollView>
 
           {/* Sticky Action Footer */}
-          <View className="flex-row gap-3 border-t border-border/60 bg-card p-4">
-            <Button variant="outline" className="flex-1" onPress={onClose}>
+          <View
+            className="flex-row items-center gap-3 border-t p-4"
+            style={{
+              backgroundColor: theme.surfaceContainer || theme.card,
+              borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            }}
+          >
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
+              onPress={onClose}
+            >
               Cancel
             </Button>
             <Button
-              className="flex-1"
+              variant="default"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
               onPress={form.handleSubmit(handleSubmit)}
               disabled={form.formState.isSubmitting}
             >

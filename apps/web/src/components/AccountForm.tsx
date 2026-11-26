@@ -62,7 +62,7 @@ export function AccountForm({ onSuccess, onCancel, editing }: AccountFormProps) 
           <DialogTitle>{editing ? 'Edit Account' : 'Add Account'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <FormField
               control={form.control}

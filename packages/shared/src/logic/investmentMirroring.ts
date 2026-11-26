@@ -2,6 +2,7 @@ import type { InvestmentLogInput } from '../schemas';
 
 export const INVESTMENT_EXPENSE_CATEGORY_NAME = 'Investments';
 export const INVESTMENT_INCOME_CATEGORY_NAME = 'Investment Returns';
+export const DIVIDEND_INCOME_CATEGORY_NAME = 'Dividend';
 
 export interface InvestmentLogMirrorTransaction {
   date: string;
@@ -51,7 +52,19 @@ export function buildInvestmentLogMirrorTransaction(
         categoryType: 'Expense',
       };
     }
-    case 'SELL':
+    case 'SELL': {
+      const amount = Math.round((gross - data.fees) * 100) / 100;
+      if (!(amount > 0)) return null;
+      return {
+        date: data.date,
+        type: 'Income',
+        amount,
+        from_account_id: data.linked_account_id,
+        notes: `Sold ${data.quantity} ${data.symbol} @ ₹${data.price} via Investment Log`,
+        categoryName: INVESTMENT_INCOME_CATEGORY_NAME,
+        categoryType: 'Income',
+      };
+    }
     case 'DIVIDEND': {
       const amount = Math.round((gross - data.fees) * 100) / 100;
       if (!(amount > 0)) return null;
@@ -63,8 +76,8 @@ export function buildInvestmentLogMirrorTransaction(
         notes:
           data.action === 'DIVIDEND' && data.quantity === 0
             ? `Received dividend on ${data.symbol} @ ₹${data.price} via Investment Log`
-            : `${data.action === 'SELL' ? 'Sold' : 'Received dividend on'} ${data.quantity} ${data.symbol} @ ₹${data.price} via Investment Log`,
-        categoryName: INVESTMENT_INCOME_CATEGORY_NAME,
+            : `Received dividend on ${data.quantity} ${data.symbol} @ ₹${data.price} via Investment Log`,
+        categoryName: DIVIDEND_INCOME_CATEGORY_NAME,
         categoryType: 'Income',
       };
     }

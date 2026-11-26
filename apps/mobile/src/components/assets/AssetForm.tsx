@@ -8,7 +8,7 @@ import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { PickerField } from "@/components/common/PickerField";
 import { Button } from "@/components/common/Button";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 export interface AssetFieldConfig<T extends FieldValues> {
   name: Path<T>;
@@ -46,13 +46,13 @@ export function AssetForm<S extends z.ZodType<FieldValues>>({
   onSubmit,
 }: AssetFormProps<S>) {
   type T = z.infer<S>;
+  const { theme } = useTheme();
   // zodResolver's overloads want a concrete Zod schema type, not a generic `S` bounded by
   // z.ZodType<FieldValues> — TS can't confirm a not-yet-resolved generic satisfies them even
   // though every concrete instantiation (assetFixedDepositSchema, assetGoldSchema, ...) does.
   // Narrow, deliberate bridge cast at the generic boundary; the actual runtime validation is
   // unaffected — schema is still the real Zod schema, just re-typed for this call.
   const form = useForm<T>({ resolver: zodResolver(schema as never) as never, defaultValues });
-  const mutedForeground = useThemeColor("mutedForeground");
 
   function handleSubmit(data: T) {
     onSubmit(data);
@@ -61,15 +61,27 @@ export function AssetForm<S extends z.ZodType<FieldValues>>({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between bg-card px-4 py-3">
-          <AppText className="text-base font-semibold">{title}</AppText>
-          <Pressable onPress={onClose} hitSlop={14}>
-            <X size={20} color={mutedForeground} />
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: theme.background }}
+      >
+        <View
+          className="flex-row items-center justify-between border-b px-4 py-3.5"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <AppText className="text-base font-semibold text-foreground">{title}</AppText>
+          <Pressable onPress={onClose} hitSlop={14} className="rounded-full bg-muted/60 p-1.5 active:bg-muted">
+            <X size={18} color={theme.foreground} />
           </Pressable>
         </View>
 
-        <ScrollView contentContainerClassName="gap-4 p-4">
+        <ScrollView
+          contentContainerClassName="gap-4 p-4"
+          style={{ backgroundColor: theme.background }}
+        >
           {fields.map((fieldConfig) => (
             <Controller
               key={fieldConfig.name}
@@ -121,11 +133,28 @@ export function AssetForm<S extends z.ZodType<FieldValues>>({
           ))}
         </ScrollView>
 
-        <View className="flex-row gap-3 bg-card p-4">
-          <Button variant="outline" className="flex-1" onPress={onClose}>
+        <View
+          className="flex-row items-center gap-3 border-t p-4"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
+            onPress={onClose}
+          >
             Cancel
           </Button>
-          <Button className="flex-1" onPress={form.handleSubmit(handleSubmit)} disabled={form.formState.isSubmitting}>
+          <Button
+            variant="default"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
+            onPress={form.handleSubmit(handleSubmit)}
+            disabled={form.formState.isSubmitting}
+          >
             Save
           </Button>
         </View>

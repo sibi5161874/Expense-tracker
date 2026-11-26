@@ -8,6 +8,8 @@ interface ChipProps {
   selected: boolean;
   onPress: () => void;
   icon?: ReactNode;
+  activeColor?: string;
+  activeTextColor?: string;
 }
 
 /**
@@ -15,10 +17,17 @@ interface ChipProps {
  * - Height: 32dp (compact & accessible).
  * - Radius: 8dp (`rounded-lg`).
  * - Unselected: 1px outline-variant border with transparent fill.
- * - Selected: Solid primaryContainer fill with onPrimaryContainer text.
+ * - Selected: Vibrant solid active color fill with white onPrimary text.
  * - Smooth 200ms container crossfade.
  */
-export function Chip({ label, selected, onPress, icon }: ChipProps) {
+export function Chip({
+  label,
+  selected,
+  onPress,
+  icon,
+  activeColor,
+  activeTextColor,
+}: ChipProps) {
   const { theme } = useTheme();
   const anim = useRef(new Animated.Value(selected ? 1 : 0)).current;
 
@@ -30,22 +39,26 @@ export function Chip({ label, selected, onPress, icon }: ChipProps) {
     }).start();
   }, [selected, anim]);
 
+  const targetBg = activeColor || theme.primary;
+  const targetBorder = activeColor || theme.primary;
+  const targetText = activeTextColor || theme.onPrimary || "#ffffff";
+
   const backgroundColor = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["transparent", theme.primaryContainer || theme.secondaryContainer],
+    outputRange: ["transparent", targetBg],
   });
 
   const borderColor = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [
       theme.outlineVariant || theme.border,
-      theme.primaryContainer || theme.secondaryContainer,
+      targetBorder,
     ],
   });
 
   const textColor = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.foreground, theme.onPrimaryContainer || theme.primary],
+    outputRange: [theme.foreground, targetText],
   });
 
   return (

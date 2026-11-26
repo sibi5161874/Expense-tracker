@@ -69,7 +69,7 @@ export function BudgetLimitForm({ onSuccess, onCancel, editing }: BudgetLimitFor
           <DialogTitle>{editing ? 'Edit Budget Limit' : 'Add Budget Limit'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <CategorySelectField control={form.control} name="category_id" categories={categories} />
 

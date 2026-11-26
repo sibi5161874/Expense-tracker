@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kashmap.in';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://web-six-beta-34.vercel.app';
   const lastModified = new Date();
 
   const routes = [

@@ -1,4 +1,4 @@
-import { ScrollView, View, Pressable, Alert } from "react-native";
+import { ScrollView, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import {
@@ -9,18 +9,15 @@ import {
   Layers,
   FileText,
   Calculator,
-  Sliders,
-  CreditCard,
-  Settings,
   MessageSquare,
   Heart,
-  LogOut,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
+import { AppHeader } from "@/components/common/AppHeader";
 import { useTheme } from "@/theme/ThemeProvider";
 
 interface MenuItem {
@@ -40,24 +37,14 @@ const FINANCE_MODULES: MenuItem[] = [
   { href: "/calculators", label: "Calculators", description: "SIP, EMI, PPF & compound interest", icon: Calculator },
 ];
 
-const CONFIG_MODULES: MenuItem[] = [
-  { href: "/config", label: "Accounts & Categories", description: "Manage bank accounts and category tags", icon: Sliders },
-  { href: "/settings", label: "Settings & Appearance", description: "M3 theme modes & PRISM accents", icon: Settings },
-  { href: "/billing", label: "Subscription & Plans", description: "Manage Pro membership & features", icon: CreditCard },
+const COMMUNITY_MODULES: MenuItem[] = [
   { href: "/feedback", label: "Feedback & Roadmap", description: "Send bug reports or feature ideas", icon: MessageSquare },
-  { href: "/donate", label: "Support Development", description: "Support the open-source creators", icon: Heart },
+  { href: "/donate", label: "Support Development", description: "Support the creators and project", icon: Heart },
 ];
 
 export default function MoreScreen() {
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
-
-  function handleSignOut() {
-    Alert.alert("Sign out?", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: signOut },
-    ]);
-  }
 
   return (
     <SafeAreaView
@@ -65,6 +52,8 @@ export default function MoreScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader title="Hub & Modules" />
+
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
@@ -74,20 +63,10 @@ export default function MoreScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="gap-1">
-          <AppText className="text-2xl font-bold tracking-tight text-foreground">
-            More
-          </AppText>
-          <AppText className="text-xs text-muted-foreground">
-            Signed in as {user?.email || "User"}
-          </AppText>
-        </View>
-
         {/* Section 1: Financial Tools & Modules */}
         <View className="gap-2.5">
           <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            Financial Modules
+            Financial & Wealth Modules
           </AppText>
           <Card variant="outlined" className="p-1 gap-1">
             {FINANCE_MODULES.map((item) => {
@@ -119,13 +98,13 @@ export default function MoreScreen() {
           </Card>
         </View>
 
-        {/* Section 2: Configuration & Settings */}
+        {/* Section 2: Community & Growth */}
         <View className="gap-2.5">
           <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            System & Settings
+            Community & Support
           </AppText>
           <Card variant="outlined" className="p-1 gap-1">
-            {CONFIG_MODULES.map((item) => {
+            {COMMUNITY_MODULES.map((item) => {
               const Icon = item.icon;
               return (
                 <Pressable
@@ -153,19 +132,6 @@ export default function MoreScreen() {
             })}
           </Card>
         </View>
-
-        {/* Sign Out Button */}
-        <Pressable
-          onPress={handleSignOut}
-          className="flex-row items-center justify-center gap-2 rounded-2xl border p-4 active:bg-destructive-subtle/40"
-          style={{
-            borderColor: theme.destructive,
-            backgroundColor: theme.destructiveSubtle || "transparent",
-          }}
-        >
-          <LogOut size={18} color={theme.destructive} />
-          <AppText className="text-sm font-bold text-destructive">Sign Out</AppText>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

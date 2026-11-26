@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Animated, Pressable, type PressableProps } from "react-native";
+import { ActivityIndicator, Animated, Pressable, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 import { AppText } from "@/components/common/AppText";
 import { useThemeColor } from "@/lib/colors";
 import { usePressScale } from "@/theme/usePressScale";
@@ -59,6 +59,7 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
   loading?: boolean;
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -76,6 +77,7 @@ export function Button({
   loading,
   leadingIcon,
   trailingIcon,
+  style,
   onPressIn,
   onPressOut,
   ...props
@@ -86,8 +88,19 @@ export function Button({
   );
   const isDisabled = disabled || loading;
 
+  const isFlex1 = className?.includes("flex-1");
+  const isWFull = className?.includes("w-full");
+
   return (
-    <Animated.View style={animatedStyle}>
+    <Animated.View
+      style={[
+        animatedStyle,
+        isFlex1 ? { flex: 1 } : undefined,
+        isWFull ? { width: "100%" } : undefined,
+        style,
+      ]}
+      className={cn(isFlex1 && "flex-1", isWFull && "w-full")}
+    >
       <Pressable
         disabled={isDisabled}
         onPressIn={(e) => {
@@ -96,9 +109,11 @@ export function Button({
         }}
         onPressOut={(e) => {
           scaleOut();
+          onPressOut?.(e);
         }}
         className={cn(
           "flex-row items-center justify-center gap-2",
+          (isFlex1 || isWFull) && "w-full",
           SIZE[size],
           CONTAINER[variant],
           isDisabled && "opacity-50",

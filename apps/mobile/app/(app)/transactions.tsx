@@ -7,10 +7,12 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { AppText } from "@/components/common/AppText";
 import { Chip } from "@/components/common/Chip";
+import { PaginationControl } from "@/components/common/PaginationControl";
 import { Fab } from "@/components/common/Fab";
 import { TransactionListItem, type TransactionListItemData } from "@/components/transactions/TransactionListItem";
 import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
 import { AddTransactionSheet } from "@/components/transactions/AddTransactionSheet";
+import { AppHeader } from "@/components/common/AppHeader";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type FilterType = "All" | "Expense" | "Income" | "Transfer";
@@ -18,6 +20,7 @@ type FilterType = "All" | "Expense" | "Income" | "Transfer";
 export default function TransactionsScreen() {
   const { theme } = useTheme();
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
   const [filterType, setFilterType] = useState<FilterType>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -55,6 +58,11 @@ export default function TransactionsScreen() {
     });
   }, [rawTransactions, filterType, searchQuery]);
 
+  const totalCount = filteredTransactions.length;
+  const paginatedTransactions = useMemo(() => {
+    return filteredTransactions.slice(page * pageSize, (page + 1) * pageSize);
+  }, [filteredTransactions, page, pageSize]);
+
   const handleDelete = (id: string) => {
     Alert.alert("Delete Transaction", "Are you sure you want to delete this transaction?", [
       { text: "Cancel", style: "cancel" },
@@ -72,6 +80,7 @@ export default function TransactionsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader title="Transactions" />
       {/* Top Header */}
       <View className="px-4 pt-2 pb-3 gap-3">
         <View className="flex-row items-center justify-between">
@@ -96,7 +105,10 @@ export default function TransactionsScreen() {
           <Search size={16} color={theme.mutedForeground} />
           <TextInput
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              setPage(0);
+            }}
             placeholder="Search notes, category, account..."
             placeholderTextColor={theme.mutedForeground}
             className="flex-1 px-3 text-sm text-foreground"
@@ -104,16 +116,44 @@ export default function TransactionsScreen() {
           />
         </View>
 
-        {/* M3 Filter Chips */}
+        {/* M3 Filter Chips with vibrant active colors */}
         <View className="flex-row items-center gap-2">
-          {(["All", "Expense", "Income", "Transfer"] as FilterType[]).map((t) => (
-            <Chip
-              key={t}
-              label={t}
-              selected={filterType === t}
-              onPress={() => setFilterType(t)}
-            />
-          ))}
+          <Chip
+            label="All"
+            selected={filterType === "All"}
+            onPress={() => {
+              setFilterType("All");
+              setPage(0);
+            }}
+            activeColor={theme.primary}
+          />
+          <Chip
+            label="Expense"
+            selected={filterType === "Expense"}
+            onPress={() => {
+              setFilterType("Expense");
+              setPage(0);
+            }}
+            activeColor="#ef4444"
+          />
+          <Chip
+            label="Income"
+            selected={filterType === "Income"}
+            onPress={() => {
+              setFilterType("Income");
+              setPage(0);
+            }}
+            activeColor="#10b981"
+          />
+          <Chip
+            label="Transfer"
+            selected={filterType === "Transfer"}
+            onPress={() => {
+              setFilterType("Transfer");
+              setPage(0);
+            }}
+            activeColor="#3b82f6"
+          />
         </View>
       </View>
 
@@ -137,7 +177,7 @@ export default function TransactionsScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredTransactions}
+          data={paginatedTransactions}
           keyExtractor={(item) => item.id}
           onRefresh={refetch}
           refreshing={isRefetching}
@@ -161,6 +201,20 @@ export default function TransactionsScreen() {
               />
             );
           }}
+          ListFooterComponent={
+            totalCount > 0 ? (
+              <View className="px-4 pb-20">
+                <PaginationControl
+                  page={page}
+                  pageSize={pageSize}
+                  totalCount={totalCount}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  pageSizeOptions={[10, 15, 25, 50]}
+                />
+              </View>
+            ) : null
+          }
         />
       )}
 

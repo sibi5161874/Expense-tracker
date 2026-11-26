@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useColorScheme, vars } from "nativewind";
 import {
   accents,
@@ -172,6 +172,42 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => resolveTheme(mode, amoled, accent, dynamicColor),
     [mode, amoled, accent, dynamicColor]
   );
+
+  // Synchronize CSS variables and dark class to document root on Web so that portaled
+  // modals, dropdowns, and sheets automatically inherit all color tokens.
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const root = document.documentElement;
+      if (mode === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+      root.style.setProperty("--background", hexToTriplet(theme.background));
+      root.style.setProperty("--card", hexToTriplet(theme.card));
+      root.style.setProperty("--card-foreground", hexToTriplet(theme.foreground));
+      root.style.setProperty("--foreground", hexToTriplet(theme.foreground));
+      root.style.setProperty("--muted-foreground", hexToTriplet(theme.mutedForeground));
+      root.style.setProperty("--border", hexToTriplet(theme.border));
+      root.style.setProperty("--primary", hexToTriplet(theme.primary));
+      root.style.setProperty("--primary-foreground", hexToTriplet(theme.onPrimary));
+      root.style.setProperty("--accent", hexToTriplet(theme.primaryContainer));
+      root.style.setProperty("--accent-foreground", hexToTriplet(theme.onPrimaryContainer));
+      root.style.setProperty("--surface-container-lowest", hexToTriplet(theme.surfaceContainerLowest));
+      root.style.setProperty("--surface-container-low", hexToTriplet(theme.surfaceContainerLow));
+      root.style.setProperty("--surface-container", hexToTriplet(theme.surfaceContainer));
+      root.style.setProperty("--surface-container-high", hexToTriplet(theme.surfaceContainerHigh));
+      root.style.setProperty("--surface-container-highest", hexToTriplet(theme.surfaceContainerHighest));
+      root.style.setProperty("--on-surface", hexToTriplet(theme.onSurface));
+      root.style.setProperty("--on-surface-variant", hexToTriplet(theme.onSurfaceVariant));
+      root.style.setProperty("--outline", hexToTriplet(theme.outline));
+      root.style.setProperty("--outline-variant", hexToTriplet(theme.outlineVariant));
+      root.style.setProperty("--primary-container", hexToTriplet(theme.primaryContainer));
+      root.style.setProperty("--on-primary-container", hexToTriplet(theme.onPrimaryContainer));
+      root.style.setProperty("--secondary-container", hexToTriplet(theme.secondaryContainer));
+      root.style.setProperty("--on-secondary-container", hexToTriplet(theme.onSecondaryContainer));
+    }
+  }, [theme, mode]);
 
   // Also pushes the resolved accent (and AMOLED's background/card/border) into NativeWind's
   // CSS vars via vars() — so existing `bg-primary`/`text-primary`/etc classNames across

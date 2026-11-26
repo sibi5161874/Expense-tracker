@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildInvestmentLogMirrorTransaction,
+  DIVIDEND_INCOME_CATEGORY_NAME,
   INVESTMENT_EXPENSE_CATEGORY_NAME,
   INVESTMENT_INCOME_CATEGORY_NAME,
 } from './investmentMirroring';
@@ -47,9 +48,10 @@ describe('buildInvestmentLogMirrorTransaction', () => {
     });
   });
 
-  it('mirrors a DIVIDEND the same way as a SELL', () => {
+  it('mirrors a DIVIDEND as Income under Dividend category', () => {
     const result = buildInvestmentLogMirrorTransaction({ ...base, action: 'DIVIDEND' });
     expect(result?.type).toBe('Income');
+    expect(result?.categoryName).toBe(DIVIDEND_INCOME_CATEGORY_NAME);
     expect(result?.notes).toContain('Received dividend on');
   });
 
@@ -61,7 +63,7 @@ describe('buildInvestmentLogMirrorTransaction', () => {
       amount: 500,
       from_account_id: 'account-1',
       notes: 'Received dividend on RELIANCE @ ₹500 via Investment Log',
-      categoryName: INVESTMENT_INCOME_CATEGORY_NAME,
+      categoryName: DIVIDEND_INCOME_CATEGORY_NAME,
       categoryType: 'Income',
     });
   });

@@ -1,4 +1,4 @@
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://kashmap.in";
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://web-six-beta-34.vercel.app";
 
 /**
  * Calls one of apps/web's Next.js API routes with the mobile Supabase session's access

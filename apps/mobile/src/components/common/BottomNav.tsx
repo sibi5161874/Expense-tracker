@@ -76,13 +76,16 @@ function NavTabItem({
           "h-8 w-16 items-center justify-center rounded-full transition-all",
           isFocused ? "bg-secondary-container" : "bg-transparent"
         )}
-        style={
+        style={[
           isFocused
             ? {
                 backgroundColor: theme.secondaryContainer || theme.primaryContainer,
+                transform: [{ scale: 1 }],
               }
-            : undefined
-        }
+            : {
+                transform: [{ scale: 0.9 }],
+              },
+        ]}
       >
         <IconComponent
           size={22}

@@ -84,6 +84,11 @@ export function TextField({
           borderWidth: isFilled ? 0 : focused ? 2 : 1,
           borderBottomWidth: isFilled ? (focused ? 2 : 1) : focused ? 2 : 1,
           borderColor,
+          backgroundColor: isFilled
+            ? undefined
+            : focused
+              ? (theme.surfaceContainerHigh || theme.card)
+              : (theme.surfaceContainerLow || theme.card),
         }}
       >
         {leadingIcon && <View className="mr-3">{leadingIcon}</View>}

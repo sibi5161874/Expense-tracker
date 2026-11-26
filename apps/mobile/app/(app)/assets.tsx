@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useAssets";
 
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { Chip } from "@/components/common/Chip";
 import { AmountText } from "@/components/common/AmountText";
@@ -127,6 +128,7 @@ export default function AssetsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       {/* Header */}
       <View className="px-4 pt-2 pb-3 gap-3">
         <View>

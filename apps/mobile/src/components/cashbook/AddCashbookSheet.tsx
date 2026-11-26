@@ -9,7 +9,7 @@ import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { PickerField } from "@/components/common/PickerField";
 import { Button } from "@/components/common/Button";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 interface AddCashbookSheetProps {
   visible: boolean;
@@ -26,11 +26,11 @@ const FLOW_OPTIONS = [
 
 /** Mobile equivalent of CashbookForm.tsx. */
 export function AddCashbookSheet({ visible, onClose, onSubmit, accounts, editing }: AddCashbookSheetProps) {
+  const { theme } = useTheme();
   const form = useForm<CashbookInput>({
     resolver: zodResolver(cashbookSchema),
     defaultValues: editing ?? { flow: "Gave", date: new Date().toISOString().split("T")[0] },
   });
-  const mutedForeground = useThemeColor("mutedForeground");
   const accountOptions = accounts.map((a) => ({ label: a.name, value: a.id }));
 
   function handleSubmit(data: CashbookInput) {
@@ -40,15 +40,29 @@ export function AddCashbookSheet({ visible, onClose, onSubmit, accounts, editing
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between bg-card px-4 py-3">
-          <AppText className="text-base font-semibold">{editing ? "Edit Entry" : "Add Entry"}</AppText>
-          <Pressable onPress={onClose} hitSlop={14}>
-            <X size={20} color={mutedForeground} />
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: theme.background }}
+      >
+        <View
+          className="flex-row items-center justify-between border-b px-4 py-3.5"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <AppText className="text-base font-semibold text-foreground">
+            {editing ? "Edit Entry" : "Add Entry"}
+          </AppText>
+          <Pressable onPress={onClose} hitSlop={14} className="rounded-full bg-muted/60 p-1.5 active:bg-muted">
+            <X size={18} color={theme.foreground} />
           </Pressable>
         </View>
 
-        <ScrollView contentContainerClassName="gap-4 p-4">
+        <ScrollView
+          contentContainerClassName="gap-4 p-4"
+          style={{ backgroundColor: theme.background }}
+        >
           <PickerField
             label="Flow"
             value={form.watch("flow")}
@@ -112,11 +126,28 @@ export function AddCashbookSheet({ visible, onClose, onSubmit, accounts, editing
           />
         </ScrollView>
 
-        <View className="flex-row gap-3 bg-card p-4">
-          <Button variant="outline" className="flex-1" onPress={onClose}>
+        <View
+          className="flex-row items-center gap-3 border-t p-4"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
+            onPress={onClose}
+          >
             Cancel
           </Button>
-          <Button className="flex-1" onPress={form.handleSubmit(handleSubmit)} disabled={form.formState.isSubmitting}>
+          <Button
+            variant="default"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
+            onPress={form.handleSubmit(handleSubmit)}
+            disabled={form.formState.isSubmitting}
+          >
             {editing ? "Save Changes" : "Save Entry"}
           </Button>
         </View>

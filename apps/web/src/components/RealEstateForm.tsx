@@ -49,7 +49,7 @@ export function RealEstateForm({ onSuccess, onCancel, editing }: RealEstateFormP
           <DialogTitle>{editing ? 'Edit Real Estate' : 'Add Real Estate'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <FormField
               control={form.control}

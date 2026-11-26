@@ -11,7 +11,7 @@ import { AppText } from "@/components/common/AppText";
 import { StatusBadge } from "@/components/common/Badge";
 import { useTheme } from "@/theme/ThemeProvider";
 
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://kashmap.in";
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://web-six-beta-34.vercel.app";
 
 const PRO_PERKS = [
   "Bank Statement PDF/Excel Automatic Import",

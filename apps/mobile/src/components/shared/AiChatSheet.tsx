@@ -31,7 +31,7 @@ const STARTER_PROMPTS = [
   "Do I have any overdue cashbook debts?",
 ];
 
-const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://kashmap.in";
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || "https://web-six-beta-34.vercel.app";
 
 export function AiChatSheet({
   visible,

@@ -436,3 +436,5 @@ export function parseTransactionText(text: string): ParsedQuickAddResult {
     transaction,
   };
 }
+
+export const parseQuickAdd = parseTransactionText;

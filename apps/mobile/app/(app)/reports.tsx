@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { ChevronRight, FileText } from "lucide-react-native";
 import { REPORT_SECTIONS, type ReportLink } from "@/components/reports/reportRegistry";
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -16,6 +17,7 @@ export default function ReportsHubScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,

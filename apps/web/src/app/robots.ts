@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kashmap.in';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://web-six-beta-34.vercel.app';
 
   return {
     rules: [

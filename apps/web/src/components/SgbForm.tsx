@@ -48,7 +48,7 @@ export function SgbForm({ onSuccess, onCancel, editing }: SgbFormProps) {
           <DialogTitle>{editing ? 'Edit SGB Holding' : 'Add SGB Holding'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <FormField
               control={form.control}

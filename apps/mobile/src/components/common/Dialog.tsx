@@ -101,11 +101,11 @@ export function Dialog({
             {description && <AppText className="text-sm leading-5 text-muted-foreground">{description}</AppText>}
           </View>
           {children}
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
-            <Button variant="text" onPress={onCancel}>
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+            <Button variant="outline" className="flex-1" onPress={onCancel}>
               {cancelLabel}
             </Button>
-            <Button variant={destructive ? "destructive" : "default"} onPress={onConfirm}>
+            <Button variant={destructive ? "destructive" : "primary"} className="flex-1" onPress={onConfirm}>
               {confirmLabel}
             </Button>
           </View>

@@ -6,17 +6,37 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yikuhckrwhhjkqdalqxf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa3VoY2tyd2hoamtxZGFscXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MTkxODUsImV4cCI6MjEwODk5NTE4NX0.pKLXIEzkn1VrIHIktI_P329Ck0DOVZsZlVMicV2VnDA",
+        "EXPO_PUBLIC_WEB_APP_URL": "https://web-six-beta-34.vercel.app"
+      }
+    },
+    "preview-dev": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
+      },
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yikuhckrwhhjkqdalqxf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa3VoY2tyd2hoamtxZGFscXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MTkxODUsImV4cCI6MjEwODk5NTE4NX0.pKLXIEzkn1VrIHIktI_P329Ck0DOVZsZlVMicV2VnDA",
+        "EXPO_PUBLIC_WEB_APP_URL": "https://web-six-beta-34.vercel.app"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
       },
       "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
         "EXPO_PUBLIC_SUPABASE_URL": "https://wkfyfslgfpcybyajjndl.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZnlmc2xnZnBjeWJ5YWpqbmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTQ1NzEsImV4cCI6MjA5OTI3MDU3MX0.grButg-0T-WfoPVwYDqxzaGejz_pmb2nzDk6fdj6Q4s",
-        "EXPO_PUBLIC_WEB_APP_URL": "https://kashmap.in"
+        "EXPO_PUBLIC_WEB_APP_URL": "https://web-six-beta-34.vercel.app"
       }
     },
     "production": {
@@ -24,7 +44,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://wkfyfslgfpcybyajjndl.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZnlmc2xnZnBjeWJ5YWpqbmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTQ1NzEsImV4cCI6MjA5OTI3MDU3MX0.grButg-0T-WfoPVwYDqxzaGejz_pmb2nzDk6fdj6Q4s",
-        "EXPO_PUBLIC_WEB_APP_URL": "https://kashmap.in"
+        "EXPO_PUBLIC_WEB_APP_URL": "https://web-six-beta-34.vercel.app"
       }
     }
   },

@@ -54,7 +54,7 @@ export function GoldForm({ onSuccess, onCancel, editing }: GoldFormProps) {
           <DialogTitle>{editing ? 'Edit Gold Holding' : 'Add Gold Holding'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <FormField
               control={form.control}

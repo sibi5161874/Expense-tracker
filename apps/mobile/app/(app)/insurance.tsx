@@ -6,6 +6,7 @@ import { useInsurancePolicies } from "@/hooks/useInsurancePolicies";
 import type { InsurancePolicy } from "@repo/shared/types";
 
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
 import { Fab } from "@/components/common/Fab";
 import { InsuranceCard } from "@/components/insurance/InsuranceCard";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -33,6 +34,7 @@ export default function InsuranceScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader showBack />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,

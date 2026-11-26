@@ -63,7 +63,7 @@ export function CryptoForm({ onSuccess, onCancel, editing }: CryptoFormProps) {
           <DialogTitle>{editing ? 'Edit Crypto Asset' : 'Add Crypto Asset'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
               <div className="grid grid-cols-2 gap-4">
                 <FormField

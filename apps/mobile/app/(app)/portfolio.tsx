@@ -18,6 +18,10 @@ import { Fab } from "@/components/common/Fab";
 import { MarketHeatmap } from "@/components/portfolio/MarketHeatmap";
 import { TaxLossHarvestingCard } from "@/components/investments/TaxLossHarvestingCard";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
+import { AppHeader } from "@/components/common/AppHeader";
+import { PortfolioBenchmarkChart } from "@/components/dashboard/PortfolioBenchmarkChart";
+import { PassiveIncomeWidget } from "@/components/dashboard/PassiveIncomeWidget";
+import { DonutChart } from "@/components/charts/DonutChart";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function PortfolioScreen() {
@@ -51,6 +55,7 @@ export default function PortfolioScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader title="Portfolio" />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
@@ -183,6 +188,9 @@ export default function PortfolioScreen() {
           </View>
         </Card>
 
+        {/* Portfolio Benchmark Comparison */}
+        <PortfolioBenchmarkChart />
+
         {/* M3 Segmented Navigation Tabs */}
         <SegmentedControl
           options={[
@@ -196,7 +204,22 @@ export default function PortfolioScreen() {
 
         {/* Tab 1: Holdings List */}
         {activeTab === "holdings" && (
-          <View className="gap-2.5">
+          <View className="gap-3">
+            {holdings.length > 0 && (
+              <>
+                <Card variant="outlined" className="gap-3">
+                  <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Asset Allocation
+                  </AppText>
+                  <DonutChart
+                    data={holdings.map((h) => ({ name: h.symbol, value: h.currentValue }))}
+                    size={180}
+                    centerSubtitle="Portfolio"
+                  />
+                </Card>
+                <PassiveIncomeWidget holdings={holdings} />
+              </>
+            )}
             {holdings.length === 0 ? (
               <View className="items-center justify-center p-8 gap-2">
                 <AppText className="text-sm font-medium text-muted-foreground">

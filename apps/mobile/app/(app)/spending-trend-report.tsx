@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TrendingDown, Calendar } from "lucide-react-native";
 import { useTransactionsInRange, monthsAgo } from "@/hooks/useReportsData";
 import { formatMonth, formatINR } from "@repo/shared/utils";
+import { isOperationalTransaction } from "@repo/shared/logic";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/common/Card";
 import { AppText } from "@/components/common/AppText";
@@ -23,7 +24,7 @@ export default function SpendingTrendReportScreen() {
   const { data: transactions, isLoading, error } = useTransactionsInRange(from, to);
 
   const monthlyBreakdowns = useMemo(() => {
-    const expenses = (transactions ?? []).filter((t) => t.type === "Expense");
+    const expenses = (transactions ?? []).filter((t) => t.type === "Expense" && isOperationalTransaction(t));
     const months: string[] = [];
     for (let i = MONTHS_BACK - 1; i >= 0; i--) {
       const d = new Date();

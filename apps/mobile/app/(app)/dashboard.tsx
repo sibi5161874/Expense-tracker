@@ -32,6 +32,10 @@ import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { FinancialEssentialsCard } from "@/components/dashboard/FinancialEssentialsCard";
 import { QuickAddInput } from "@/components/dashboard/QuickAddInput";
 import { AiChatSheet } from "@/components/shared/AiChatSheet";
+import { AppHeader } from "@/components/common/AppHeader";
+import { HistoricalNetWorthChart } from "@/components/dashboard/HistoricalNetWorthChart";
+import { BudgetHealthCard } from "@/components/dashboard/BudgetHealthCard";
+import { DonutChart } from "@/components/charts/DonutChart";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function DashboardScreen() {
@@ -109,6 +113,7 @@ export default function DashboardScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
@@ -177,91 +182,32 @@ export default function DashboardScreen() {
           </Card>
         )}
 
+        {/* Historical Net Worth Chart */}
+        <HistoricalNetWorthChart />
+
         {/* Monthly Cash Flow KPIs */}
         <View className="gap-2">
           <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
             Cash Flow ({currentMonth})
           </AppText>
           <KpiGrid items={kpiItems} />
+          <BudgetHealthCard />
         </View>
 
         {/* Financial Essentials (Emergency fund, score) */}
         <FinancialEssentialsCard />
 
-        {/* Quick Navigation Cards */}
-        <View className="gap-2">
-          <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            Quick Hubs
-          </AppText>
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => router.push("/transactions")}
-              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
-              style={{
-                backgroundColor: theme.surfaceContainerLow || theme.card,
-                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
-              }}
-            >
-              <Wallet size={20} color={theme.primary} />
-              <AppText className="text-xs font-semibold text-foreground">Transactions</AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/portfolio")}
-              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
-              style={{
-                backgroundColor: theme.surfaceContainerLow || theme.card,
-                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
-              }}
-            >
-              <PieChart size={20} color={theme.primary} />
-              <AppText className="text-xs font-semibold text-foreground">Portfolio</AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/cashbook")}
-              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
-              style={{
-                backgroundColor: theme.surfaceContainerLow || theme.card,
-                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
-              }}
-            >
-              <BookOpen size={20} color={theme.primary} />
-              <AppText className="text-xs font-semibold text-foreground">Cashbook</AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/reports")}
-              className="flex-1 rounded-2xl border p-3.5 items-center justify-center gap-2"
-              style={{
-                backgroundColor: theme.surfaceContainerLow || theme.card,
-                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
-              }}
-            >
-              <FileText size={20} color={theme.primary} />
-              <AppText className="text-xs font-semibold text-foreground">Reports</AppText>
-            </Pressable>
-          </View>
-        </View>
-
         {/* Category Breakdown Card */}
         {categoryBreakdown && categoryBreakdown.length > 0 && (
-          <Card variant="outlined" className="gap-3">
+          <Card variant="outlined" className="gap-4">
             <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Top Expenses by Category
+              Expense Distribution
             </AppText>
-            <View className="gap-2.5">
-              {categoryBreakdown.slice(0, 5).map((cat) => (
-                <View key={cat.name} className="flex-row items-center justify-between">
-                  <AppText className="text-sm font-medium text-foreground">{cat.name}</AppText>
-                  <AmountText
-                    value={cat.value}
-                    colorBySign={false}
-                    className="text-sm font-semibold"
-                  />
-                </View>
-              ))}
-            </View>
+            <DonutChart
+              data={categoryBreakdown.map((cat) => ({ name: cat.name, value: cat.value }))}
+              size={180}
+              centerSubtitle="Monthly Spend"
+            />
           </Card>
         )}
       </ScrollView>

@@ -53,7 +53,7 @@ export function CategoryForm({ onSuccess, onCancel, editing }: CategoryFormProps
           <DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DialogBody>
             <FormField
               control={form.control}

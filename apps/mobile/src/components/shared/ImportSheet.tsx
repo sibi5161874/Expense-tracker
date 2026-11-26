@@ -8,7 +8,7 @@ import { parseCsv, headersMatch, rowsToRecords, type ImportRowError, type Import
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 interface ImportPlanResult<T> {
   errors: ImportRowError[];
@@ -44,14 +44,13 @@ export function ImportSheet<T>({
   onImported,
   assetType: initialAssetType,
 }: ImportSheetProps<T>) {
+  const { theme } = useTheme();
   const [selectedAssetType, setSelectedAssetType] = useState<string>(initialAssetType || "Stock");
   const [fileName, setFileName] = useState<string | null>(null);
   const [plan, setPlan] = useState<ImportPlanResult<T> | null>(null);
   const [totalRows, setTotalRows] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
-  const mutedForeground = useThemeColor("mutedForeground");
-  const accentForeground = useThemeColor("accentForeground");
 
   const isInvestmentImport = entityLabel.toLowerCase().includes("investment");
 
@@ -104,21 +103,34 @@ export function ImportSheet<T>({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between bg-card px-4 py-3">
-          <AppText className="text-base font-semibold">Import {entityLabel}</AppText>
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: theme.background }}
+      >
+        <View
+          className="flex-row items-center justify-between border-b px-4 py-3.5"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
+          <AppText className="text-base font-semibold text-foreground">Import {entityLabel}</AppText>
           <Pressable
             onPress={() => {
               reset();
               onClose();
             }}
             hitSlop={14}
+            className="rounded-full bg-muted/60 p-1.5 active:bg-muted"
           >
-            <X size={20} color={mutedForeground} />
+            <X size={18} color={theme.foreground} />
           </Pressable>
         </View>
 
-        <ScrollView contentContainerClassName="gap-4 p-4">
+        <ScrollView
+          contentContainerClassName="gap-4 p-4"
+          style={{ backgroundColor: theme.background }}
+        >
           {isInvestmentImport && (
             <View className="gap-1.5">
               <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -146,7 +158,7 @@ export function ImportSheet<T>({
             disabled={isProcessing}
             className="flex-row items-center justify-center gap-2 rounded-2xl border border-border py-4"
           >
-            <Upload size={16} color={accentForeground} />
+            <Upload size={16} color={theme.primary} />
             <AppText className="text-sm font-medium">
               {isProcessing ? "Reading..." : fileName ? `Change file (${fileName})` : "Choose CSV File"}
             </AppText>
@@ -183,10 +195,17 @@ export function ImportSheet<T>({
           )}
         </ScrollView>
 
-        <View className="flex-row gap-3 bg-card p-4">
+        <View
+          className="flex-row items-center gap-3 border-t p-4"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+          }}
+        >
           <Button
             variant="outline"
-            className="flex-1"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
             onPress={() => {
               reset();
               onClose();
@@ -194,7 +213,13 @@ export function ImportSheet<T>({
           >
             Cancel
           </Button>
-          <Button className="flex-1" onPress={handleConfirm} disabled={!plan || plan.validRows.length === 0 || isCommitting}>
+          <Button
+            variant="default"
+            size="lg"
+            className="flex-1 h-12 rounded-2xl"
+            onPress={handleConfirm}
+            disabled={!plan || plan.validRows.length === 0 || isCommitting}
+          >
             {isCommitting ? "Importing..." : `Import ${plan?.validRows.length ?? 0}`}
           </Button>
         </View>

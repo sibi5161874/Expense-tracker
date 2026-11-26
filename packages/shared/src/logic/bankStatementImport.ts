@@ -130,7 +130,7 @@ const CATEGORY_KEYWORDS: { pattern: RegExp; categoryName: string; type: Transact
   { pattern: /\bemi\b|loan repay/i, categoryName: 'Loan EMI', type: 'Expense' },
   { pattern: /bigbasket|dmart|grofers|blinkit|zepto|grocery/i, categoryName: 'Groceries', type: 'Expense' },
   { pattern: /apollo|pharmeasy|1mg|hospital|clinic|medical/i, categoryName: 'Healthcare', type: 'Expense' },
-  { pattern: /\bsip\b|mutual fund|zerodha|groww|upstox/i, categoryName: 'Investment', type: 'Expense' },
+  { pattern: /\bsip\b|mutual fund|zerodha|groww|upstox/i, categoryName: 'Investments', type: 'Expense' },
   { pattern: /interest credit|int\.?\s*cr/i, categoryName: 'Interest Income', type: 'Income' },
 ];
 

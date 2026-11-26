@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Award, TrendingUp, TrendingDown, Calendar } from "lucide-react-native";
 import { useTransactionsInRange, yearRange } from "@/hooks/useReportsData";
 import { formatINR } from "@repo/shared/utils";
+import { isOperationalTransaction } from "@repo/shared/logic";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/common/Card";
 import { AppText } from "@/components/common/AppText";
@@ -29,6 +30,7 @@ export default function YearInReviewReportScreen() {
     let totalExpense = 0;
 
     for (const t of transactions ?? []) {
+      if (!isOperationalTransaction(t)) continue;
       const monthIndex = Number(t.date.slice(5, 7)) - 1;
       const bucket = monthly[monthIndex];
       if (!bucket) continue;

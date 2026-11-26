@@ -2,9 +2,11 @@ import { useState } from "react";
 import { View, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, TrendingUp } from "lucide-react-native";
-import { useInvestmentLog } from "@/hooks/useInvestmentLog";
+import { useInvestmentLog, useAllInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { AppText } from "@/components/common/AppText";
+import { AppHeader } from "@/components/common/AppHeader";
+import { PaginationControl } from "@/components/common/PaginationControl";
 import { Fab } from "@/components/common/Fab";
 import { InvestmentLogListItem, type InvestmentLogListItemData } from "@/components/investments/InvestmentLogListItem";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
@@ -16,6 +18,7 @@ export default function InvestmentsScreen() {
   const [showAdd, setShowAdd] = useState(false);
 
   const { data: accounts } = useAccounts(true);
+  const { data: allLogs } = useAllInvestmentLog();
   const {
     data,
     isLoading,
@@ -26,6 +29,7 @@ export default function InvestmentsScreen() {
   } = useInvestmentLog({ page });
 
   const logs = data ?? [];
+  const totalCount = allLogs ? allLogs.length : logs.length;
 
   const handleDelete = (id: string) => {
     Alert.alert("Delete Trade", "Are you sure you want to remove this trade log?", [
@@ -40,12 +44,13 @@ export default function InvestmentsScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader />
       <View className="px-4 pt-2 pb-3 gap-1 border-b border-outline-variant/20">
         <AppText className="text-2xl font-bold tracking-tight text-foreground">
           Investment Log
         </AppText>
         <AppText className="text-xs text-muted-foreground">
-          {logs.length} trade transactions recorded
+          {totalCount} trade transactions recorded
         </AppText>
       </View>
 
@@ -90,6 +95,19 @@ export default function InvestmentsScreen() {
               />
             );
           }}
+          ListFooterComponent={
+            totalCount > 0 ? (
+              <View className="px-4 pb-20">
+                <PaginationControl
+                  page={page}
+                  pageSize={25}
+                  totalCount={totalCount}
+                  onPageChange={setPage}
+                  pageSizeOptions={[10, 25, 50]}
+                />
+              </View>
+            ) : null
+          }
         />
       )}
 

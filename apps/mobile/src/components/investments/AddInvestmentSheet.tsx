@@ -9,7 +9,7 @@ import { AppText } from "@/components/common/AppText";
 import { TextField } from "@/components/common/TextField";
 import { PickerField } from "@/components/common/PickerField";
 import { Button } from "@/components/common/Button";
-import { useThemeColor } from "@/lib/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 interface AddInvestmentSheetProps {
   visible: boolean;
@@ -26,6 +26,7 @@ const ASSET_TYPE_OPTIONS = ["Stock", "ETF", "Mutual Fund", "Crypto", "Bond", "Ot
 }));
 
 export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editing }: AddInvestmentSheetProps) {
+  const { theme } = useTheme();
   const form = useForm<InvestmentLogInput>({
     resolver: zodResolver(investmentLogSchema),
     defaultValues: editing ?? {
@@ -35,8 +36,6 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
       fees: 0,
     },
   });
-  const mutedForeground = useThemeColor("mutedForeground");
-  const foreground = useThemeColor("foreground");
   const accountOptions = accounts.map((a) => ({ label: a.name, value: a.id }));
 
   function handleSubmit(data: InvestmentLogInput) {
@@ -46,13 +45,23 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+      <SafeAreaView
+        className="flex-1"
+        edges={["top", "bottom"]}
+        style={{ backgroundColor: theme.background }}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           className="flex-1"
         >
           {/* Header */}
-          <View className="flex-row items-center justify-between border-b border-border/60 bg-card px-5 py-4">
+          <View
+            className="flex-row items-center justify-between border-b px-5 py-4"
+            style={{
+              backgroundColor: theme.surfaceContainer || theme.card,
+              borderBottomColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            }}
+          >
             <AppText className="text-lg font-semibold text-foreground">
               {editing ? "Edit Investment" : "New Investment"}
             </AppText>
@@ -61,7 +70,7 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
               hitSlop={14}
               className="rounded-full bg-muted/60 p-1.5 active:bg-muted"
             >
-              <X size={18} color={foreground} />
+              <X size={18} color={theme.foreground} />
             </Pressable>
           </View>
 
@@ -69,7 +78,13 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
             contentContainerClassName="gap-5 p-5 pb-10"
             showsVerticalScrollIndicator={false}
           >
-            <View className="gap-4 rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
+            <View
+              className="gap-4 rounded-3xl border p-5 shadow-sm"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+              }}
+            >
               <View className="flex-row gap-3">
                 <View className="flex-1">
                   <PickerField
@@ -186,11 +201,28 @@ export function AddInvestmentSheet({ visible, onClose, onSubmit, accounts, editi
           </ScrollView>
 
           {/* Action Footer */}
-          <View className="flex-row gap-3 border-t border-border/60 bg-card p-4">
-            <Button variant="outline" className="flex-1" onPress={onClose}>
+          <View
+            className="flex-row items-center gap-3 border-t p-4"
+            style={{
+              backgroundColor: theme.surfaceContainer || theme.card,
+              borderTopColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            }}
+          >
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
+              onPress={onClose}
+            >
               Cancel
             </Button>
-            <Button className="flex-1" onPress={form.handleSubmit(handleSubmit)} disabled={form.formState.isSubmitting}>
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1 h-12 rounded-2xl"
+              onPress={form.handleSubmit(handleSubmit)}
+              disabled={form.formState.isSubmitting}
+            >
               {editing ? "Save Changes" : "Save Investment"}
             </Button>
           </View>

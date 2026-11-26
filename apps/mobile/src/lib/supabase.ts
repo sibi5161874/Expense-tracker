@@ -25,6 +25,10 @@ const storageAdapter =
       }
     : AsyncStorage;
 
+export const SUPABASE_URL = supabaseUrl;
+export const IS_PROD_DB = supabaseUrl.includes("wkfyfslgfpcybyajjndl");
+export const SUPABASE_PROJECT_REF = supabaseUrl.replace("https://", "").split(".")[0];
+
 /**
  * One client for the app's lifetime — cross-platform storage adapter supporting both
  * native (AsyncStorage) and web (localStorage).

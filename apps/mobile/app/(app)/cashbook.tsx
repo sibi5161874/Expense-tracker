@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, Users, ArrowUpRight, ArrowDownRight, BookOpen } from "lucide-react-native";
@@ -9,6 +9,8 @@ import { formatINR } from "@repo/shared/utils";
 import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
+import { AppHeader } from "@/components/common/AppHeader";
+import { PaginationControl } from "@/components/common/PaginationControl";
 import { Fab } from "@/components/common/Fab";
 import { CounterpartySummaryCard } from "@/components/cashbook/CounterpartySummaryCard";
 import { CashbookListItem, type CashbookListItemData } from "@/components/cashbook/CashbookListItem";
@@ -19,6 +21,8 @@ export default function CashbookScreen() {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<"people" | "all">("people");
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
 
   const { data: accounts } = useAccounts(true);
   const {
@@ -29,6 +33,12 @@ export default function CashbookScreen() {
     createCashbook,
     deleteCashbook,
   } = useCashbook();
+
+  const rawEntries = entries ?? [];
+  const totalEntriesCount = rawEntries.length;
+  const paginatedEntries = useMemo(() => {
+    return rawEntries.slice(page * pageSize, (page + 1) * pageSize);
+  }, [rawEntries, page, pageSize]);
 
   const totalGiven = summary
     ? Object.values(summary).reduce((acc, c) => acc + c.totalGiven, 0)
@@ -56,6 +66,7 @@ export default function CashbookScreen() {
       style={{ backgroundColor: theme.background }}
       edges={["top"]}
     >
+      <AppHeader />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
@@ -170,7 +181,10 @@ export default function CashbookScreen() {
             { value: "all", label: "All Records" },
           ]}
           value={activeTab}
-          onChange={(val) => setActiveTab(val as "people" | "all")}
+          onChange={(val) => {
+            setActiveTab(val as "people" | "all");
+            setPage(0);
+          }}
         />
 
         {/* People Summary Cards */}
@@ -200,7 +214,7 @@ export default function CashbookScreen() {
           </View>
         )}
 
-        {/* All Raw Entries List */}
+        {/* All Raw Entries List with Pagination */}
         {activeTab === "all" && (
           <View className="gap-2.5">
             {!entries || entries.length === 0 ? (
@@ -210,24 +224,34 @@ export default function CashbookScreen() {
                 </AppText>
               </View>
             ) : (
-              entries.map((entry) => {
-                const itemData: CashbookListItemData = {
-                  id: entry.id,
-                  date: entry.date,
-                  counterparty: entry.counterparty,
-                  flow: entry.flow,
-                  amount: entry.amount,
-                  dueDate: entry.due_date ?? null,
-                };
-                return (
-                  <CashbookListItem
-                    key={entry.id}
-                    entry={itemData}
-                    onPress={() => {}}
-                    onDelete={handleDelete}
-                  />
-                );
-              })
+              <>
+                {paginatedEntries.map((entry) => {
+                  const itemData: CashbookListItemData = {
+                    id: entry.id,
+                    date: entry.date,
+                    counterparty: entry.counterparty,
+                    flow: entry.flow,
+                    amount: entry.amount,
+                    dueDate: entry.due_date ?? null,
+                  };
+                  return (
+                    <CashbookListItem
+                      key={entry.id}
+                      entry={itemData}
+                      onPress={() => {}}
+                      onDelete={handleDelete}
+                    />
+                  );
+                })}
+                <PaginationControl
+                  page={page}
+                  pageSize={pageSize}
+                  totalCount={totalEntriesCount}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  pageSizeOptions={[10, 15, 25, 50]}
+                />
+              </>
             )}
           </View>
         )}

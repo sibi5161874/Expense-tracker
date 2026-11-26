@@ -34,8 +34,6 @@ const MORE_LINKS: { href: string; labelKey: TranslationKey; icon: typeof LayoutD
   { href: "/cashbook", labelKey: "sidebar.cashbook", icon: Users },
   { href: "/insurance", labelKey: "sidebar.insurance", icon: ShieldCheck },
   { href: "/assets", labelKey: "sidebar.group.assets", icon: Landmark },
-  { href: "/config", labelKey: "sidebar.group.config", icon: Cog },
-  { href: "/settings", labelKey: "sidebar.group.settings", icon: Settings },
 ];
 
 /**
