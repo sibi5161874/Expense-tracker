@@ -174,7 +174,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   // Synchronize CSS variables and dark class to document root on Web so that portaled
-  // modals, dropdowns, and sheets automatically inherit all color tokens.
+  // modals, dropdowns, and sheets automatically inherit all color tokens, and enforce
+  // solid theme background on document/body to eradicate white flash during screen transitions.
   useEffect(() => {
     if (Platform.OS === "web" && typeof document !== "undefined") {
       const root = document.documentElement;
@@ -182,6 +183,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         root.classList.add("dark");
       } else {
         root.classList.remove("dark");
+      }
+      root.style.backgroundColor = theme.background;
+      if (document.body) {
+        document.body.style.backgroundColor = theme.background;
       }
       root.style.setProperty("--background", hexToTriplet(theme.background));
       root.style.setProperty("--card", hexToTriplet(theme.card));
@@ -247,7 +252,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, loaded, setAmoled, setAccent, setDynamicColor }}>
-      <View style={[{ flex: 1 }, cssVarOverrides]}>{children}</View>
+      <View style={[{ flex: 1, backgroundColor: theme.background }, cssVarOverrides]}>{children}</View>
     </ThemeContext.Provider>
   );
 }

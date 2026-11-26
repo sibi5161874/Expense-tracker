@@ -88,7 +88,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
 
       queryClient.setQueriesData({ queryKey: ['transactions', userId] }, (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.map((item: any) => (item?.id === id ? { ...item, ...data } : item));
+        return old.map((item: { id?: string }) => (item?.id === id ? { ...item, ...data } : item));
       });
 
       return { previousData };
@@ -115,7 +115,7 @@ export function useTransactions(opts: { month?: string; page?: number } = {}) {
 
       queryClient.setQueriesData({ queryKey: ['transactions', userId] }, (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.filter((item: any) => item?.id !== id);
+        return old.filter((item: { id?: string }) => item?.id !== id);
       });
 
       return { previousData };

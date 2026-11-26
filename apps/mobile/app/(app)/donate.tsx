@@ -40,7 +40,7 @@ export default function DonateScreen() {
               Buy Us a Coffee
             </AppText>
             <AppText className="text-sm text-muted-foreground leading-5">
-              KashMap is meticulously built to empower Indian retail investors with zero advertising, zero trackers, and uncompromising privacy.
+              KashMap is built for Indian investors with zero ads, zero data tracking, and direct local storage privacy.
             </AppText>
           </View>
 

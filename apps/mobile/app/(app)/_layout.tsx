@@ -1,9 +1,10 @@
 import { Redirect, Tabs } from "expo-router";
-import { View, ActivityIndicator, Easing, Animated } from "react-native";
+import { View, ActivityIndicator, Easing } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useGenerateRecurringTransactions } from "@/hooks/useGenerateRecurringTransactions";
 import { BottomNav } from "@/components/common/BottomNav";
+import { useTheme } from "@/theme/ThemeProvider";
 
 const HIDDEN_ROUTES = [
   "investments",
@@ -38,13 +39,14 @@ const HIDDEN_ROUTES = [
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
+  const { theme } = useTheme();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   useGenerateRecurringTransactions();
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -54,12 +56,13 @@ export default function AppLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Tabs
         tabBar={(props) => <BottomNav {...props} />}
         screenOptions={{
           headerShown: false,
           animation: "shift",
+          sceneStyle: { backgroundColor: theme.background },
           transitionSpec: {
             animation: "timing",
             config: {
@@ -67,22 +70,6 @@ export default function AppLayout() {
               easing: Easing.inOut(Easing.ease),
             },
           },
-          sceneStyleInterpolator: ({ current }: { current: { progress: Animated.AnimatedInterpolation<number> } }) => ({
-            sceneStyle: {
-              opacity: current.progress.interpolate({
-                inputRange: [-1, 0, 1],
-                outputRange: [0, 1, 0],
-              }),
-              transform: [
-                {
-                  translateX: current.progress.interpolate({
-                    inputRange: [-1, 0, 1],
-                    outputRange: [-60, 0, 60],
-                  }),
-                },
-              ],
-            },
-          }),
         }}
       >
         <Tabs.Screen

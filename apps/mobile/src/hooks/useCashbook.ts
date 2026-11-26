@@ -86,7 +86,7 @@ export function useCashbook(opts: { page?: number } = {}) {
 
       queryClient.setQueriesData({ queryKey: ['cashbook', userId] }, (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.map((item: any) => (item?.id === id ? { ...item, ...data } : item));
+        return old.map((item: { id?: string }) => (item?.id === id ? { ...item, ...data } : item));
       });
 
       return { previousData };
@@ -113,7 +113,7 @@ export function useCashbook(opts: { page?: number } = {}) {
 
       queryClient.setQueriesData({ queryKey: ['cashbook', userId] }, (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.filter((item: any) => item?.id !== id);
+        return old.filter((item: { id?: string }) => item?.id !== id);
       });
 
       return { previousData };

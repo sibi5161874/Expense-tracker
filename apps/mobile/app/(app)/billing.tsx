@@ -23,6 +23,12 @@ const PRO_PERKS = [
   "Priority AI Financial Assistant Chat",
 ];
 
+function getPlanTone(isPro: boolean, isTrialing: boolean): "success" | "info" | "neutral" {
+  if (isPro) return "success";
+  if (isTrialing) return "info";
+  return "neutral";
+}
+
 /**
  * Material 3 Billing Screen
  * Subscription tier, trial status, and lifetime checkout link.
@@ -31,6 +37,7 @@ export default function BillingScreen() {
   const { theme } = useTheme();
   const { data: profile, isLoading } = useUserProfile();
   const { tier, isPro, isTrialing, trialDaysRemaining } = useEntitlements();
+  const planTone = getPlanTone(isPro, isTrialing);
 
   function openCheckout() {
     Linking.openURL(`${WEB_APP_URL}/pricing`);
@@ -59,7 +66,7 @@ export default function BillingScreen() {
             <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Current Membership
             </AppText>
-            <StatusBadge tone={isPro ? "success" : isTrialing ? "info" : "neutral"}>
+            <StatusBadge tone={planTone}>
               {tier.toUpperCase()}
             </StatusBadge>
           </View>
@@ -101,7 +108,7 @@ export default function BillingScreen() {
             </View>
 
             <AppText className="text-sm text-muted-foreground leading-5">
-              Empower your Indian wealth journey with enterprise analytics, automated bank imports, and tax computation.
+              Access comprehensive Indian portfolio analytics, automated bank imports, and tax computation.
             </AppText>
 
             {/* Perks List */}

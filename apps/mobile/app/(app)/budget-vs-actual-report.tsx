@@ -13,7 +13,19 @@ import { AppText } from "@/components/common/AppText";
 import { AmountText } from "@/components/common/AmountText";
 import { StatusBadge } from "@/components/common/Badge";
 import { ReportExportBar } from "@/components/shared/ReportExportBar";
-import { useTheme } from "@/theme/ThemeProvider";
+import { useTheme, type ResolvedTheme } from "@/theme/ThemeProvider";
+
+function getBudgetTone(isOver: boolean, pct: number): "destructive" | "warning" | "success" {
+  if (isOver) return "destructive";
+  if (pct > 80) return "warning";
+  return "success";
+}
+
+function getBudgetProgressColor(isOver: boolean, pct: number, theme: ResolvedTheme): string {
+  if (isOver) return theme.destructive;
+  if (pct > 80) return theme.warning;
+  return theme.success;
+}
 
 /**
  * Material 3 Budget vs Actual Report Screen
@@ -95,7 +107,7 @@ export default function BudgetVsActualReportScreen() {
                     <Target size={18} color={isOver ? theme.destructive : theme.primary} />
                     <AppText className="text-sm font-semibold text-foreground">{r.category}</AppText>
                   </View>
-                  <StatusBadge tone={isOver ? "destructive" : pct > 80 ? "warning" : "success"}>
+                  <StatusBadge tone={getBudgetTone(isOver, pct)}>
                     {r.status.toUpperCase()}
                   </StatusBadge>
                 </View>
@@ -120,7 +132,7 @@ export default function BudgetVsActualReportScreen() {
                     className="h-full rounded-full"
                     style={{
                       width: `${Math.min(100, Math.max(3, pct))}%`,
-                      backgroundColor: isOver ? theme.destructive : pct > 80 ? theme.warning : theme.success,
+                      backgroundColor: getBudgetProgressColor(isOver, pct, theme),
                     }}
                   />
                 </View>

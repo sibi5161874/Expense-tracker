@@ -31,9 +31,15 @@ const TYPE_ICONS = {
   Transfer: { icon: ArrowLeftRight, color: "#3b82f6", bg: "bg-primary/15" },
 };
 
+function getTransactionSign(type: TransactionListItemData["type"]): "positive" | "negative" | "neutral" {
+  if (type === "Income") return "positive";
+  if (type === "Expense") return "negative";
+  return "neutral";
+}
+
 export function TransactionListItem({ transaction, onPress, onDelete, index = 0 }: TransactionListItemProps) {
   const mutedForeground = useThemeColor("mutedForeground");
-  const sign = transaction.type === "Income" ? "positive" : transaction.type === "Expense" ? "negative" : "neutral";
+  const sign = getTransactionSign(transaction.type);
   const entrance = useStaggeredEntrance(index);
   const typeConfig = TYPE_ICONS[transaction.type] ?? TYPE_ICONS.Expense;
   const Icon = typeConfig.icon;
@@ -42,7 +48,7 @@ export function TransactionListItem({ transaction, onPress, onDelete, index = 0 
     <Animated.View style={entrance} className="px-4">
       <Pressable
         onPress={() => onPress(transaction.id)}
-        className="mb-2.5 flex-row items-center gap-3.5 rounded-2xl border border-border/70 bg-card p-3.5 shadow-sm active:bg-accent/40 active:scale-[0.99] transition-all"
+        className="mb-2.5 flex-row items-center gap-3.5 rounded-2xl border border-border/70 bg-card p-3.5 shadow-sm active:bg-accent/40 active:scale-[0.99] transition-colors duration-150 ease-out"
       >
         {/* Category / Type Icon Avatar */}
         <View className={cn("size-10 items-center justify-center rounded-2xl", typeConfig.bg)}>

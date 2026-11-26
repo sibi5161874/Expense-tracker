@@ -17,7 +17,7 @@ import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { loadThemePreference } from "@/lib/themePreference";
-import { ThemeProvider } from "@/theme/ThemeProvider";
+import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 
 /** Root-level catch-all — expo-router wraps the whole app in this when any screen throws. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -31,6 +31,25 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         </View>
       </ThemeProvider>
     </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
+  const { theme } = useTheme();
+
+  return (
+    <>
+      <OfflineBanner />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+          animationDuration: 150,
+          contentStyle: { backgroundColor: theme.background },
+        }}
+      />
+      <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
+    </>
   );
 }
 
@@ -57,15 +76,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <QueryProvider>
           <AuthProvider>
-            <OfflineBanner />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: "slide_from_right",
-                animationDuration: 150,
-              }}
-            />
-            <StatusBar style="auto" />
+            <AppContent />
           </AuthProvider>
         </QueryProvider>
       </ThemeProvider>
