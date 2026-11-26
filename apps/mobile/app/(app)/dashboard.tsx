@@ -9,9 +9,7 @@ import {
   Wallet,
   Sparkles,
   ArrowRight,
-  PieChart,
-  BookOpen,
-  FileText,
+  ChevronRight,
 } from "lucide-react-native";
 import { useMonthlyOverview } from "@/hooks/useTransactions";
 import { useMonthlyTrend } from "@/hooks/useMonthlyTrend";
@@ -25,8 +23,6 @@ import { groupInvestmentsBySymbol } from "@repo/shared/logic";
 
 import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
-import { Button } from "@/components/common/Button";
-import { AmountText } from "@/components/common/AmountText";
 import { NetWorthHero } from "@/components/dashboard/NetWorthHero";
 import { KpiGrid, type KpiStatItem } from "@/components/dashboard/KpiGrid";
 import { FinancialEssentialsCard } from "@/components/dashboard/FinancialEssentialsCard";
@@ -38,6 +34,17 @@ import { BudgetHealthCard } from "@/components/dashboard/BudgetHealthCard";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { useTheme } from "@/theme/ThemeProvider";
 
+function getSavingsRateTone(rate: number): "success" | "warning" | "destructive" {
+  if (rate >= 20) return "success";
+  if (rate > 0) return "warning";
+  return "destructive";
+}
+
+/**
+ * Awwwards-Craft Dashboard Screen.
+ * High-contrast slate obsidian surfaces, tactile interactions,
+ * strict tabular numbers, and rich financial telemetry.
+ */
 export default function DashboardScreen() {
   const { theme } = useTheme();
   const currentMonth = formatMonth(new Date());
@@ -70,15 +77,18 @@ export default function DashboardScreen() {
     [allInvestments, livePriceOverrides]
   );
 
-  const totalGoals = goals?.length ?? 0;
-  const achievedGoals = goals?.filter((g) => g.saved_amount >= g.target_amount).length ?? 0;
-  const totalCounterparties = cashbookSummary ? Object.keys(cashbookSummary).length : 0;
-
-  const totalAssets = (netWorth?.netWorth ?? 0) + (netWorth?.liabilitiesTotal ?? 0);
-  const totalLiabilities = netWorth?.liabilitiesTotal ?? 0;
-
   const isLoading = overviewLoading || netWorthLoading;
   const error = overviewError || netWorthError;
+
+  const handleHeroItemPress = (key: string) => {
+    if (key === "cashAndBankTotal") {
+      router.push("/transactions");
+    } else if (key === "portfolioValue") {
+      router.push("/portfolio");
+    } else if (key === "liabilitiesTotal") {
+      router.push("/assets");
+    }
+  };
 
   const kpiItems: KpiStatItem[] = [
     {
@@ -86,23 +96,26 @@ export default function DashboardScreen() {
       icon: ArrowUpRight,
       tone: "success",
       value: monthlyIncome,
+      onPress: () => router.push("/transactions"),
     },
     {
       label: "Expenses",
       icon: ArrowDownRight,
       tone: "destructive",
       value: monthlyExpense,
+      onPress: () => router.push("/transactions"),
     },
     {
       label: "Net Savings",
       icon: Wallet,
       tone: netSavings >= 0 ? "success" : "destructive",
       value: netSavings,
+      onPress: () => router.push("/transactions"),
     },
     {
       label: "Savings Rate",
       icon: TrendingUp,
-      tone: savingsRate >= 20 ? "success" : savingsRate > 0 ? "warning" : "destructive",
+      tone: getSavingsRateTone(savingsRate),
       value: `${savingsRate.toFixed(1)}%`,
     },
   ];
@@ -125,26 +138,26 @@ export default function DashboardScreen() {
       >
         {/* Top Header with Greeting and AI Trigger */}
         <View className="flex-row items-center justify-between">
-          <View>
+          <View className="gap-0.5">
             <AppText className="text-2xl font-bold tracking-tight text-foreground">
               Dashboard
             </AppText>
-            <AppText className="text-xs text-muted-foreground">
-              Month: {currentMonth}
+            <AppText className="text-xs font-medium text-muted-foreground">
+              Period: {currentMonth}
             </AppText>
           </View>
 
-          {/* M3 Tonal AI Assistant Button */}
+          {/* Tactile AI Assistant Pill Button */}
           <Pressable
             onPress={() => setAiChatOpen(true)}
-            className="flex-row items-center gap-2 rounded-full px-3.5 py-2 shadow-sm"
+            className="flex-row items-center gap-2 rounded-full border border-border/70 px-4 py-2 shadow-sm active:scale-95 active:opacity-90"
             style={{
-              backgroundColor: theme.primaryContainer || theme.secondaryContainer,
+              backgroundColor: theme.primaryContainer || theme.card,
             }}
           >
-            <Sparkles size={16} color={theme.onPrimaryContainer || theme.primary} />
+            <Sparkles size={15} color={theme.onPrimaryContainer || theme.primary} />
             <AppText
-              className="text-xs font-semibold"
+              className="text-xs font-bold"
               style={{ color: theme.onPrimaryContainer || theme.primary }}
             >
               Ask AI
@@ -163,7 +176,7 @@ export default function DashboardScreen() {
 
         {error && (
           <View
-            className="rounded-2xl border p-4"
+            className="rounded-2xl border p-4 shadow-sm"
             style={{
               backgroundColor: theme.destructiveSubtle || "#fee2e2",
               borderColor: theme.destructive,
@@ -178,7 +191,10 @@ export default function DashboardScreen() {
         {/* Net Worth Hero Card */}
         {netWorth && (
           <Card variant="elevated" className="gap-3">
-            <NetWorthHero breakdown={netWorth} />
+            <NetWorthHero
+              breakdown={netWorth}
+              onPressItem={handleHeroItemPress}
+            />
           </Card>
         )}
 
@@ -186,10 +202,21 @@ export default function DashboardScreen() {
         <HistoricalNetWorthChart />
 
         {/* Monthly Cash Flow KPIs */}
-        <View className="gap-2">
-          <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            Cash Flow ({currentMonth})
-          </AppText>
+        <View className="gap-2.5">
+          <View className="flex-row items-center justify-between px-1">
+            <AppText className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Monthly Cash Flow
+            </AppText>
+            <Pressable
+              onPress={() => router.push("/transactions")}
+              className="flex-row items-center gap-0.5 active:opacity-75"
+            >
+              <AppText className="text-xs font-semibold text-primary">
+                View All
+              </AppText>
+              <ChevronRight size={13} color={theme.primary} />
+            </Pressable>
+          </View>
           <KpiGrid items={kpiItems} />
           <BudgetHealthCard />
         </View>
@@ -200,9 +227,20 @@ export default function DashboardScreen() {
         {/* Category Breakdown Card */}
         {categoryBreakdown && categoryBreakdown.length > 0 && (
           <Card variant="outlined" className="gap-4">
-            <AppText className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Expense Distribution
-            </AppText>
+            <View className="flex-row items-center justify-between">
+              <AppText className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Expense Distribution
+              </AppText>
+              <Pressable
+                onPress={() => router.push("/reports")}
+                className="flex-row items-center gap-0.5 active:opacity-75"
+              >
+                <AppText className="text-xs font-semibold text-primary">
+                  Breakdown
+                </AppText>
+                <ChevronRight size={13} color={theme.primary} />
+              </Pressable>
+            </View>
             <DonutChart
               data={categoryBreakdown.map((cat) => ({ name: cat.name, value: cat.value }))}
               size={180}

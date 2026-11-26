@@ -10,7 +10,6 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCashbook } from "@/hooks/useCashbook";
 import { useInvestmentLog } from "@/hooks/useInvestmentLog";
 import { useTheme } from "@/theme/ThemeProvider";
-import { usePressScale } from "@/theme/usePressScale";
 import { AddTransactionSheet } from "@/components/transactions/AddTransactionSheet";
 import { AddCashbookSheet } from "@/components/cashbook/AddCashbookSheet";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
@@ -28,13 +27,12 @@ const QUICK_SUGGESTIONS = [
 ];
 
 /**
- * Material 3 Quick Add Input.
- * Natural Language Transaction, Cashbook & Investment Parser.
- * Mirrors apps/web/src/components/dashboard/QuickAddInput.tsx.
+ * Material 3 / Awwwards Quick Add NLP Input.
+ * Natural Language Transaction, Cashbook & Investment Parser
+ * with tactile press feedback and slate obsidian styling.
  */
 export function QuickAddInput({ onSuccess }: QuickAddInputProps) {
   const { theme } = useTheme();
-  const { onPressIn, onPressOut } = usePressScale(0.96);
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts(true);
   const { createTransaction } = useTransactions();
@@ -80,7 +78,6 @@ export function QuickAddInput({ onSuccess }: QuickAddInputProps) {
         });
         setActiveModal("investment");
       } else {
-        // Default transaction intent
         const tx = parsed.transaction;
         let matchedCategoryId: string | undefined;
 
@@ -126,19 +123,18 @@ export function QuickAddInput({ onSuccess }: QuickAddInputProps) {
 
   return (
     <View className="gap-2.5">
-      {/* Pill Search / NLP Input Container */}
+      {/* Search / NLP Input Container */}
       <View
-        className="h-12 flex-row items-center rounded-full border px-4 shadow-sm"
+        className="h-12 flex-row items-center rounded-2xl border border-border/70 px-4 shadow-sm"
         style={{
-          backgroundColor: theme.surfaceContainerLow || theme.card,
-          borderColor: theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border,
+          backgroundColor: theme.card,
         }}
       >
         <Sparkles size={18} color={theme.primary} />
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="Natural add: 'Spent ₹450 on food'..."
+          placeholder="Quick add: 'Spent ₹450 on food'..."
           placeholderTextColor={theme.mutedForeground}
           returnKeyType="go"
           onSubmitEditing={() => handleSubmit()}
@@ -150,10 +146,8 @@ export function QuickAddInput({ onSuccess }: QuickAddInputProps) {
         ) : (
           <Pressable
             onPress={() => handleSubmit()}
-            onPressIn={onPressIn}
-            onPressOut={onPressOut}
             disabled={!text.trim()}
-            className="size-8 items-center justify-center rounded-full"
+            className="size-8 items-center justify-center rounded-xl active:scale-90"
             style={{
               backgroundColor: text.trim() ? theme.primary : "transparent",
             }}
@@ -168,18 +162,19 @@ export function QuickAddInput({ onSuccess }: QuickAddInputProps) {
 
       {/* Quick Suggestion Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row items-center gap-2 px-1">
+        <View className="flex-row items-center gap-2 px-0.5">
           {QUICK_SUGGESTIONS.map((suggestion) => (
             <Pressable
               key={suggestion}
               onPress={() => handleSubmit(suggestion)}
-              className="rounded-full border px-3 py-1"
+              className="rounded-full border border-border/70 px-3.5 py-1.5 active:scale-95 active:opacity-80"
               style={{
-                borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
-                backgroundColor: theme.surfaceContainer || "transparent",
+                backgroundColor: theme.surfaceContainer || theme.card,
               }}
             >
-              <AppText className="text-xs text-muted-foreground">{suggestion}</AppText>
+              <AppText className="text-xs font-medium text-muted-foreground">
+                {suggestion}
+              </AppText>
             </Pressable>
           ))}
         </View>
