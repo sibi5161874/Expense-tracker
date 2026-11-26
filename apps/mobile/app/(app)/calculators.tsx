@@ -3,14 +3,13 @@ import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Calculator, TrendingUp, PiggyBank, ArrowDownUp } from "lucide-react-native";
 import { calculateSipFutureValue, calculateLumpsumFutureValue, calculatePnL } from "@repo/shared/logic";
-import { formatINR } from "@repo/shared/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { AppHeader } from "@/components/common/AppHeader";
 import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { TextField } from "@/components/common/TextField";
 import { AppText } from "@/components/common/AppText";
-import { AmountText } from "@/components/common/AmountText";
+import { AmountText, formatSmartINR } from "@/components/common/AmountText";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type CalcType = "sip" | "lumpsum" | "pnl";
@@ -126,18 +125,20 @@ export default function CalculatorsScreen() {
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Invested Amount</AppText>
                 <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(Math.round(sipInvested))}
+                  {formatSmartINR(Math.round(sipInvested))}
                 </AppText>
               </View>
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Est. Wealth Gain</AppText>
                 <AmountText value={Math.round(sipReturns)} sign="positive" className="text-sm font-semibold" />
               </View>
-              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
-                <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
-                <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(Math.round(sipFV))}
-                </AppText>
+              <View className="pt-2 border-t border-border/60">
+                <View className="flex-row justify-between items-center flex-wrap gap-2">
+                  <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
+                  <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
+                    {formatSmartINR(Math.round(sipFV))}
+                  </AppText>
+                </View>
               </View>
             </View>
           </Card>
@@ -179,18 +180,20 @@ export default function CalculatorsScreen() {
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Invested Amount</AppText>
                 <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(Math.round(lumpPrincipalVal))}
+                  {formatSmartINR(Math.round(lumpPrincipalVal))}
                 </AppText>
               </View>
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Est. Wealth Gain</AppText>
                 <AmountText value={Math.round(lumpReturns)} sign="positive" className="text-sm font-semibold" />
               </View>
-              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
-                <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
-                <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(Math.round(lumpFV))}
-                </AppText>
+              <View className="pt-2 border-t border-border/60">
+                <View className="flex-row justify-between items-center flex-wrap gap-2">
+                  <AppText className="text-base font-bold text-foreground">Total Maturity Value</AppText>
+                  <AppText className="text-lg font-bold text-success" style={{ fontVariant: ["tabular-nums"] }}>
+                    {formatSmartINR(Math.round(lumpFV))}
+                  </AppText>
+                </View>
               </View>
             </View>
           </Card>
@@ -232,29 +235,31 @@ export default function CalculatorsScreen() {
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Total Buy Value</AppText>
                 <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(totalBuy)}
+                  {formatSmartINR(totalBuy)}
                 </AppText>
               </View>
               <View className="flex-row justify-between items-center">
                 <AppText className="text-sm text-muted-foreground">Total Sell Value</AppText>
                 <AppText className="text-sm font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                  {formatINR(totalSell)}
+                  {formatSmartINR(totalSell)}
                 </AppText>
               </View>
-              <View className="pt-2 border-t border-border/60 flex-row justify-between items-center">
-                <AppText className="text-base font-bold text-foreground">Net P&L</AppText>
-                <View className="flex-row items-center gap-1.5">
-                  <AmountText
-                    value={pnlResult.totalPnl}
-                    sign={pnlResult.totalPnl >= 0 ? "positive" : "negative"}
-                    className="text-lg font-bold"
-                  />
-                  <AppText
-                    className={pnlResult.totalPnl >= 0 ? "text-sm text-success font-semibold" : "text-sm text-destructive font-semibold"}
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
-                    ({pnlResult.pctReturn >= 0 ? "+" : ""}{pnlResult.pctReturn.toFixed(2)}%)
-                  </AppText>
+              <View className="pt-2 border-t border-border/60">
+                <View className="flex-row justify-between items-center flex-wrap gap-2">
+                  <AppText className="text-base font-bold text-foreground">Net P&L</AppText>
+                  <View className="flex-row items-center gap-1.5 flex-wrap">
+                    <AmountText
+                      value={pnlResult.totalPnl}
+                      sign={pnlResult.totalPnl >= 0 ? "positive" : "negative"}
+                      className="text-lg font-bold"
+                    />
+                    <AppText
+                      className={pnlResult.totalPnl >= 0 ? "text-sm text-success font-semibold" : "text-sm text-destructive font-semibold"}
+                      style={{ fontVariant: ["tabular-nums"] }}
+                    >
+                      ({pnlResult.pctReturn >= 0 ? "+" : ""}{pnlResult.pctReturn.toFixed(1)}%)
+                    </AppText>
+                  </View>
                 </View>
               </View>
             </View>

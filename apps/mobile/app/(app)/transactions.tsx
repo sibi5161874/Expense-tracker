@@ -8,6 +8,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { AppText } from "@/components/common/AppText";
 import { Chip } from "@/components/common/Chip";
 import { PaginationControl } from "@/components/common/PaginationControl";
+import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { TransactionListItem, type TransactionListItemData } from "@/components/transactions/TransactionListItem";
 import { TransactionListSkeleton } from "@/components/transactions/TransactionListSkeleton";
@@ -20,7 +21,7 @@ type FilterType = "All" | "Expense" | "Income" | "Transfer";
 export default function TransactionsScreen() {
   const { theme } = useTheme();
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [filterType, setFilterType] = useState<FilterType>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -116,7 +117,7 @@ export default function TransactionsScreen() {
           />
         </View>
 
-        {/* M3 Filter Chips with vibrant active colors */}
+        {/* M3 Filter Chips with unified theme primary color */}
         <View className="flex-row items-center gap-2">
           <Chip
             label="All"
@@ -134,7 +135,7 @@ export default function TransactionsScreen() {
               setFilterType("Expense");
               setPage(0);
             }}
-            activeColor="#ef4444"
+            activeColor={theme.primary}
           />
           <Chip
             label="Income"
@@ -143,7 +144,7 @@ export default function TransactionsScreen() {
               setFilterType("Income");
               setPage(0);
             }}
-            activeColor="#10b981"
+            activeColor={theme.primary}
           />
           <Chip
             label="Transfer"
@@ -152,7 +153,7 @@ export default function TransactionsScreen() {
               setFilterType("Transfer");
               setPage(0);
             }}
-            activeColor="#3b82f6"
+            activeColor={theme.primary}
           />
         </View>
       </View>
@@ -204,13 +205,14 @@ export default function TransactionsScreen() {
           ListFooterComponent={
             totalCount > 0 ? (
               <View className="px-4 pb-20">
+                <EmptyTableRows currentCount={paginatedTransactions.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
                   pageSize={pageSize}
                   totalCount={totalCount}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
-                  pageSizeOptions={[10, 15, 25, 50]}
+                  pageSizeOptions={[10, 25, 50, 100]}
                 />
               </View>
             ) : null

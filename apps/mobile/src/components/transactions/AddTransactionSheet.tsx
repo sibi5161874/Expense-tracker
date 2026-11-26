@@ -116,23 +116,23 @@ export function AddTransactionSheet({
                     style={{
                       borderWidth: 1.5,
                       backgroundColor: isSelected
-                        ? cfg.activeColor
+                        ? theme.primary
                         : (theme.surfaceContainerLow || theme.card),
                       borderColor: isSelected
-                        ? cfg.activeColor
+                        ? theme.primary
                         : theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
-                      shadowColor: isSelected ? cfg.activeColor : "transparent",
+                      shadowColor: isSelected ? theme.primary : "transparent",
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: isSelected ? 0.25 : 0,
                       shadowRadius: 4,
                       elevation: isSelected ? 3 : 0,
                     }}
                   >
-                    <Icon size={16} color={isSelected ? "#FFFFFF" : theme.mutedForeground} strokeWidth={isSelected ? 2.5 : 2} />
+                    <Icon size={16} color={isSelected ? (theme.onPrimary || "#FFFFFF") : theme.mutedForeground} strokeWidth={isSelected ? 2.5 : 2} />
                     <AppText
                       className="text-xs font-bold"
                       style={{
-                        color: isSelected ? "#FFFFFF" : theme.mutedForeground,
+                        color: isSelected ? (theme.onPrimary || "#FFFFFF") : theme.mutedForeground,
                       }}
                     >
                       {cfg.label}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, Image, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Mail, Lock, Sparkles, UserCheck, ArrowRight, WifiOff } from "lucide-react-native";
@@ -119,12 +119,11 @@ export default function LoginScreen() {
         <View className="gap-6">
           {/* Logo / Brand Header */}
           <View className="items-center gap-3">
-            <View
-              className="size-16 items-center justify-center rounded-3xl shadow-sm"
-              style={{ backgroundColor: theme.primaryContainer }}
-            >
-              <Sparkles size={32} color={theme.primary} />
-            </View>
+            <Image
+              source={require("../../assets/logo.jpg")}
+              style={{ width: 64, height: 64, borderRadius: 32 }}
+              resizeMode="cover"
+            />
             <View className="items-center gap-1">
               <AppText className="text-3xl font-extrabold tracking-tight text-foreground">
                 KashMap

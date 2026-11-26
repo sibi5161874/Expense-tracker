@@ -12,7 +12,7 @@ import type { InvestmentLogInput } from '@repo/shared/schemas';
 import { invalidateBalanceSensitiveQueries } from '@/lib/invalidateBalanceSensitiveQueries';
 
 /** Mirrors apps/web/src/hooks/useInvestmentLog.ts. */
-export function useInvestmentLog(opts: { page?: number } = {}) {
+export function useInvestmentLog(opts: { page?: number; pageSize?: number } = {}) {
   const { user } = useAuth();
   const userId = user?.id;
   const supabase = useSupabaseClient();

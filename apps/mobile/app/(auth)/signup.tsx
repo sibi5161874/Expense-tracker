@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Mail, Lock, Sparkles, CheckCircle2, ArrowRight, WifiOff } from "lucide-react-native";
@@ -111,12 +111,11 @@ export default function SignupScreen() {
         <View className="gap-6">
           {/* Header */}
           <View className="items-center gap-2">
-            <View
-              className="size-14 items-center justify-center rounded-3xl"
-              style={{ backgroundColor: theme.primaryContainer }}
-            >
-              <Sparkles size={28} color={theme.primary} />
-            </View>
+            <Image
+              source={require("../../assets/logo.jpg")}
+              style={{ width: 56, height: 56, borderRadius: 28 }}
+              resizeMode="cover"
+            />
             <AppText className="text-2xl font-extrabold tracking-tight text-foreground">
               Create KashMap Account
             </AppText>

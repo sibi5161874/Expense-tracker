@@ -7,6 +7,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { AppText } from "@/components/common/AppText";
 import { AppHeader } from "@/components/common/AppHeader";
 import { PaginationControl } from "@/components/common/PaginationControl";
+import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { InvestmentLogListItem, type InvestmentLogListItemData } from "@/components/investments/InvestmentLogListItem";
 import { AddInvestmentSheet } from "@/components/investments/AddInvestmentSheet";
@@ -15,6 +16,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function InvestmentsScreen() {
   const { theme } = useTheme();
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [showAdd, setShowAdd] = useState(false);
 
   const { data: accounts } = useAccounts(true);
@@ -26,7 +28,7 @@ export default function InvestmentsScreen() {
     isRefetching,
     createInvestmentLog,
     deleteInvestmentLog,
-  } = useInvestmentLog({ page });
+  } = useInvestmentLog({ page, pageSize });
 
   const logs = data ?? [];
   const totalCount = allLogs ? allLogs.length : logs.length;
@@ -98,12 +100,14 @@ export default function InvestmentsScreen() {
           ListFooterComponent={
             totalCount > 0 ? (
               <View className="px-4 pb-20">
+                <EmptyTableRows currentCount={logs.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
-                  pageSize={25}
+                  pageSize={pageSize}
                   totalCount={totalCount}
                   onPageChange={setPage}
-                  pageSizeOptions={[10, 25, 50]}
+                  onPageSizeChange={setPageSize}
+                  pageSizeOptions={[10, 25, 50, 100]}
                 />
               </View>
             ) : null

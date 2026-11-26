@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import {
   View,
+  Image,
   FlatList,
   Dimensions,
   Animated,
@@ -80,9 +81,16 @@ export default function OnboardingScreen() {
           paddingVertical: 12,
         }}
       >
-        <AppText style={{ fontSize: 18, fontWeight: "800", color: theme.primary, letterSpacing: -0.3 }}>
-          KashMap
-        </AppText>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image
+            source={require("../../assets/logo.jpg")}
+            style={{ width: 28, height: 28, borderRadius: 14 }}
+            resizeMode="cover"
+          />
+          <AppText style={{ fontSize: 18, fontWeight: "800", color: theme.foreground, letterSpacing: -0.3 }}>
+            KashMap
+          </AppText>
+        </View>
         {!isLast && (
           <Pressable onPress={completeOnboarding} hitSlop={14} style={{ padding: 4 }}>
             <AppText style={{ fontSize: 14, fontWeight: "700", color: theme.primary }}>

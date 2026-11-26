@@ -13,10 +13,10 @@ export interface PaginationControlProps {
 }
 
 /**
- * Mobile Data Table Pagination Control.
- * - When total pages is 1, renders an elegant, compact records counter.
- * - When multiple pages exist, renders a modern thumb-friendly pagination bar
- *   with full Previous / Page X of Y / Next controls and optional row selector.
+ * Mobile Data Table Pagination Control matching the Web App's DataTable pagination interface.
+ * - Displays exact record range: "Showing X to Y of Z records".
+ * - Provides inline Rows-per-page selector: [10, 25, 50, 100].
+ * - Full Previous, Page indicator ("Page X of Y"), and Next buttons.
  */
 export function PaginationControl({
   page,
@@ -24,7 +24,7 @@ export function PaginationControl({
   totalCount,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 15, 25, 50],
+  pageSizeOptions = [10, 25, 50, 100],
 }: PaginationControlProps) {
   const { theme } = useTheme();
 
@@ -36,39 +36,6 @@ export function PaginationControl({
   const startItem = page * pageSize + 1;
   const endItem = Math.min((page + 1) * pageSize, totalCount);
 
-  // If all records fit on a single page, show a sleek single-row status strip
-  if (totalPages <= 1) {
-    return (
-      <View
-        className="flex-row items-center justify-between rounded-xl border px-4 py-2.5 my-2"
-        style={{
-          backgroundColor: theme.surfaceContainerLow || theme.card,
-          borderColor: theme.outlineVariant ? `${theme.outlineVariant}25` : theme.border,
-        }}
-      >
-        <AppText className="text-xs text-muted-foreground">
-          Showing all{" "}
-          <AppText className="text-xs font-bold text-foreground">
-            {totalCount}
-          </AppText>{" "}
-          {totalCount === 1 ? "record" : "records"}
-        </AppText>
-
-        <View
-          className="rounded-full px-2.5 py-0.5"
-          style={{
-            backgroundColor: theme.surfaceContainerHigh || theme.card,
-          }}
-        >
-          <AppText className="text-[11px] font-semibold text-muted-foreground">
-            Page 1 of 1
-          </AppText>
-        </View>
-      </View>
-    );
-  }
-
-  // Multi-page layout
   return (
     <View
       className="rounded-2xl border p-3.5 gap-3 my-2 shadow-xs"
@@ -78,7 +45,7 @@ export function PaginationControl({
       }}
     >
       {/* Top row: Summary & Page Size selector */}
-      <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-between flex-wrap gap-2">
         <AppText className="text-xs text-muted-foreground">
           Showing{" "}
           <AppText className="text-xs font-bold text-foreground">
@@ -91,7 +58,7 @@ export function PaginationControl({
           records
         </AppText>
 
-        {onPageSizeChange && totalCount > 10 && (
+        {onPageSizeChange && (
           <View className="flex-row items-center gap-1.5">
             <AppText className="text-[11px] text-muted-foreground">Rows:</AppText>
             {pageSizeOptions.map((size) => {
@@ -146,14 +113,14 @@ export function PaginationControl({
         </Pressable>
 
         <View
-          className="px-3 py-2 rounded-xl border items-center justify-center min-w-[80px]"
+          className="px-3 py-2 rounded-xl border items-center justify-center min-w-[90px]"
           style={{
             backgroundColor: theme.surfaceContainer || theme.card,
             borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
           }}
         >
           <AppText className="text-xs font-bold text-foreground">
-            {page + 1} / {totalPages}
+            Page {page + 1} of {totalPages}
           </AppText>
         </View>
 

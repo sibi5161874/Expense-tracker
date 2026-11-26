@@ -27,7 +27,6 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/theme/ThemeProvider";
 import { AppText } from "@/components/common/AppText";
-import { IS_PROD_DB, SUPABASE_PROJECT_REF } from "@/lib/supabase";
 
 interface AppHeaderProps {
   title?: string;
@@ -101,34 +100,18 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
           >
             {/* Real Web App Logo */}
             <Image
-              source={require("../../../assets/icon.png")}
+              source={require("../../../assets/logo.jpg")}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
               }}
               resizeMode="cover"
             />
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <AppText style={{ fontSize: 20, fontWeight: "800", letterSpacing: -0.5, color: theme.foreground }}>
-                KashMap
-              </AppText>
-              {!IS_PROD_DB && (
-                <View
-                  style={{
-                    backgroundColor: "#F59E0B22",
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: "#F59E0B44",
-                  }}
-                >
-                  <AppText style={{ color: "#D97706", fontSize: 10, fontWeight: "700" }}>DEV</AppText>
-                </View>
-              )}
-            </View>
+            <AppText style={{ fontSize: 20, fontWeight: "800", letterSpacing: -0.5, color: theme.foreground }}>
+              KashMap
+            </AppText>
           </Pressable>
         </View>
 
@@ -231,26 +214,9 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
                   <AppText style={{ fontSize: 16, fontWeight: "700", color: theme.foreground }}>
                     {email}
                   </AppText>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <View
-                      style={{
-                        backgroundColor: IS_PROD_DB ? theme.primary + "18" : "#F59E0B20",
-                        paddingHorizontal: 6,
-                        paddingVertical: 1,
-                        borderRadius: 4,
-                      }}
-                    >
-                      <AppText
-                        style={{
-                          fontSize: 10,
-                          fontWeight: "700",
-                          color: IS_PROD_DB ? theme.primary : "#D97706",
-                        }}
-                      >
-                        {IS_PROD_DB ? "Production" : "Dev DB"} ({SUPABASE_PROJECT_REF})
-                      </AppText>
-                    </View>
-                  </View>
+                  <AppText style={{ fontSize: 12, color: theme.mutedForeground }}>
+                    Personal Account
+                  </AppText>
                 </View>
               </View>
 

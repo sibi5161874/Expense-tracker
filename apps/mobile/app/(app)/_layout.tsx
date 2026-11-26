@@ -59,7 +59,6 @@ export default function AppLayout() {
         tabBar={(props) => <BottomNav {...props} />}
         screenOptions={{
           headerShown: false,
-          animation: "fade",
         }}
       >
         <Tabs.Screen

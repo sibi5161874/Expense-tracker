@@ -11,7 +11,6 @@ import { Button } from "@/components/common/Button";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { DataManagementCard } from "@/components/settings/DataManagementCard";
 import { useTheme } from "@/theme/ThemeProvider";
-import { IS_PROD_DB, SUPABASE_PROJECT_REF } from "@/lib/supabase";
 import { openQuickAddScreen } from "@/services/quickNotificationService";
 
 export default function SettingsScreen() {
@@ -99,36 +98,6 @@ export default function SettingsScreen() {
               </AppText>
               <AppText className="text-xs text-muted-foreground">
                 UID: {user?.id?.slice(0, 16)}...
-              </AppText>
-            </View>
-          </View>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingTop: 8,
-              borderTopWidth: 1,
-              borderTopColor: theme.outlineVariant + "40",
-            }}
-          >
-            <AppText className="text-xs text-muted-foreground">Database Profile</AppText>
-            <View
-              style={{
-                backgroundColor: IS_PROD_DB ? theme.primary + "1A" : "#F59E0B25",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 6,
-              }}
-            >
-              <AppText
-                style={{
-                  color: IS_PROD_DB ? theme.primary : "#D97706",
-                  fontSize: 11,
-                  fontWeight: "600",
-                }}
-              >
-                {IS_PROD_DB ? "Production" : "Development"} ({SUPABASE_PROJECT_REF})
               </AppText>
             </View>
           </View>

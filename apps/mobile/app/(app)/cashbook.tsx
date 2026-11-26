@@ -11,6 +11,7 @@ import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { AppHeader } from "@/components/common/AppHeader";
 import { PaginationControl } from "@/components/common/PaginationControl";
+import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { CounterpartySummaryCard } from "@/components/cashbook/CounterpartySummaryCard";
 import { CashbookListItem, type CashbookListItemData } from "@/components/cashbook/CashbookListItem";
@@ -22,7 +23,7 @@ export default function CashbookScreen() {
   const [activeTab, setActiveTab] = useState<"people" | "all">("people");
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: accounts } = useAccounts(true);
   const {
@@ -243,13 +244,14 @@ export default function CashbookScreen() {
                     />
                   );
                 })}
+                <EmptyTableRows currentCount={paginatedEntries.length} pageSize={pageSize} />
                 <PaginationControl
                   page={page}
                   pageSize={pageSize}
                   totalCount={totalEntriesCount}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
-                  pageSizeOptions={[10, 15, 25, 50]}
+                  pageSizeOptions={[10, 25, 50, 100]}
                 />
               </>
             )}
