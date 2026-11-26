@@ -56,6 +56,12 @@ export function TextField({
       : theme.outlineVariant || theme.border;
 
   const isFilled = variant === "filled";
+  let borderWidth = 1;
+  if (isFilled) {
+    borderWidth = 0;
+  } else if (focused) {
+    borderWidth = 2;
+  }
 
   return (
     <View className="gap-1.5">
@@ -73,7 +79,7 @@ export function TextField({
       </AppText>
       <View
         className={cn(
-          "flex-row items-center transition-all",
+          "flex-row items-center transition-colors duration-150 ease-out",
           isFilled
             ? "rounded-t-xl bg-surface-container-highest/70 px-4 border-b-2"
             : "rounded-xl border bg-card/60 px-4",
@@ -81,8 +87,8 @@ export function TextField({
           focused && "bg-card shadow-sm"
         )}
         style={{
-          borderWidth: isFilled ? 0 : focused ? 2 : 1,
-          borderBottomWidth: isFilled ? (focused ? 2 : 1) : focused ? 2 : 1,
+          borderWidth,
+          borderBottomWidth: focused ? 2 : 1,
           borderColor,
           backgroundColor: isFilled
             ? undefined

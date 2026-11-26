@@ -33,6 +33,10 @@ export function OfflineBanner() {
 
   const isOfflineState = !isOnline;
 
+  const offlineBorder = theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border;
+  const onlineBorder = theme.success ? `${theme.success}55` : theme.border;
+  const borderBottomColor = isOfflineState ? offlineBorder : onlineBorder;
+
   return (
     <View
       accessibilityRole="alert"
@@ -41,9 +45,7 @@ export function OfflineBanner() {
         paddingTop: Math.max(insets.top, 8),
         backgroundColor: theme.surfaceContainerHigh || theme.card,
         borderBottomWidth: 1,
-        borderBottomColor: isOfflineState
-          ? theme.outlineVariant ? `${theme.outlineVariant}66` : theme.border
-          : theme.success ? `${theme.success}55` : theme.border,
+        borderBottomColor,
       }}
       className="z-50 w-full px-4 pb-2 pt-1 shadow-xs"
     >

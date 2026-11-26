@@ -41,8 +41,11 @@ export default function TransactionsScreen() {
 
   const filteredTransactions = useMemo(() => {
     return rawTransactions.filter((tx) => {
-      // Filter by type
-      if (filterType !== "All" && tx.type !== filterType) {
+      // Filter by type (case-insensitive check for API and schema resilience)
+      if (
+        filterType !== "All" &&
+        tx.type?.toLowerCase() !== filterType.toLowerCase()
+      ) {
         return false;
       }
       // Filter by search query

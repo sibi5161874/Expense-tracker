@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import { View, Pressable } from "react-native";
 import { Tabs } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LayoutDashboard, ArrowLeftRight, PieChart, MoreHorizontal } from "lucide-react-native";
 import { AppText } from "@/components/common/AppText";
@@ -73,7 +74,7 @@ function NavTabItem({
       {/* M3 Active Indicator Pill (64x32dp) */}
       <View
         className={cn(
-          "h-8 w-16 items-center justify-center rounded-full transition-all",
+          "h-8 w-16 items-center justify-center rounded-full transition-colors duration-150 ease-out",
           isFocused ? "bg-secondary-container" : "bg-transparent"
         )}
         style={[
@@ -149,6 +150,7 @@ export function BottomNav({ state, descriptors, navigation }: BottomNavProps) {
             });
 
             if (!isFocused && !event.defaultPrevented) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               navigation.navigate(route.name, route.params);
             }
           };

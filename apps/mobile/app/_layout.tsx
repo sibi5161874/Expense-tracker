@@ -62,7 +62,7 @@ export default function RootLayout() {
               screenOptions={{
                 headerShown: false,
                 animation: "slide_from_right",
-                animationDuration: 250,
+                animationDuration: 150,
               }}
             />
             <StatusBar style="auto" />

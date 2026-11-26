@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import {
   Sliders,
   Settings,
@@ -25,7 +25,7 @@ import {
   Compass,
 } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/theme/ThemeProvider";
+import { useTheme, type ResolvedTheme } from "@/theme/ThemeProvider";
 import { AppText } from "@/components/common/AppText";
 
 interface AppHeaderProps {
@@ -42,7 +42,7 @@ export function AppHeader({ title = "KashMap", showBack, onBack }: AppHeaderProp
   const email = user?.email ?? "User";
   const initials = email.slice(0, 2).toUpperCase();
 
-  function navigateTo(path: any) {
+  function navigateTo(path: Href) {
     setMenuOpen(false);
     setTimeout(() => {
       router.push(path);
@@ -359,7 +359,7 @@ function MenuItem({
   title: string;
   subtitle: string;
   onPress: () => void;
-  theme: any;
+  theme: ResolvedTheme;
 }) {
   return (
     <Pressable

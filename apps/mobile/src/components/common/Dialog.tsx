@@ -3,7 +3,6 @@ import { Animated, Easing, Modal, Pressable, View } from "react-native";
 import { AppText } from "@/components/common/AppText";
 import { Button } from "@/components/common/Button";
 import { useTheme } from "@/theme/ThemeProvider";
-import { m3Motion } from "@/theme/tokens";
 
 interface DialogProps {
   visible: boolean;
@@ -17,19 +16,14 @@ interface DialogProps {
   children?: ReactNode;
 }
 
-const dialogEasing = Easing.bezier(
-  m3Motion.easing.emphasized.x1,
-  m3Motion.easing.emphasized.y1,
-  m3Motion.easing.emphasized.x2,
-  m3Motion.easing.emphasized.y2
-);
+const DIALOG_EASING = Easing.bezier(0.16, 1, 0.3, 1);
 
 /**
- * Material 3 Dialog Component.
- * - 28dp corner radius (`rounded-3xl` / extra-large radius).
- * - Surface Container High background.
- * - Headline-small title typography.
- * - Pill-shaped actions with M3 spacing and emphasized easing.
+ * Awwwards / Material 3 Dialog Component.
+ * - 24dp corner radius (`rounded-3xl`).
+ * - Slate obsidian card background (#151922) with hairline border (#232936).
+ * - Fast 150ms spring-like emphasized easing.
+ * - 48dp tactile action buttons.
  */
 export function Dialog({
   visible,
@@ -50,13 +44,13 @@ export function Dialog({
     Animated.parallel([
       Animated.timing(scale, {
         toValue: visible ? 1 : 0.92,
-        duration: visible ? m3Motion.duration.medium2 : m3Motion.duration.short3,
-        easing: dialogEasing,
+        duration: visible ? 150 : 120,
+        easing: DIALOG_EASING,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: visible ? 1 : 0,
-        duration: visible ? m3Motion.duration.medium1 : m3Motion.duration.short2,
+        duration: visible ? 150 : 100,
         useNativeDriver: true,
       }),
     ]).start();
@@ -69,7 +63,7 @@ export function Dialog({
           style={{
             flex: 1,
             backgroundColor: "#000000",
-            opacity: opacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
+            opacity: opacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.65] }),
           }}
         />
       </Pressable>
@@ -81,22 +75,22 @@ export function Dialog({
           style={{
             width: "100%",
             maxWidth: 420,
-            borderRadius: 28,
+            borderRadius: 24,
             padding: 24,
             gap: 16,
-            backgroundColor: theme.surfaceContainerHigh || theme.card,
+            backgroundColor: theme.card,
             borderWidth: 1,
-            borderColor: theme.outlineVariant ? `${theme.outlineVariant}33` : theme.border,
+            borderColor: theme.border,
             opacity,
             transform: [{ scale }],
             shadowColor: "#000000",
             shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: theme.mode === "dark" ? 0.45 : 0.16,
+            shadowOpacity: 0.5,
             shadowRadius: 16,
             elevation: 10,
           }}
         >
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: 6 }}>
             <AppText style={{ fontSize: 20, fontWeight: "700", letterSpacing: -0.2 }}>{title}</AppText>
             {description && <AppText className="text-sm leading-5 text-muted-foreground">{description}</AppText>}
           </View>

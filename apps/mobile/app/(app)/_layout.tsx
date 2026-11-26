@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Easing, Animated } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useGenerateRecurringTransactions } from "@/hooks/useGenerateRecurringTransactions";
@@ -59,6 +59,30 @@ export default function AppLayout() {
         tabBar={(props) => <BottomNav {...props} />}
         screenOptions={{
           headerShown: false,
+          animation: "shift",
+          transitionSpec: {
+            animation: "timing",
+            config: {
+              duration: 150,
+              easing: Easing.inOut(Easing.ease),
+            },
+          },
+          sceneStyleInterpolator: ({ current }: { current: { progress: Animated.AnimatedInterpolation<number> } }) => ({
+            sceneStyle: {
+              opacity: current.progress.interpolate({
+                inputRange: [-1, 0, 1],
+                outputRange: [0, 1, 0],
+              }),
+              transform: [
+                {
+                  translateX: current.progress.interpolate({
+                    inputRange: [-1, 0, 1],
+                    outputRange: [-60, 0, 60],
+                  }),
+                },
+              ],
+            },
+          }),
         }}
       >
         <Tabs.Screen

@@ -1,3 +1,4 @@
+import type React from "react";
 import { useRef, useState } from "react";
 import {
   View,
@@ -27,7 +28,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
   TrendingUp,
   PieChart,
   ShieldCheck,
@@ -52,8 +53,8 @@ export default function OnboardingScreen() {
     if (currentIndex < ONBOARDING_SLIDES.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
+      flatListRef.current?.scrollToOffset({
+        offset: nextIndex * SCREEN_WIDTH,
         animated: true,
       });
     } else {

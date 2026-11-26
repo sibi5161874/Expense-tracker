@@ -41,7 +41,7 @@ export function Chip({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className="h-9 min-h-[36px] flex-row items-center gap-1.5 rounded-full px-4 border"
+      className="h-9 min-h-[36px] flex-row items-center gap-1.5 rounded-full px-4 border active:scale-95"
       style={{
         backgroundColor: selected ? activeBg : inactiveBg,
         borderColor: selected ? activeBorder : inactiveBorder,

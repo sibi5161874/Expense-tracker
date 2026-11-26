@@ -43,9 +43,19 @@ const TEXT: Record<Variant, string> = {
   destructive: "text-destructive-foreground font-bold",
 };
 
-// Material 3 / iOS standard touch targets (48dp standard)
-const SIZE: Record<Size, string> = {
-  sm: "h-10 min-h-[40px] rounded-xl px-4",
+// Material 3 / iOS standard touch targets (48dp standard minimum touch target)
+const SIZE_CONFIG: Record<
+  Size,
+  { height: number; minHeight: number; paddingHorizontal: number; borderRadius: number }
+> = {
+  sm: { height: 42, minHeight: 42, paddingHorizontal: 16, borderRadius: 12 },
+  default: { height: 48, minHeight: 48, paddingHorizontal: 20, borderRadius: 14 },
+  lg: { height: 52, minHeight: 52, paddingHorizontal: 24, borderRadius: 16 },
+  icon: { height: 48, minHeight: 48, paddingHorizontal: 0, borderRadius: 14 },
+};
+
+const SIZE_CLASSES: Record<Size, string> = {
+  sm: "h-10 min-h-[42px] rounded-xl px-4",
   default: "h-12 min-h-[48px] rounded-xl px-5",
   lg: "h-13 min-h-[52px] rounded-2xl px-6",
   icon: "size-12 min-h-[48px] min-w-[48px] rounded-xl",
@@ -66,7 +76,7 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
  * Material 3 / Google Pixel Button Primitive.
  * Variants: Filled (primary/default), Filled Tonal (tonal), Elevated (elevated),
  * Outlined (outline/secondary), Text (text/ghost), and Destructive.
- * Standard rounded-full pill shape with state layer press animation.
+ * Guarantees standard 48dp touch target without shrinking or collapsing.
  */
 export function Button({
   variant = "default",
@@ -90,6 +100,7 @@ export function Button({
 
   const isFlex1 = className?.includes("flex-1");
   const isWFull = className?.includes("w-full");
+  const cfg = SIZE_CONFIG[size];
 
   return (
     <Animated.View
@@ -97,6 +108,7 @@ export function Button({
         animatedStyle,
         isFlex1 ? { flex: 1 } : undefined,
         isWFull ? { width: "100%" } : undefined,
+        { minHeight: cfg.minHeight },
         style,
       ]}
       className={cn(isFlex1 && "flex-1", isWFull && "w-full")}
@@ -111,10 +123,20 @@ export function Button({
           scaleOut();
           onPressOut?.(e);
         }}
+        style={[
+          {
+            minHeight: cfg.minHeight,
+            height: cfg.height,
+            paddingHorizontal: cfg.paddingHorizontal,
+            borderRadius: cfg.borderRadius,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
         className={cn(
           "flex-row items-center justify-center gap-2",
           (isFlex1 || isWFull) && "w-full",
-          SIZE[size],
+          SIZE_CLASSES[size],
           CONTAINER[variant],
           isDisabled && "opacity-50",
           className
@@ -131,6 +153,7 @@ export function Button({
                 className={cn(size === "lg" ? "text-base font-bold" : "text-sm font-semibold", TEXT[variant])}
                 style={{
                   letterSpacing: 0.1,
+                  textAlign: "center",
                 }}
               >
                 {children}
