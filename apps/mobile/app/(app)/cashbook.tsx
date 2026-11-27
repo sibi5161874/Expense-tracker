@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, Users, ArrowUpRight, ArrowDownRight, BookOpen } from "lucide-react-native";
+import { Plus, ArrowUpRight, ArrowDownRight } from "lucide-react-native";
 import { useCashbook } from "@/hooks/useCashbook";
 import { useAccounts } from "@/hooks/useAccounts";
 import { formatINR } from "@repo/shared/utils";
@@ -10,10 +10,17 @@ import { AppText } from "@/components/common/AppText";
 import { Card } from "@/components/common/Card";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { AppHeader } from "@/components/common/AppHeader";
-import { PaginationControl } from "@/components/common/PaginationControl";
+import {
+  PaginationControl,
+  PaginationHeader,
+} from "@/components/common/PaginationControl";
+import { EmptyTableRows } from "@/components/common/EmptyTableRows";
 import { Fab } from "@/components/common/Fab";
 import { CounterpartySummaryCard } from "@/components/cashbook/CounterpartySummaryCard";
-import { CashbookListItem, type CashbookListItemData } from "@/components/cashbook/CashbookListItem";
+import {
+  CashbookListItem,
+  type CashbookListItemData,
+} from "@/components/cashbook/CashbookListItem";
 import { AddCashbookSheet } from "@/components/cashbook/AddCashbookSheet";
 import { Dialog } from "@/components/common/Dialog";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -22,8 +29,9 @@ export default function CashbookScreen() {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<"people" | "all">("people");
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5); // Default 5 rows per page
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: accounts } = useAccounts(true);
@@ -55,6 +63,8 @@ export default function CashbookScreen() {
     setDeleteTargetId(id);
   };
 
+  const isDockVisible = activeTab === "all" && totalEntriesCount > 0;
+
   return (
     <SafeAreaView
       className="flex-1"
@@ -66,7 +76,7 @@ export default function CashbookScreen() {
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 12,
-          paddingBottom: 96,
+          paddingBottom: isDockVisible ? 80 : 96,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}
@@ -169,18 +179,28 @@ export default function CashbookScreen() {
           </View>
         </Card>
 
-        {/* View Toggle */}
+        {/* Tab Toggle: By Person vs All Entries */}
         <SegmentedControl
           options={[
-            { value: "people", label: "By Person" },
-            { value: "all", label: "All Records" },
+            { label: "By Person", value: "people" },
+            { label: `All Entries (${totalEntriesCount})`, value: "all" },
           ]}
           value={activeTab}
-          onChange={(val) => {
+          onChange={(val: string) => {
             setActiveTab(val as "people" | "all");
             setPage(0);
           }}
         />
+
+        {/* Header Telemetry row for All Entries view */}
+        {activeTab === "all" && totalEntriesCount > 0 && (
+          <PaginationHeader
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalEntriesCount}
+            onOpenSheet={() => setSheetVisible(true)}
+          />
+        )}
 
         {/* People Summary Cards */}
         {activeTab === "people" && (
@@ -238,13 +258,11 @@ export default function CashbookScreen() {
                     />
                   );
                 })}
-                <PaginationControl
-                  page={page}
+                {/* Null row handling spacer */}
+                <EmptyTableRows
+                  currentCount={paginatedEntries.length}
                   pageSize={pageSize}
-                  totalCount={totalEntriesCount}
-                  onPageChange={setPage}
-                  onPageSizeChange={setPageSize}
-                  pageSizeOptions={[5, 10, 25, 50, 100]}
+                  rowHeight={72}
                 />
               </>
             )}
@@ -252,8 +270,38 @@ export default function CashbookScreen() {
         )}
       </ScrollView>
 
+      {/* Fixed Bottom Pagination Dock (All Entries view) */}
+      {isDockVisible && (
+        <View
+          className="px-4 py-2 border-t"
+          style={{
+            backgroundColor: theme.surfaceContainer || theme.card,
+            borderColor: theme.outlineVariant
+              ? `${theme.outlineVariant}33`
+              : theme.border,
+          }}
+        >
+          <PaginationControl
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalEntriesCount}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[5, 10, 25, 50, 100]}
+            showTelemetry={false}
+            sheetVisible={sheetVisible}
+            onSheetVisibilityChange={setSheetVisible}
+          />
+        </View>
+      )}
+
       {/* Floating Add Cashbook FAB */}
-      <View className="absolute bottom-6 right-5">
+      <View
+        className="absolute right-5"
+        style={{
+          bottom: isDockVisible ? 76 : 24,
+        }}
+      >
         <Fab
           icon={<Plus size={24} color={theme.onPrimary} />}
           onPress={() => setShowAddSheet(true)}

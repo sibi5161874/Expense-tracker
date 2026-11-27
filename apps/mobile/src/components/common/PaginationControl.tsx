@@ -17,6 +17,69 @@ import {
 import { AppText } from "@/components/common/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 
+export interface PaginationHeaderProps {
+  page: number; // 0-indexed
+  pageSize: number;
+  totalCount: number;
+  onOpenSheet?: () => void;
+  className?: string;
+}
+
+/**
+ * Top Telemetry Range & Density Filter Header.
+ * Displays "Showing X–Y of Z" in tabular monospace with the interactive "{pageSize} / page [tune]" trigger.
+ */
+export function PaginationHeader({
+  page,
+  pageSize,
+  totalCount,
+  onOpenSheet,
+  className = "",
+}: PaginationHeaderProps) {
+  const { theme } = useTheme();
+
+  if (totalCount === 0) return null;
+
+  const startItem = page * pageSize + 1;
+  const endItem = Math.min((page + 1) * pageSize, totalCount);
+
+  return (
+    <View className={`flex-row items-center justify-between px-1 py-1 ${className}`}>
+      <AppText
+        className="text-xs text-muted-foreground font-mono"
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        Showing {startItem}–{endItem} of {totalCount}
+      </AppText>
+
+      {onOpenSheet && (
+        <Pressable
+          onPress={onOpenSheet}
+          accessibilityRole="button"
+          accessibilityLabel={`Change rows per page. Currently ${pageSize} per page`}
+          className="flex-row items-center gap-1.5 py-1 px-2 rounded-lg active:opacity-70"
+          style={{
+            backgroundColor: theme.surfaceContainerLow || theme.card,
+            borderColor: theme.outlineVariant ? `${theme.outlineVariant}44` : theme.border,
+            borderWidth: 1,
+          }}
+        >
+          <AppText
+            className="text-xs font-semibold"
+            style={{
+              color: theme.primary,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {pageSize} / page
+          </AppText>
+          <SlidersHorizontal size={13} color={theme.primary} />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 export interface PaginationControlProps {
   page: number; // 0-indexed
   pageSize: number;
@@ -28,6 +91,10 @@ export interface PaginationControlProps {
   className?: string;
   /** Whether to render the telemetry range row above the dock (default: true) */
   showTelemetry?: boolean;
+  /** Controlled sheet visibility */
+  sheetVisible?: boolean;
+  /** Callback when sheet visibility changes */
+  onSheetVisibilityChange?: (visible: boolean) => void;
 }
 
 /**
@@ -46,9 +113,23 @@ export function PaginationControl({
   pageSizeOptions = [5, 10, 25, 50, 100],
   className = "",
   showTelemetry = true,
+  sheetVisible: controlledSheetVisible,
+  onSheetVisibilityChange,
 }: PaginationControlProps) {
   const { theme } = useTheme();
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const [internalSheetVisible, setInternalSheetVisible] = useState(false);
+  const isSheetOpen =
+    controlledSheetVisible !== undefined
+      ? controlledSheetVisible
+      : internalSheetVisible;
+
+  const setSheetOpen = (val: boolean) => {
+    if (onSheetVisibilityChange) {
+      onSheetVisibilityChange(val);
+    }
+    setInternalSheetVisible(val);
+  };
+
   const [jumpPageInput, setJumpPageInput] = useState(String(page + 1));
 
   if (totalCount === 0) {
@@ -77,11 +158,11 @@ export function PaginationControl({
 
   const handleOpenSheet = () => {
     setJumpPageInput(String(currentPage1Based));
-    setSheetVisible(true);
+    setSheetOpen(true);
   };
 
   const handleCloseSheet = () => {
-    setSheetVisible(false);
+    setSheetOpen(false);
   };
 
   const handleJumpSubmit = () => {
@@ -90,12 +171,12 @@ export function PaginationControl({
       const clamped = Math.min(totalPages, Math.max(1, target));
       onPageChange(clamped - 1);
     }
-    setSheetVisible(false);
+    handleCloseSheet();
   };
 
   const handleQuickJump = (targetPage1Based: number) => {
     onPageChange(targetPage1Based - 1);
-    setSheetVisible(false);
+    handleCloseSheet();
   };
 
   const handleSelectRowsPerPage = (size: number) => {
@@ -103,7 +184,7 @@ export function PaginationControl({
       onPageSizeChange(size);
       onPageChange(0);
     }
-    setSheetVisible(false);
+    handleCloseSheet();
   };
 
   const borderStyle = {
@@ -113,42 +194,15 @@ export function PaginationControl({
   };
 
   return (
-    <View className={`my-2 gap-2 ${className}`}>
-      {/* 1. Telemetry Range & Density Shortcut Header */}
+    <View className={`gap-2 ${className}`}>
+      {/* 1. Telemetry Range & Density Shortcut Header (optional when rendered inline) */}
       {showTelemetry && (
-        <View className="flex-row items-center justify-between px-1">
-          <AppText
-            className="text-xs text-muted-foreground font-medium"
-            style={{ fontVariant: ["tabular-nums"] }}
-          >
-            Showing {startItem}–{endItem} of {totalCount}
-          </AppText>
-
-          {onPageSizeChange && (
-            <Pressable
-              onPress={handleOpenSheet}
-              accessibilityRole="button"
-              accessibilityLabel={`Change rows per page. Currently ${pageSize} per page`}
-              className="flex-row items-center gap-1.5 py-1 px-2 rounded-lg active:opacity-70"
-              style={{
-                backgroundColor: theme.surfaceContainerLow || theme.card,
-                ...borderStyle,
-                borderWidth: 1,
-              }}
-            >
-              <AppText
-                className="text-xs font-semibold"
-                style={{
-                  color: theme.primary,
-                  fontVariant: ["tabular-nums"],
-                }}
-              >
-                {pageSize} / page
-              </AppText>
-              <SlidersHorizontal size={13} color={theme.primary} />
-            </Pressable>
-          )}
-        </View>
+        <PaginationHeader
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onOpenSheet={onPageSizeChange ? handleOpenSheet : undefined}
+        />
       )}
 
       {/* 2. Thumb-Zone 3-Column Navigation Dock */}
@@ -184,7 +238,7 @@ export function PaginationControl({
           }}
         >
           <AppText
-            className="text-sm font-semibold text-foreground"
+            className="text-sm font-semibold text-foreground font-mono"
             style={{ fontVariant: ["tabular-nums"] }}
           >
             Page {currentPage1Based} of {totalPages}
@@ -230,7 +284,7 @@ export function PaginationControl({
 
       {/* 3. Material 3 Bottom Sheet: Page & Density Modal */}
       <Modal
-        visible={sheetVisible}
+        visible={isSheetOpen}
         transparent
         animationType="fade"
         onRequestClose={handleCloseSheet}

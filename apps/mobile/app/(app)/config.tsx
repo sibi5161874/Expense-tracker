@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus, Landmark, Tag, PiggyBank } from "lucide-react-native";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -12,16 +12,18 @@ import { Card } from "@/components/common/Card";
 import { TextField } from "@/components/common/TextField";
 import { Button } from "@/components/common/Button";
 import { AmountText } from "@/components/common/AmountText";
+import { AddBudgetLimitSheet } from "@/components/config/AddBudgetLimitSheet";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function ConfigScreen() {
   const { theme } = useTheme();
   const [newAccountName, setNewAccountName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [showBudgetSheet, setShowBudgetSheet] = useState(false);
 
   const { data: accounts, createAccount } = useAccounts();
   const { data: categories, createCategory } = useCategories();
-  const { data: budgetLimits } = useBudgetLimits();
+  const { data: budgetLimits, createBudgetLimit } = useBudgetLimits();
 
   const accountList = accounts ?? [];
   const categoryList = categories ?? [];
@@ -152,11 +154,22 @@ export default function ConfigScreen() {
 
         {/* Section 3: Monthly Budgets */}
         <Card variant="outlined" className="gap-3.5">
-          <View className="flex-row items-center gap-2">
-            <PiggyBank size={18} color={theme.primary} />
-            <AppText className="text-base font-bold text-foreground">
-              Monthly Budget Limits
-            </AppText>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <PiggyBank size={18} color={theme.primary} />
+              <AppText className="text-base font-bold text-foreground">
+                Monthly Budget Limits
+              </AppText>
+            </View>
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => setShowBudgetSheet(true)}
+              className="gap-1 min-h-[36px] px-3 rounded-lg"
+            >
+              <Plus size={14} color={theme.primary} />
+              Set Limit
+            </Button>
           </View>
 
           {budgetList.length === 0 ? (
@@ -165,26 +178,44 @@ export default function ConfigScreen() {
             </AppText>
           ) : (
             <View className="gap-2">
-              {budgetList.map((b) => (
-                <View
-                  key={b.id}
-                  className="flex-row items-center justify-between rounded-xl px-3.5 py-2.5"
-                  style={{ backgroundColor: theme.surfaceContainer || theme.card }}
-                >
-                  <AppText className="text-sm font-medium text-foreground">
-                    {b.category_id || "Category"}
-                  </AppText>
-                  <AmountText
-                    value={b.monthly_limit}
-                    colorBySign={false}
-                    className="text-sm font-bold text-foreground"
-                  />
-                </View>
-              ))}
+              {budgetList.map((b) => {
+                // Resolves the category ID to actual Category Name (fixes UUID display bug)
+                const categoryName =
+                  categoryList.find((c) => c.id === b.category_id)?.name ??
+                  "Expense Category";
+
+                return (
+                  <View
+                    key={b.id}
+                    className="flex-row items-center justify-between rounded-xl px-3.5 py-2.5"
+                    style={{ backgroundColor: theme.surfaceContainer || theme.card }}
+                  >
+                    <AppText className="text-sm font-medium text-foreground">
+                      {categoryName}
+                    </AppText>
+                    <AmountText
+                      value={b.monthly_limit}
+                      colorBySign={false}
+                      className="text-sm font-bold text-foreground"
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
         </Card>
       </ScrollView>
+
+      {/* Add / Edit Budget Limit Modal Sheet */}
+      <AddBudgetLimitSheet
+        visible={showBudgetSheet}
+        onClose={() => setShowBudgetSheet(false)}
+        categories={categoryList}
+        onSubmit={async (data) => {
+          await createBudgetLimit(data);
+          setShowBudgetSheet(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { PaginationControl } from "./PaginationControl";
+import { PaginationControl, PaginationHeader } from "./PaginationControl";
 
 function renderWithTheme(ui: ReactElement) {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -128,5 +128,24 @@ describe("PaginationControl", () => {
 
     expect(onPageSizeChange).toHaveBeenCalledWith(25);
     expect(onPageChange).toHaveBeenCalledWith(0); // Resets to first page
+  });
+
+  it("renders PaginationHeader independently", async () => {
+    const onOpen = jest.fn();
+    await renderWithTheme(
+      <PaginationHeader
+        page={1}
+        pageSize={5}
+        totalCount={17}
+        onOpenSheet={onOpen}
+      />
+    );
+
+    expect(screen.getByText("Showing 6–10 of 17")).toBeOnTheScreen();
+    const button = screen.getByLabelText(
+      "Change rows per page. Currently 5 per page"
+    );
+    fireEvent.press(button);
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });
