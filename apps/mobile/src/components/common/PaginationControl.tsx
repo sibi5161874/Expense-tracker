@@ -1,5 +1,19 @@
-import { View, Pressable } from "react-native";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { useState, useMemo } from "react";
+import {
+  View,
+  Pressable,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  SlidersHorizontal,
+  X,
+} from "lucide-react-native";
 import { AppText } from "@/components/common/AppText";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -10,13 +24,18 @@ export interface PaginationControlProps {
   onPageChange: (newPage: number) => void;
   onPageSizeChange?: (newPageSize: number) => void;
   pageSizeOptions?: number[];
+  /** Optional container style / class override */
+  className?: string;
+  /** Whether to render the telemetry range row above the dock (default: true) */
+  showTelemetry?: boolean;
 }
 
 /**
- * Mobile Awwwards / Polished UI Data Table Pagination Control.
- * - Displays exact record telemetry with tabular numerals.
- * - Tactile segmented rows-per-page selector with spring scales.
- * - Thumb-friendly 44dp navigation controls with slate-obsidian styling.
+ * Material Design 3 (M3) Data Table & List Pagination Control.
+ * - Follows transactions_mobile_pagination.html UX & specifications.
+ * - Upper telemetry & density trigger row with tabular numerals.
+ * - 3-column thumb-zone navigation dock (44dp Prev / Jump Sheet Trigger / 44dp Next).
+ * - M3 Bottom Sheet dialog for direct page jumping and rows-per-page selection.
  */
 export function PaginationControl({
   page,
@@ -25,142 +44,387 @@ export function PaginationControl({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [5, 10, 25, 50, 100],
+  className = "",
+  showTelemetry = true,
 }: PaginationControlProps) {
   const { theme } = useTheme();
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [jumpPageInput, setJumpPageInput] = useState(String(page + 1));
 
   if (totalCount === 0) {
     return null;
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage1Based = Math.min(totalPages, Math.max(1, page + 1));
   const startItem = page * pageSize + 1;
   const endItem = Math.min((page + 1) * pageSize, totalCount);
 
+  // Smart candidate pages for quick jump chips (matches HTML design: 1, 2, prev, current, next, max)
+  const quickJumpCandidates = useMemo(() => {
+    const raw = [
+      1,
+      2,
+      currentPage1Based - 1,
+      currentPage1Based,
+      currentPage1Based + 1,
+      totalPages,
+    ];
+    return Array.from(new Set(raw))
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
+  }, [currentPage1Based, totalPages]);
+
+  const handleOpenSheet = () => {
+    setJumpPageInput(String(currentPage1Based));
+    setSheetVisible(true);
+  };
+
+  const handleCloseSheet = () => {
+    setSheetVisible(false);
+  };
+
+  const handleJumpSubmit = () => {
+    const target = Number(jumpPageInput);
+    if (!isNaN(target)) {
+      const clamped = Math.min(totalPages, Math.max(1, target));
+      onPageChange(clamped - 1);
+    }
+    setSheetVisible(false);
+  };
+
+  const handleQuickJump = (targetPage1Based: number) => {
+    onPageChange(targetPage1Based - 1);
+    setSheetVisible(false);
+  };
+
+  const handleSelectRowsPerPage = (size: number) => {
+    if (onPageSizeChange) {
+      onPageSizeChange(size);
+      onPageChange(0);
+    }
+    setSheetVisible(false);
+  };
+
+  const borderStyle = {
+    borderColor: theme.outlineVariant
+      ? `${theme.outlineVariant}44`
+      : theme.border,
+  };
+
   return (
-    <View
-      className="rounded-2xl border border-border/80 p-4 gap-3.5 my-2 shadow-sm"
-      style={{
-        backgroundColor: theme.card,
-      }}
-    >
-      {/* Top row: Record Telemetry & Rows Selector */}
-      <View className="flex-row items-center justify-between flex-wrap gap-2">
-        <AppText className="text-xs text-muted-foreground font-medium">
-          Showing{" "}
+    <View className={`my-2 gap-2 ${className}`}>
+      {/* 1. Telemetry Range & Density Shortcut Header */}
+      {showTelemetry && (
+        <View className="flex-row items-center justify-between px-1">
           <AppText
-            className="text-xs font-bold text-foreground"
+            className="text-xs text-muted-foreground font-medium"
             style={{ fontVariant: ["tabular-nums"] }}
           >
-            {startItem}–{endItem}
-          </AppText>{" "}
-          of{" "}
-          <AppText
-            className="text-xs font-bold text-foreground"
-            style={{ fontVariant: ["tabular-nums"] }}
-          >
-            {totalCount}
-          </AppText>{" "}
-          records
-        </AppText>
+            Showing {startItem}–{endItem} of {totalCount}
+          </AppText>
 
-        {onPageSizeChange && (
-          <View className="flex-row items-center gap-1.5">
-            <AppText className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
-              Rows:
-            </AppText>
-            <View className="flex-row items-center gap-1">
-              {pageSizeOptions.map((size) => {
-                const active = size === pageSize;
-                return (
-                  <Pressable
-                    key={size}
-                    onPress={() => {
-                      onPageSizeChange(size);
-                      onPageChange(0);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Set rows per page to ${size}`}
-                    className="min-h-[28px] min-w-[32px] items-center justify-center rounded-lg border px-2 py-0.5 active:scale-90"
-                    style={{
-                      backgroundColor: active
-                        ? theme.primary
-                        : (theme.surfaceContainerHigh || "transparent"),
-                      borderColor: active ? theme.primary : theme.border,
-                    }}
-                  >
-                    <AppText
-                      className="text-xs font-bold"
-                      style={{
-                        color: active
-                          ? (theme.onPrimary || "#ffffff")
-                          : theme.mutedForeground,
-                        fontVariant: ["tabular-nums"],
-                      }}
-                    >
-                      {size}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-      </View>
+          {onPageSizeChange && (
+            <Pressable
+              onPress={handleOpenSheet}
+              accessibilityRole="button"
+              accessibilityLabel={`Change rows per page. Currently ${pageSize} per page`}
+              className="flex-row items-center gap-1.5 py-1 px-2 rounded-lg active:opacity-70"
+              style={{
+                backgroundColor: theme.surfaceContainerLow || theme.card,
+                ...borderStyle,
+                borderWidth: 1,
+              }}
+            >
+              <AppText
+                className="text-xs font-semibold"
+                style={{
+                  color: theme.primary,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {pageSize} / page
+              </AppText>
+              <SlidersHorizontal size={13} color={theme.primary} />
+            </Pressable>
+          )}
+        </View>
+      )}
 
-      {/* Bottom row: Prev / Page Indicator / Next Controls */}
-      <View className="flex-row items-center justify-between gap-2.5">
+      {/* 2. Thumb-Zone 3-Column Navigation Dock */}
+      <View className="flex-row items-center gap-2">
+        {/* Previous Page Button (44dp) */}
         <Pressable
           onPress={() => onPageChange(Math.max(0, page - 1))}
           disabled={page === 0}
           accessibilityRole="button"
           accessibilityLabel="Previous page"
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 px-3 min-h-[44px] active:scale-[0.97]"
+          className="w-11 h-11 rounded-xl border items-center justify-center active:scale-[0.96]"
           style={{
-            backgroundColor:
-              page === 0 ? "transparent" : (theme.surfaceContainerHigh || theme.card),
+            backgroundColor: theme.surfaceContainerLow || theme.card,
             opacity: page === 0 ? 0.35 : 1,
+            ...borderStyle,
           }}
         >
-          <ChevronLeft size={16} color={theme.foreground} />
-          <AppText className="text-xs font-semibold text-foreground">
-            Previous
-          </AppText>
+          <ChevronLeft
+            size={20}
+            color={page === 0 ? theme.mutedForeground : theme.foreground}
+          />
         </Pressable>
 
-        <View
-          className="px-3.5 py-2 rounded-xl border border-border items-center justify-center min-w-[96px]"
+        {/* Center Page & Density Sheet Trigger */}
+        <Pressable
+          onPress={handleOpenSheet}
+          accessibilityRole="button"
+          accessibilityLabel={`Page ${currentPage1Based} of ${totalPages}, ${pageSize} rows per page. Tap to jump page or change density.`}
+          className="flex-1 min-h-[44px] flex-row items-center justify-between px-3.5 rounded-xl border active:scale-[0.99]"
           style={{
-            backgroundColor: theme.surfaceContainerHigh || theme.card,
+            backgroundColor: theme.surfaceContainerLow || theme.card,
+            ...borderStyle,
           }}
         >
           <AppText
-            className="text-xs font-bold text-foreground"
+            className="text-sm font-semibold text-foreground"
             style={{ fontVariant: ["tabular-nums"] }}
           >
-            Page {page + 1} of {totalPages}
+            Page {currentPage1Based} of {totalPages}
           </AppText>
-        </View>
 
+          <View className="flex-row items-center gap-1.5">
+            <AppText
+              className="text-xs font-semibold"
+              style={{
+                color: theme.primary,
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {pageSize} rows
+            </AppText>
+            <ChevronsUpDown size={15} color={theme.primary} />
+          </View>
+        </Pressable>
+
+        {/* Next Page Button (44dp) */}
         <Pressable
           onPress={() => onPageChange(page + 1)}
           disabled={page + 1 >= totalPages}
           accessibilityRole="button"
           accessibilityLabel="Next page"
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 px-3 min-h-[44px] active:scale-[0.97]"
+          className="w-11 h-11 rounded-xl border items-center justify-center active:scale-[0.96]"
           style={{
-            backgroundColor:
-              page + 1 >= totalPages
-                ? "transparent"
-                : (theme.surfaceContainerHigh || theme.card),
+            backgroundColor: theme.surfaceContainerLow || theme.card,
             opacity: page + 1 >= totalPages ? 0.35 : 1,
+            ...borderStyle,
           }}
         >
-          <AppText className="text-xs font-semibold text-foreground">
-            Next
-          </AppText>
-          <ChevronRight size={16} color={theme.foreground} />
+          <ChevronRight
+            size={20}
+            color={
+              page + 1 >= totalPages
+                ? theme.mutedForeground
+                : theme.primary
+            }
+          />
         </Pressable>
       </View>
+
+      {/* 3. Material 3 Bottom Sheet: Page & Density Modal */}
+      <Modal
+        visible={sheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseSheet}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
+          {/* Backdrop overlay */}
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)" }}
+            onPress={handleCloseSheet}
+            accessibilityLabel="Close page sheet overlay"
+          />
+
+          {/* Bottom Sheet Surface (28dp top corners) */}
+          <View
+            style={{
+              backgroundColor: theme.surfaceContainerLow || theme.card,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              ...borderStyle,
+            }}
+            className="p-5 pb-8 shadow-xl"
+          >
+            {/* Drag Handle */}
+            <View
+              className="w-9 h-1 rounded-full self-center mb-4"
+              style={{
+                backgroundColor: theme.outlineVariant
+                  ? `${theme.outlineVariant}66`
+                  : theme.border,
+              }}
+            />
+
+            {/* Header: Title, Description & Close Button */}
+            <View className="flex-row items-start justify-between gap-3 mb-5">
+              <View className="flex-1">
+                <AppText className="text-base font-bold text-foreground">
+                  Page & Density
+                </AppText>
+                <AppText className="text-xs text-muted-foreground mt-0.5">
+                  Jump directly to a page or change rows per page.
+                </AppText>
+              </View>
+
+              <Pressable
+                onPress={handleCloseSheet}
+                accessibilityRole="button"
+                accessibilityLabel="Close sheet"
+                className="w-8 h-8 rounded-full items-center justify-center active:opacity-70"
+                style={{
+                  backgroundColor:
+                    theme.surfaceContainerHigh || theme.surfaceContainer || theme.border,
+                }}
+              >
+                <X size={16} color={theme.foreground} />
+              </Pressable>
+            </View>
+
+            {/* Section 1: Quick Jump Input & Chips */}
+            <View className="gap-2 mb-6">
+              <AppText className="text-xs font-semibold text-muted-foreground">
+                Jump to page (1–
+                <AppText
+                  className="text-xs font-semibold text-muted-foreground"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {totalPages}
+                </AppText>
+                )
+              </AppText>
+
+              <View className="flex-row items-center gap-2">
+                <TextInput
+                  value={jumpPageInput}
+                  onChangeText={setJumpPageInput}
+                  keyboardType="number-pad"
+                  returnKeyType="done"
+                  onSubmitEditing={handleJumpSubmit}
+                  className="flex-1 min-h-[44px] px-3.5 rounded-xl border text-sm font-semibold"
+                  style={{
+                    backgroundColor:
+                      theme.surfaceContainerLowest || theme.background,
+                    color: theme.foreground,
+                    fontVariant: ["tabular-nums"],
+                    ...borderStyle,
+                    borderWidth: 1,
+                  }}
+                  placeholder="1"
+                  placeholderTextColor={theme.mutedForeground}
+                />
+                <Pressable
+                  onPress={handleJumpSubmit}
+                  accessibilityRole="button"
+                  accessibilityLabel="Jump to entered page"
+                  className="min-h-[44px] px-5 rounded-xl items-center justify-center active:scale-[0.97]"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  <AppText
+                    className="text-sm font-bold"
+                    style={{ color: theme.onPrimary || "#ffffff" }}
+                  >
+                    Go
+                  </AppText>
+                </Pressable>
+              </View>
+
+              {/* Quick Jump Page Chips */}
+              <View className="flex-row flex-wrap items-center gap-1.5 pt-1">
+                {quickJumpCandidates.map((p) => {
+                  const isActive = p === currentPage1Based;
+                  return (
+                    <Pressable
+                      key={p}
+                      onPress={() => handleQuickJump(p)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Jump to page ${p}`}
+                      className="min-h-[36px] min-w-[42px] px-3 items-center justify-center rounded-lg border active:scale-[0.95]"
+                      style={{
+                        backgroundColor: isActive
+                          ? (theme.primaryContainer || theme.primary)
+                          : (theme.surfaceContainerLowest || theme.background),
+                        borderColor: isActive
+                          ? (theme.primaryContainer || theme.primary)
+                          : (theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border),
+                      }}
+                    >
+                      <AppText
+                        className="text-xs font-bold"
+                        style={{
+                          color: isActive
+                            ? (theme.onPrimaryContainer || theme.onPrimary || "#ffffff")
+                            : theme.foreground,
+                          fontVariant: ["tabular-nums"],
+                        }}
+                      >
+                        {p}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Section 2: Rows Per Page Segmented Grid */}
+            {onPageSizeChange && (
+              <View className="gap-2">
+                <AppText className="text-xs font-semibold text-muted-foreground">
+                  Rows per page
+                </AppText>
+                <View className="flex-row items-center gap-2">
+                  {pageSizeOptions.map((size) => {
+                    const isActive = size === pageSize;
+                    return (
+                      <Pressable
+                        key={size}
+                        onPress={() => handleSelectRowsPerPage(size)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Set rows per page to ${size}`}
+                        className="flex-1 min-h-[44px] items-center justify-center rounded-xl border active:scale-[0.95]"
+                        style={{
+                          backgroundColor: isActive
+                            ? (theme.primaryContainer || theme.primary)
+                            : (theme.surfaceContainerLowest || theme.background),
+                          borderColor: isActive
+                            ? (theme.primaryContainer || theme.primary)
+                            : (theme.outlineVariant ? `${theme.outlineVariant}55` : theme.border),
+                        }}
+                      >
+                        <AppText
+                          className="text-sm font-bold"
+                          style={{
+                            color: isActive
+                              ? (theme.onPrimaryContainer || theme.onPrimary || "#ffffff")
+                              : theme.foreground,
+                            fontVariant: ["tabular-nums"],
+                          }}
+                        >
+                          {size}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
