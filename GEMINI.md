@@ -60,3 +60,9 @@ Build product-specific, usable, accessible, responsive/adaptive UI. Detect the p
 - [ ] Loading/error/empty/offline states considered
 - [ ] Final platform-specific audit completed
 <!-- POLISHED-UI-SKILLS:END -->
+
+## Android Release & Expo Monorepo Rules
+- **pnpm Hoisting**: Because Metro Bundler and Babel resolve plugins from both root and workspace scopes, `.npmrc` must keep `shamefully-hoist=true` and `auto-install-peers=true`.
+- **Babel Dependencies**: `@babel/core` and `@babel/plugin-transform-react-jsx` must always be declared in `apps/mobile/package.json` devDependencies and hoisted to prevent `createBundleReleaseJsAndAssets` failures during Gradle APK builds.
+- **Android Builds on GitHub Actions**: Do not use `android-actions/setup-android@v3` (it fails on obsolete `tools` package); instead accept licenses using the pre-installed SDK via `$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses`.
+
