@@ -1,82 +1,10 @@
-name: Build Android APK
-
+# This workflow has been replaced by .github/workflows/android-build.yml
+# To run APK builds and GitHub releases, see android-build.yml
+name: Deprecated - Use android-build.yml
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target Database / Supabase Env'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - preview-dev
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'release'
-        type: choice
-        options:
-          - release
-          - debug
-
 jobs:
-  build-apk:
-    name: Build APK (${{ inputs.environment }} - ${{ inputs.build_type }})
+  deprecated:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Java JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.11.0
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Expo Prebuild (Generate Android native project)
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform android --clean
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ inputs.environment == 'production' && 'https://wkfyfslgfpcybyajjndl.supabase.co' || 'https://yikuhckrwhhjkqdalqxf.supabase.co' }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ inputs.environment == 'production' && 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZnlmc2xnZnBjeWJ5YWpqbmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTQ1NzEsImV4cCI6MjA5OTI3MDU3MX0.grButg-0T-WfoPVwYDqxzaGejz_pmb2nzDk6fdj6Q4s' || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa3VoY2tyd2hoamtxZGFscXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MTkxODUsImV4cCI6MjEwODk5NTE4NX0.pKLXIEzkn1VrIHIktI_P329Ck0DOVZsZlVMicV2VnDA' }}
-          EXPO_PUBLIC_WEB_APP_URL: https://web-six-beta-34.vercel.app
-
-      - name: Build APK with Gradle Wrapper
-        working-directory: apps/mobile/android
-        run: |
-          if [ "${{ inputs.build_type }}" = "release" ]; then
-            # Assemble release APK with arm64-v8a architecture optimization
-            ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
-          else
-            ./gradlew assembleDebug --no-daemon
-          fi
-        env:
-          ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
-          EXPO_PUBLIC_SUPABASE_URL: ${{ inputs.environment == 'production' && 'https://wkfyfslgfpcybyajjndl.supabase.co' || 'https://yikuhckrwhhjkqdalqxf.supabase.co' }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ inputs.environment == 'production' && 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZnlmc2xnZnBjeWJ5YWpqbmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2OTQ1NzEsImV4cCI6MjA5OTI3MDU3MX0.grButg-0T-WfoPVwYDqxzaGejz_pmb2nzDk6fdj6Q4s' || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa3VoY2tyd2hoamtxZGFscXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MTkxODUsImV4cCI6MjEwODk5NTE4NX0.pKLXIEzkn1VrIHIktI_P329Ck0DOVZsZlVMicV2VnDA' }}
-          EXPO_PUBLIC_WEB_APP_URL: https://web-six-beta-34.vercel.app
-
-      - name: Upload Generated APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kashmap-${{ inputs.environment }}-${{ inputs.build_type }}
-          path: apps/mobile/android/app/build/outputs/apk/**/*.apk
-          retention-days: 14
+      - run: echo "Please use android-build.yml instead"
